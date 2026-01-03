@@ -12,6 +12,9 @@
  * Default password for all seeded users: Password123!
  */
 
+// Load environment variables from .env file
+require('dotenv').config();
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 

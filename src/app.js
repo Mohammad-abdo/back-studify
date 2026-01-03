@@ -102,6 +102,7 @@ const deliveryAssignmentRoutes = require('./routes/deliveryAssignment.routes');
 const deliveryWalletRoutes = require('./routes/deliveryWallet.routes');
 const deliveryLocationRoutes = require('./routes/deliveryLocation.routes');
 const dashboardMetricRoutes = require('./routes/dashboardMetric.routes');
+const mobileRoutes = require('./routes/mobile');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -135,6 +136,9 @@ app.use('/api/delivery-assignments', deliveryAssignmentRoutes);
 app.use('/api/delivery-wallets', deliveryWalletRoutes);
 app.use('/api/delivery-locations', deliveryLocationRoutes);
 app.use('/api/dashboard-metrics', dashboardMetricRoutes);
+
+// Mobile routes
+app.use('/api/mobile', mobileRoutes);
 
 // 404 handler
 app.use((req, res) => {
