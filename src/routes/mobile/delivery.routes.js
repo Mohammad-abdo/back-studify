@@ -8,18 +8,24 @@ const router = express.Router();
 const deliveryController = require('../../controllers/delivery.controller');
 const deliveryAssignmentController = require('../../controllers/deliveryAssignment.controller');
 const deliveryLocationController = require('../../controllers/deliveryLocation.controller');
-const deliveryWalletController = require('../../controllers/deliveryWallet.controller');
+const financialTransactionController = require('../../controllers/financialTransaction.controller');
 const notificationService = require('../../services/notification.service');
+const prisma = require('../../config/database');
+const { NotFoundError } = require('../../utils/errors');
 const authenticate = require('../../middleware/auth.middleware');
 const { requireUserType } = require('../../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../../middleware/validation.middleware');
 const { paginationSchema } = require('../../utils/validators');
-const { sendSuccess, sendPaginated, getPaginationParams } = require('../../utils/response');
+const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../../utils/response');
+const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
 const { z } = require('zod');
 
 // All routes require authentication and delivery type
 router.use(authenticate);
 router.use(requireUserType('DELIVERY'));
+
+// Transform image URLs to full URLs for mobile
+router.use(transformImageUrlsMiddleware);
 
 // ============================================
 // PROFILE
@@ -45,7 +51,7 @@ router.get('/assignments', validateQuery(paginationSchema.extend({
   status: z.enum(['CREATED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
 })), deliveryController.getAssignments);
 
-router.get('/assignments/:id', deliveryAssignmentController.getAssignmentById);
+router.get('/assignments/:id', deliveryAssignmentController.getDeliveryAssignmentById);
 
 router.post('/orders/:orderId/pickup', deliveryController.markPickedUp);
 router.post('/orders/:orderId/deliver', deliveryController.markDelivered);
@@ -59,16 +65,83 @@ router.post('/location', validateBody(z.object({
   address: z.string().optional(),
 })), deliveryController.updateLocation);
 
-router.get('/location/history', validateQuery(paginationSchema), deliveryLocationController.getLocationHistory);
+router.get('/location/history', validateQuery(paginationSchema), async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+
+    const delivery = await prisma.delivery.findUnique({
+      where: { userId },
+    });
+
+    if (!delivery) {
+      throw new NotFoundError('Delivery profile not found');
+    }
+
+    const where = {
+      deliveryId: delivery.id,
+    };
+
+    const [locations, total] = await Promise.all([
+      prisma.deliveryLocation.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.deliveryLocation.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, locations, pagination, 'Location history retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ============================================
 // WALLET
 // ============================================
-router.get('/wallet', deliveryWalletController.getWallet);
+router.get('/wallet', deliveryController.getWallet);
 router.get('/wallet/transactions', validateQuery(paginationSchema.extend({
   type: z.enum(['DEPOSIT', 'WITHDRAWAL', 'PAYMENT', 'REFUND', 'COMMISSION']).optional(),
   status: z.enum(['PENDING', 'COMPLETED', 'FAILED', 'CANCELLED']).optional(),
-})), deliveryWalletController.getTransactions);
+})), async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+    const { type, status } = req.query;
+
+    const delivery = await prisma.delivery.findUnique({
+      where: { userId },
+    });
+
+    if (!delivery) {
+      throw new NotFoundError('Delivery profile not found');
+    }
+
+    const where = {
+      deliveryId: delivery.id,
+      ...(type && { type }),
+      ...(status && { status }),
+    };
+
+    const [transactions, total] = await Promise.all([
+      prisma.financialTransaction.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.financialTransaction.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, transactions, pagination, 'Transactions retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ============================================
 // NOTIFICATIONS

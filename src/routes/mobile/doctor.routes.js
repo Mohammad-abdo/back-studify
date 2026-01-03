@@ -14,11 +14,15 @@ const { requireUserType } = require('../../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../../utils/validators');
 const { sendSuccess, sendPaginated, getPaginationParams } = require('../../utils/response');
+const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
 const { z } = require('zod');
 
 // All routes require authentication and doctor type
 router.use(authenticate);
 router.use(requireUserType('DOCTOR'));
+
+// Transform image URLs to full URLs for mobile
+router.use(transformImageUrlsMiddleware);
 
 // ============================================
 // PROFILE

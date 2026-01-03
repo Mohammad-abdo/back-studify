@@ -128,6 +128,41 @@ const sleep = (ms) => {
   return new Promise((resolve) => setTimeout(resolve, ms));
 };
 
+/**
+ * Convert relative image URL to full URL
+ * Handles:
+ * - Relative paths like "/uploads/file.jpg" or "uploads/file.jpg"
+ * - Already full URLs (returns as-is)
+ * - Null/undefined values (returns null)
+ */
+const getFullImageUrl = (imageUrl) => {
+  if (!imageUrl) return null;
+  
+  // If already a full URL (starts with http:// or https://), return as-is
+  if (typeof imageUrl === 'string' && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+    return imageUrl;
+  }
+  
+  // If it's a relative path, convert to full URL
+  if (typeof imageUrl === 'string') {
+    // Remove leading slash if present
+    const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
+    return `${config.backendUrl}/${cleanPath}`;
+  }
+  
+  return imageUrl;
+};
+
+/**
+ * Convert array of image URLs to full URLs
+ */
+const getFullImageUrls = (imageUrls) => {
+  if (!imageUrls) return null;
+  if (!Array.isArray(imageUrls)) return imageUrls;
+  
+  return imageUrls.map(url => getFullImageUrl(url));
+};
+
 module.exports = {
   hashPassword,
   comparePassword,
@@ -144,5 +179,7 @@ module.exports = {
   formatDate,
   calculateOrderTotal,
   sleep,
+  getFullImageUrl,
+  getFullImageUrls,
 };
 
