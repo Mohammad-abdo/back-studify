@@ -1,0 +1,703 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserType {
+  STUDENT
+  DOCTOR
+  DELIVERY
+  CUSTOMER
+  ADMIN
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum BookAccessType {
+  READ
+  BUY
+  PRINT
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum ReviewTarget {
+  BOOK
+  PRODUCT
+}
+
+enum ImportType {
+  PRODUCT
+  BOOK
+}
+
+enum DeliveryStatus {
+  AVAILABLE
+  ON_DELIVERY
+  OFFLINE
+}
+
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PAYMENT
+  REFUND
+  COMMISSION
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AdminOperationType {
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  REJECT
+  IMPORT
+  EXPORT
+  SYSTEM
+}
+
+// ============================================
+// DOMAIN 1: AUTH & IDENTITY
+// ============================================
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  password  String
+  email     String?  @unique
+  avatarUrl String?
+  type      UserType
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  // Relations
+  student       Student?
+  doctor        Doctor?
+  delivery      Delivery?
+  customer      Customer?
+  admin         Admin?
+  otpCodes      OTPVerification[]
+  orders        Order[]
+  reviews       Review[]
+  notifications Notification[]
+  chatSessions  AIChatSession[]
+  userRoles     UserRole[]
+
+  @@index([phone])
+  @@index([email])
+  @@index([type])
+  @@map("users")
+}
+
+model OTPVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, code])
+  @@map("otp_verifications")
+}
+
+model Student {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  name         String
+  collegeId    String?
+  departmentId String?
+  createdAt    DateTime @default(now())
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college    College?    @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([collegeId])
+  @@index([departmentId])
+  @@map("students")
+}
+
+model Doctor {
+  id             String         @id @default(uuid())
+  userId         String         @unique
+  name           String
+  specialization String
+  approvalStatus ApprovalStatus @default(PENDING)
+  approvedAt     DateTime?
+  createdAt      DateTime       @default(now())
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books Book[]
+
+  @@index([userId])
+  @@index([approvalStatus])
+  @@map("doctors")
+}
+
+model Delivery {
+  id                 String         @id @default(uuid())
+  userId             String         @unique
+  name               String
+  vehicleType        String
+  vehiclePlateNumber String?
+  status             DeliveryStatus @default(AVAILABLE)
+  createdAt          DateTime       @default(now())
+
+  user         User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet       DeliveryWallet?
+  locations    DeliveryLocation[]
+  assignments  DeliveryAssignment[]
+  transactions FinancialTransaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("deliveries")
+}
+
+model DeliveryWallet {
+  id         String   @id @default(uuid())
+  deliveryId String   @unique
+  balance    Float    @default(0)
+  updatedAt  DateTime @updatedAt
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+  @@map("delivery_wallets")
+}
+
+model DeliveryLocation {
+  id         String   @id @default(uuid())
+  deliveryId String
+  latitude   Float
+  longitude  Float
+  address    String?
+  createdAt  DateTime @default(now())
+
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([deliveryId])
+  @@index([createdAt])
+  @@map("delivery_locations")
+}
+
+model DeliveryAssignment {
+  id          String      @id @default(uuid())
+  orderId     String      @unique
+  deliveryId  String
+  status      OrderStatus @default(CREATED)
+  assignedAt  DateTime    @default(now())
+  pickedUpAt  DateTime?
+  deliveredAt DateTime?
+
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  delivery Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([deliveryId])
+  @@index([status])
+  @@map("delivery_assignments")
+}
+
+model Customer {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  entityName    String
+  contactPerson String
+  phone         String
+  createdAt     DateTime @default(now())
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wholesaleOrders WholesaleOrder[]
+
+  @@index([userId])
+  @@map("customers")
+}
+
+model Admin {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  operations AdminOperationLog[]
+
+  @@index([userId])
+  @@map("admins")
+}
+
+// ============================================
+// DOMAIN 2: ROLES & PERMISSIONS (RBAC)
+// ============================================
+
+model Role {
+  id   String @id @default(uuid())
+  name String @unique
+
+  permissions RolePermission[]
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id  String @id @default(uuid())
+  key String @unique
+
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String @id @default(uuid())
+  roleId       String
+  permissionId String
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+// ============================================
+// DOMAIN 3: COLLEGE & DEPARTMENT
+// ============================================
+
+model College {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  departments Department[]
+  students    Student[]
+  books       Book[]
+
+  @@map("colleges")
+}
+
+model Department {
+  id        String   @id @default(uuid())
+  name      String
+  collegeId String
+  createdAt DateTime @default(now())
+
+  college  College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  students Student[]
+  books    Book[]
+
+  @@index([collegeId])
+  @@map("departments")
+}
+
+// ============================================
+// DOMAIN 4: BOOKS
+// ============================================
+
+model BookCategory {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  books Book[]
+
+  @@map("book_categories")
+}
+
+model Book {
+  id             String         @id @default(uuid())
+  title          String
+  description    String         @db.Text
+  fileUrl        String
+  imageUrls      String?        @db.Text // JSON array of image URLs
+  totalPages     Int
+  categoryId     String
+  doctorId       String
+  collegeId      String?
+  departmentId   String?
+  approvalStatus ApprovalStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+
+  category     BookCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  college      College?      @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  pricing      BookPricing[]
+  printOptions PrintOption[]
+
+  @@index([categoryId])
+  @@index([doctorId])
+  @@index([collegeId])
+  @@index([departmentId])
+  @@index([approvalStatus])
+  @@map("books")
+}
+
+model BookPricing {
+  id             String         @id @default(uuid())
+  bookId         String
+  accessType     BookAccessType
+  price          Float
+  approvalStatus ApprovalStatus @default(PENDING)
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, accessType])
+  @@index([bookId])
+  @@map("book_pricing")
+}
+
+model PrintOption {
+  id           String @id @default(uuid())
+  bookId       String
+  colorType    String
+  paperSize    String
+  pricePerPage Float
+
+  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@map("print_options")
+}
+
+// ============================================
+// DOMAIN 5: PRODUCTS
+// ============================================
+
+model ProductCategory {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  products Product[]
+
+  @@map("product_categories")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String   @db.Text
+  imageUrls   String?  @db.Text // JSON array of image URLs
+  categoryId  String
+  createdAt   DateTime @default(now())
+
+  category            ProductCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  pricing             ProductPricing[]
+  wholesaleOrderItems WholesaleOrderItem[]
+
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductPricing {
+  id          String @id @default(uuid())
+  productId   String
+  minQuantity Int
+  price       Float
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_pricing")
+}
+
+// ============================================
+// DOMAIN 6: REVIEWS
+// ============================================
+
+model Review {
+  id         String       @id @default(uuid())
+  userId     String
+  targetId   String
+  targetType ReviewTarget
+  rating     Int
+  comment    String?      @db.Text
+  createdAt  DateTime     @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId, targetType])
+  @@index([userId])
+  @@index([targetId, targetType])
+  @@map("reviews")
+}
+
+// ============================================
+// DOMAIN 7: ORDERS
+// ============================================
+
+model Order {
+  id        String      @id @default(uuid())
+  userId    String
+  total     Float
+  status    OrderStatus @default(CREATED)
+  createdAt DateTime    @default(now())
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items      OrderItem[]
+  assignment DeliveryAssignment?
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String @id @default(uuid())
+  orderId       String
+  referenceType String // "BOOK", "PRODUCT", "PRINT_OPTION"
+  referenceId   String
+  quantity      Int
+  price         Float
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([referenceType, referenceId])
+  @@map("order_items")
+}
+
+// ============================================
+// DOMAIN 8: SYSTEM
+// ============================================
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model StaticPage {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  title     String
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("static_pages")
+}
+
+// ============================================
+// DOMAIN 9: ONBOARDING
+// ============================================
+
+model Onboarding {
+  id          String   @id @default(uuid())
+  imageUrl    String
+  title       String
+  description String   @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+  @@map("onboarding")
+}
+
+model AIChatSession {
+  id        String   @id @default(uuid())
+  userId    String
+  createdAt DateTime @default(now())
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AIChatMessage[]
+
+  @@index([userId])
+  @@map("ai_chat_sessions")
+}
+
+model AIChatMessage {
+  id        String   @id @default(uuid())
+  sessionId String
+  sender    String // "USER" or "AI"
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  session AIChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("ai_chat_messages")
+}
+
+// ============================================
+// DOMAIN 9: REPORTS & IMPORT
+// ============================================
+
+model ImportLog {
+  id        String     @id @default(uuid())
+  type      ImportType
+  fileUrl   String
+  success   Int
+  failed    Int
+  createdAt DateTime   @default(now())
+
+  @@index([type])
+  @@map("import_logs")
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  name      String
+  fileUrl   String
+  createdAt DateTime @default(now())
+
+  @@map("reports")
+}
+
+// ============================================
+// DOMAIN 10: WHOLESALE ORDERS
+// ============================================
+
+model WholesaleOrder {
+  id         String      @id @default(uuid())
+  customerId String
+  total      Float
+  status     OrderStatus @default(CREATED)
+  createdAt  DateTime    @default(now())
+
+  customer Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items    WholesaleOrderItem[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("wholesale_orders")
+}
+
+model WholesaleOrderItem {
+  id        String @id @default(uuid())
+  orderId   String
+  productId String
+  quantity  Int
+  price     Float
+
+  order   WholesaleOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("wholesale_order_items")
+}
+
+// ============================================
+// DOMAIN 11: FINANCIAL MANAGEMENT
+// ============================================
+
+model FinancialTransaction {
+  id          String            @id @default(uuid())
+  type        TransactionType
+  amount      Float
+  status      TransactionStatus @default(PENDING)
+  description String?           @db.Text
+  deliveryId  String?
+  orderId     String?
+  metadata    Json?
+  createdAt   DateTime          @default(now())
+  completedAt DateTime?
+
+  delivery Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+
+  @@index([type])
+  @@index([status])
+  @@index([deliveryId])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("financial_transactions")
+}
+
+// ============================================
+// DOMAIN 12: ADMIN OPERATIONS & DASHBOARD
+// ============================================
+
+model AdminOperationLog {
+  id            String             @id @default(uuid())
+  adminId       String
+  operationType AdminOperationType
+  entityType    String
+  entityId      String?
+  description   String?            @db.Text
+  metadata      Json?
+  ipAddress     String?
+  userAgent     String?
+  createdAt     DateTime           @default(now())
+
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([operationType])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("admin_operation_logs")
+}
+
+model DashboardMetric {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  metadata  Json?
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("dashboard_metrics")
+}
