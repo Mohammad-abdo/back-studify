@@ -6,15 +6,23 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../../controllers/user.controller');
+const authController = require('../../controllers/auth.controller');
 const bookController = require('../../controllers/book.controller');
+const bookPricingController = require('../../controllers/bookPricing.controller');
 const orderController = require('../../controllers/order.controller');
+const categoryController = require('../../controllers/category.controller');
+const collegeController = require('../../controllers/college.controller');
+const reviewController = require('../../controllers/review.controller');
 const notificationService = require('../../services/notification.service');
+const prisma = require('../../config/database');
+const { NotFoundError } = require('../../utils/errors');
 const authenticate = require('../../middleware/auth.middleware');
 const { requireUserType } = require('../../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../../utils/validators');
-const { sendSuccess, sendPaginated, getPaginationParams } = require('../../utils/response');
+const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../../utils/response');
 const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
+const { singleUpload } = require('../../services/fileUpload.service');
 const { z } = require('zod');
 
 // All routes require authentication and doctor type
@@ -29,6 +37,21 @@ router.use(transformImageUrlsMiddleware);
 // ============================================
 router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
+
+// Update doctor-specific profile (name, specialization)
+router.put('/profile/doctor', validateBody(z.object({
+  name: z.string().min(2).max(100).optional(),
+  specialization: z.string().min(2).max(200).optional(),
+})), userController.updateDoctorProfile);
+
+// Upload profile image
+router.post('/profile/avatar', singleUpload('avatar'), userController.uploadProfileImage);
+
+// Change password
+router.post('/change-password', validateBody(z.object({
+  currentPassword: z.string().min(6),
+  newPassword: z.string().min(6),
+})), authController.changePassword);
 
 // ============================================
 // MY BOOKS
@@ -52,8 +75,6 @@ router.get('/books', validateQuery(paginationSchema.extend({
     next(error);
   }
 });
-
-router.get('/books/:id', bookController.getBookById);
 
 router.post('/books', validateBody(z.object({
   title: z.string().min(2).max(200),
@@ -79,35 +100,382 @@ router.put('/books/:id', validateBody(z.object({
 
 router.delete('/books/:id', bookController.deleteBook);
 
-// Book pricing
+// ============================================
+// BOOK PRICING (must come before /books/:id)
+// ============================================
+router.get('/books/:bookId/pricing', validateQuery(paginationSchema), async (req, res, next) => {
+  try {
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    // Verify book belongs to doctor
+    const book = await prisma.book.findUnique({
+      where: { id: req.params.bookId },
+    });
+
+    if (!book) {
+      throw new NotFoundError('Book not found');
+    }
+
+    if (book.doctorId !== doctorId) {
+      throw new NotFoundError('Book not found');
+    }
+
+    req.query.bookId = req.params.bookId;
+    return bookPricingController.getBookPricings(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/books/:bookId/pricing/:id', async (req, res, next) => {
+  try {
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    // Verify book belongs to doctor
+    const pricing = await prisma.bookPricing.findUnique({
+      where: { id: req.params.id },
+      include: { book: true },
+    });
+
+    if (!pricing) {
+      throw new NotFoundError('Book pricing not found');
+    }
+
+    if (pricing.book.doctorId !== doctorId) {
+      throw new NotFoundError('Book pricing not found');
+    }
+
+    return bookPricingController.getBookPricingById(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/books/:id/pricing', validateBody(z.object({
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
   price: z.number().nonnegative(),
 })), bookController.addBookPricing);
 
-// ============================================
-// BOOK STATISTICS
-// ============================================
-router.get('/books/:id/stats', async (req, res, next) => {
+router.put('/books/:bookId/pricing/:id', validateBody(z.object({
+  price: z.number().nonnegative().optional(),
+})), async (req, res, next) => {
   try {
-    // Get book statistics (views, orders, reviews)
-    // This would need to be implemented in book controller
-    sendSuccess(res, { message: 'Book statistics endpoint - to be implemented' }, 'Book statistics');
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    // Verify book belongs to doctor
+    const pricing = await prisma.bookPricing.findUnique({
+      where: { id: req.params.id },
+      include: { book: true },
+    });
+
+    if (!pricing) {
+      throw new NotFoundError('Book pricing not found');
+    }
+
+    if (pricing.book.doctorId !== doctorId) {
+      throw new NotFoundError('Book pricing not found');
+    }
+
+    return bookPricingController.updateBookPricing(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/books/:bookId/pricing/:id', async (req, res, next) => {
+  try {
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    // Verify book belongs to doctor
+    const pricing = await prisma.bookPricing.findUnique({
+      where: { id: req.params.id },
+      include: { book: true },
+    });
+
+    if (!pricing) {
+      throw new NotFoundError('Book pricing not found');
+    }
+
+    if (pricing.book.doctorId !== doctorId) {
+      throw new NotFoundError('Book pricing not found');
+    }
+
+    return bookPricingController.deleteBookPricing(req, res, next);
   } catch (error) {
     next(error);
   }
 });
 
 // ============================================
+// BOOK STATISTICS (must come before /books/:id)
+// ============================================
+router.get('/books/:id/stats', async (req, res, next) => {
+  try {
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    const { id } = req.params;
+
+    // Verify book belongs to doctor
+    const book = await prisma.book.findUnique({
+      where: { id },
+    });
+
+    if (!book) {
+      throw new NotFoundError('Book not found');
+    }
+
+    if (book.doctorId !== doctorId) {
+      throw new NotFoundError('Book not found');
+    }
+
+    // Get statistics
+    const [ordersCount, reviewsCount, totalRevenue] = await Promise.all([
+      prisma.orderItem.count({
+        where: {
+          referenceType: 'BOOK',
+          referenceId: id,
+        },
+      }),
+      prisma.review.count({
+        where: {
+          targetType: 'BOOK',
+          targetId: id,
+        },
+      }),
+      prisma.orderItem.aggregate({
+        where: {
+          referenceType: 'BOOK',
+          referenceId: id,
+          order: {
+            status: {
+              in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+            },
+          },
+        },
+        _sum: {
+          price: true,
+        },
+      }),
+    ]);
+
+    const stats = {
+      orders: ordersCount,
+      reviews: reviewsCount,
+      totalRevenue: totalRevenue._sum.price || 0,
+      averageRating: 0, // Can be calculated from reviews if needed
+    };
+
+    // Calculate average rating
+    const reviews = await prisma.review.findMany({
+      where: {
+        targetType: 'BOOK',
+        targetId: id,
+      },
+      select: {
+        rating: true,
+      },
+    });
+
+    if (reviews.length > 0) {
+      const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+      stats.averageRating = sum / reviews.length;
+    }
+
+    sendSuccess(res, stats, 'Book statistics retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
+// BOOK REVIEWS (for doctor's books) - must come before /books/:id
+// ============================================
+router.get('/books/:id/reviews', validateQuery(paginationSchema), async (req, res, next) => {
+  try {
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    // Verify book belongs to doctor
+    const book = await prisma.book.findUnique({
+      where: { id: req.params.id },
+    });
+
+    if (!book) {
+      throw new NotFoundError('Book not found');
+    }
+
+    if (book.doctorId !== doctorId) {
+      throw new NotFoundError('Book not found');
+    }
+
+    req.query.targetId = req.params.id;
+    req.query.targetType = 'BOOK';
+    return reviewController.getReviews(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
+// GET BOOK BY ID (must come after all specific routes)
+// ============================================
+router.get('/books/:id', bookController.getBookById);
+
+// ============================================
 // ORDERS (for books sold)
 // ============================================
 router.get('/orders', validateQuery(paginationSchema.extend({
   status: z.enum(['CREATED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
+  bookId: uuidSchema.optional(),
 })), async (req, res, next) => {
   try {
-    // Get orders for books created by this doctor
-    // This would need custom implementation
-    sendSuccess(res, { message: 'Doctor orders endpoint - to be implemented' }, 'Orders');
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+    const { status, bookId } = req.query;
+
+    // Get all books by this doctor
+    const doctorBooks = await prisma.book.findMany({
+      where: { doctorId },
+      select: { id: true },
+    });
+
+    const bookIds = doctorBooks.map(book => book.id);
+
+    if (bookIds.length === 0) {
+      return sendPaginated(res, [], buildPagination(page, limit, 0), 'Orders retrieved successfully');
+    }
+
+    // Build where clause
+    const where = {
+      items: {
+        some: {
+          referenceType: 'BOOK',
+          referenceId: {
+            in: bookIds,
+          },
+          ...(bookId && { referenceId: bookId }),
+        },
+      },
+      ...(status && { status }),
+    };
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          items: {
+            where: {
+              referenceType: 'BOOK',
+              referenceId: {
+                in: bookIds,
+              },
+            },
+            include: {
+              order: {
+                select: {
+                  id: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+          user: {
+            select: {
+              id: true,
+              phone: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, orders, pagination, 'Orders retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
+// CATEGORIES (for book creation)
+// ============================================
+router.get('/categories/books', categoryController.getBookCategories);
+
+// ============================================
+// COLLEGES (for book creation)
+// ============================================
+router.get('/colleges', validateQuery(paginationSchema.extend({
+  search: z.string().optional(),
+})), collegeController.getColleges);
+
+router.get('/colleges/:id', collegeController.getCollegeById);
+
+// ============================================
+// DEPARTMENTS (for book creation)
+// ============================================
+router.get('/departments', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+  search: z.string().optional(),
+})), async (req, res, next) => {
+  try {
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+    const { collegeId, search } = req.query;
+
+    const where = {
+      ...(collegeId && { collegeId }),
+      ...(search && {
+        name: { contains: search, mode: 'insensitive' },
+      }),
+    };
+
+    const [departments, total] = await Promise.all([
+      prisma.department.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          college: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.department.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, departments, pagination, 'Departments retrieved successfully');
   } catch (error) {
     next(error);
   }

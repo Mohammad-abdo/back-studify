@@ -1,0 +1,766 @@
+{
+  "info": {
+    "name": "Studify - Mobile Doctor API",
+    "description": "Complete API collection for Doctor mobile app\n\nAll endpoints require authentication with Bearer token.\nSet the 'token' variable after login.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "studify-mobile-doctor",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/profile",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newemail@example.com\",\n  \"avatarUrl\": \"https://example.com/avatar.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/profile",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update Doctor Profile",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Updated Name\",\n  \"specialization\": \"Updated Specialization\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/profile/doctor",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "profile", "doctor"]
+            }
+          }
+        },
+        {
+          "name": "Upload Profile Avatar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/profile/avatar",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "profile", "avatar"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"OldPassword123!\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "My Books",
+      "item": [
+        {
+          "name": "Get My Books",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Book by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Book",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Book Title\",\n  \"description\": \"Book description here\",\n  \"fileUrl\": \"https://example.com/book.pdf\",\n  \"imageUrls\": [\"https://example.com/image1.jpg\"],\n  \"totalPages\": 200,\n  \"categoryId\": \"category-uuid-here\",\n  \"collegeId\": \"college-uuid-here\",\n  \"departmentId\": \"department-uuid-here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books"]
+            }
+          }
+        },
+        {
+          "name": "Update Book",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Book Title\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Book",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Book Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:id/stats",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":id", "stats"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Book Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:id/reviews?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":id", "reviews"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Book Pricing",
+      "item": [
+        {
+          "name": "Get Book Pricing",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:bookId/pricing?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":bookId", "pricing"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "bookId",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Book Pricing by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:bookId/pricing/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":bookId", "pricing", ":id"],
+              "variable": [
+                {
+                  "key": "bookId",
+                  "value": "book-uuid-here"
+                },
+                {
+                  "key": "id",
+                  "value": "pricing-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Book Pricing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessType\": \"READ\",\n  \"price\": 50.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:id/pricing",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":id", "pricing"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "book-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Book Pricing",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 75.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:bookId/pricing/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":bookId", "pricing", ":id"],
+              "variable": [
+                {
+                  "key": "bookId",
+                  "value": "book-uuid-here"
+                },
+                {
+                  "key": "id",
+                  "value": "pricing-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Book Pricing",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/books/:bookId/pricing/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "books", ":bookId", "pricing", ":id"],
+              "variable": [
+                {
+                  "key": "bookId",
+                  "value": "book-uuid-here"
+                },
+                {
+                  "key": "id",
+                  "value": "pricing-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Get Orders for My Books",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/orders?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "orders"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Categories & Filters",
+      "item": [
+        {
+          "name": "Get Book Categories",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/categories/books",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "categories", "books"]
+            }
+          }
+        },
+        {
+          "name": "Get Colleges",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/colleges?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "colleges"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get College by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/colleges/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "colleges", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "college-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Departments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/departments?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "departments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "collegeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/notifications?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "notifications"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "isRead",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Count",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/notifications/unread-count",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "notifications", "unread-count"]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/notifications/:id/read",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "notifications", ":id", "read"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "notification-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/notifications/read-all",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "notifications", "read-all"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://back-studify.developteam.site/api",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
+
