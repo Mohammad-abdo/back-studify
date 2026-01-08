@@ -37,6 +37,8 @@ router.use(transformImageUrlsMiddleware);
 // ============================================
 router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
+router.delete('/profile', userController.deleteAccount);
+
 
 // Update student-specific profile (name, college, department)
 router.put('/profile/student', validateBody(z.object({

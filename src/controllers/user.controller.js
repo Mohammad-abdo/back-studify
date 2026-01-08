@@ -189,11 +189,32 @@ const uploadProfileImage = async (req, res, next) => {
   }
 };
 
+/**
+ * Delete user account
+ */
+const deleteAccount = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+
+    // Hard delete user (cascade will remove related data)
+    await prisma.user.delete({
+      where: { id: userId },
+    });
+
+    sendSuccess(res, null, 'Account deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
   getProfile,
   updateProfile,
   updateStudentProfile,
   updateDoctorProfile,
   uploadProfileImage,
+  deleteAccount,
 };
+
 

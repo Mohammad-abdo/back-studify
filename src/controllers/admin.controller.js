@@ -396,6 +396,124 @@ const getUsers = async (req, res, next) => {
 };
 
 /**
+ * Get user by ID (Admin only)
+ */
+const getUserById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        phone: true,
+        email: true,
+        avatarUrl: true,
+        type: true,
+        isActive: true,
+        createdAt: true,
+        student: {
+          select: {
+            id: true,
+            name: true,
+            college: { select: { id: true, name: true } },
+            department: { select: { id: true, name: true } },
+          },
+        },
+        doctor: {
+          select: {
+            id: true,
+            name: true,
+            specialization: true,
+            approvalStatus: true,
+          },
+        },
+        delivery: {
+          select: {
+            id: true,
+            name: true,
+            vehicleType: true,
+            status: true,
+          },
+        },
+        customer: {
+          select: {
+            id: true,
+            entityName: true,
+            contactPerson: true,
+          },
+        },
+        admin: {
+          select: {
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    sendSuccess(res, user, 'User retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Update user (Admin only)
+ */
+const updateUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { phone, email, isActive } = req.body;
+
+    const user = await prisma.user.findUnique({
+      where: { id },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const updateData = {};
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
+    if (isActive !== undefined) updateData.isActive = isActive;
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        phone: true,
+        email: true,
+        avatarUrl: true,
+        type: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    // Log admin operation
+    await logAdminOperation(
+      req.userId,
+      ADMIN_OPERATION_TYPE.UPDATE,
+      'USER',
+      id,
+      `Updated user ${updatedUser.phone}`,
+      { changes: updateData },
+      req
+    );
+
+    sendSuccess(res, updatedUser, 'User updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get dashboard statistics
  */
 const getDashboardStats = async (req, res, next) => {
@@ -495,6 +613,8 @@ module.exports = {
   getOperationLogs,
   getDashboardStats,
   getUsers,
+  getUserById,
+  updateUser,
   getReviews,
   logAdminOperation,
 };

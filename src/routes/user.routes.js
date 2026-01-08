@@ -18,6 +18,8 @@ router.use(authenticate);
 router.get('/profile', userController.getProfile);
 router.put('/profile', validateBody(updateProfileSchema), userController.updateProfile);
 router.post('/profile/image', singleUpload('file'), userController.uploadProfileImage);
+router.delete('/profile', userController.deleteAccount);
+
 
 // Student profile routes
 router.put('/student/profile', requireUserType('STUDENT'), validateBody(updateStudentSchema), userController.updateStudentProfile);
