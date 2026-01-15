@@ -25,12 +25,8 @@ const comparePassword = async (password, hash) => {
  * Generate OTP code
  */
 const generateOTP = (length = config.otpLength) => {
-  const digits = '0123456789';
-  let otp = '';
-  for (let i = 0; i < length; i++) {
-    otp += digits[Math.floor(Math.random() * digits.length)];
-  }
-  return otp;
+  // Return fixed OTP for now as requested
+  return '123456';
 };
 
 /**
@@ -137,19 +133,19 @@ const sleep = (ms) => {
  */
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
-  
+
   // If already a full URL (starts with http:// or https://), return as-is
   if (typeof imageUrl === 'string' && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
     return imageUrl;
   }
-  
+
   // If it's a relative path, convert to full URL
   if (typeof imageUrl === 'string') {
     // Remove leading slash if present
     const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
     return `${config.backendUrl}/${cleanPath}`;
   }
-  
+
   return imageUrl;
 };
 
@@ -159,7 +155,7 @@ const getFullImageUrl = (imageUrl) => {
 const getFullImageUrls = (imageUrls) => {
   if (!imageUrls) return null;
   if (!Array.isArray(imageUrls)) return imageUrls;
-  
+
   return imageUrls.map(url => getFullImageUrl(url));
 };
 
