@@ -336,11 +336,11 @@ async function main() {
   // 9. Create Product Categories
   console.log('\n🛍️ Creating product categories...');
   const productCategories = [
-    { name: 'Office Supplies' },
-    { name: 'Books and References' },
-    { name: 'Electronic Devices' },
-    { name: 'University Apparel' },
-    { name: 'Study Supplies' },
+    { name: 'Office Supplies', collegeId: createdColleges[0].id },
+    { name: 'Books and References', collegeId: createdColleges[0].id },
+    { name: 'Electronic Devices', collegeId: createdColleges[1].id },
+    { name: 'University Apparel', collegeId: createdColleges[2].id },
+    { name: 'Study Supplies', collegeId: createdColleges[3].id },
   ];
 
   const createdProductCategories = [];
@@ -354,7 +354,7 @@ async function main() {
       created = await prisma.productCategory.create({
         data: category,
       });
-      console.log(`✅ Product category created: ${category.name}`);
+      console.log(`✅ Product category created: ${category.name} (College: ${createdColleges.find(c => c.id === category.collegeId)?.name || 'N/A'})`);
     } else {
       console.log(`⏭️  Product category already exists: ${category.name}`);
     }

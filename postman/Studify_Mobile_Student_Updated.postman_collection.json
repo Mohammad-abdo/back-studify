@@ -59,7 +59,24 @@
                 "auth",
                 "login"
               ]
-            }
+            },
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "exec": [
+                    "if (pm.response.code === 200) {",
+                    "    var jsonData = pm.response.json();",
+                    "    if (jsonData.data && jsonData.data.token) {",
+                    "        pm.collectionVariables.set(\"token\", jsonData.data.token);",
+                    "        console.log(\"Token saved to collection variable\");",
+                    "    }",
+                    "}"
+                  ],
+                  "type": "text/javascript"
+                }
+              }
+            ]
           }
         },
         {
@@ -540,6 +557,11 @@
                 },
                 {
                   "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "collegeId",
                   "value": "",
                   "disabled": true
                 },

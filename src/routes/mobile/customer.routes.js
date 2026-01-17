@@ -133,6 +133,7 @@ router.post('/change-password', validateBody(z.object({
 // ============================================
 router.get('/products', validateQuery(paginationSchema.extend({
   categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
   search: z.string().optional(),
 })), productController.getProducts);
 

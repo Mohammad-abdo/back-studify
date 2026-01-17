@@ -13,10 +13,15 @@ const { NotFoundError, AuthorizationError } = require('../utils/errors');
 const getProducts = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { categoryId, search } = req.query;
+    const { categoryId, collegeId, search } = req.query;
 
     const where = {
       ...(categoryId && { categoryId }),
+      ...(collegeId && {
+        category: {
+          collegeId: collegeId,
+        },
+      }),
       ...(search && {
         OR: [
           { name: { contains: search } },
@@ -31,7 +36,11 @@ const getProducts = async (req, res, next) => {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          category: true,
+          category: {
+            include: {
+              college: true,
+            },
+          },
           pricing: true,
         },
         orderBy: { createdAt: 'desc' },

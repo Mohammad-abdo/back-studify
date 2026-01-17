@@ -73,6 +73,7 @@ router.get('/books/:id', bookController.getBookById);
 // ============================================
 router.get('/products', validateQuery(paginationSchema.extend({
   categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
   search: z.string().optional(),
 })), productController.getProducts);
 

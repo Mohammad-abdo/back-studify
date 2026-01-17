@@ -9,6 +9,7 @@ const userController = require('../../controllers/user.controller');
 const authController = require('../../controllers/auth.controller');
 const bookController = require('../../controllers/book.controller');
 const bookPricingController = require('../../controllers/bookPricing.controller');
+const productController = require('../../controllers/product.controller');
 const orderController = require('../../controllers/order.controller');
 const categoryController = require('../../controllers/category.controller');
 const collegeController = require('../../controllers/college.controller');
@@ -425,9 +426,22 @@ router.get('/orders', validateQuery(paginationSchema.extend({
 });
 
 // ============================================
+// PRODUCTS
+// ============================================
+router.get('/products', validateQuery(paginationSchema.extend({
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  search: z.string().optional(),
+})), productController.getProducts);
+
+router.get('/products/:id', productController.getProductById);
+
+// ============================================
 // CATEGORIES (for book creation)
 // ============================================
 router.get('/categories/books', categoryController.getBookCategories);
+
+router.get('/categories/products', categoryController.getProductCategories);
 
 // ============================================
 // COLLEGES (for book creation)

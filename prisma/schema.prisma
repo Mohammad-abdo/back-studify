@@ -319,9 +319,10 @@ model College {
   name      String
   createdAt DateTime @default(now())
 
-  departments Department[]
-  students    Student[]
-  books       Book[]
+  departments       Department[]
+  students          Student[]
+  books             Book[]
+  productCategories ProductCategory[]
 
   @@map("colleges")
 }
@@ -417,10 +418,13 @@ model PrintOption {
 model ProductCategory {
   id        String   @id @default(uuid())
   name      String
+  collegeId String?
   createdAt DateTime @default(now())
 
+  college  College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   products Product[]
 
+  @@index([collegeId])
   @@map("product_categories")
 }
 
