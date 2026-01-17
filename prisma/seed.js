@@ -10,6 +10,24 @@
  *   node prisma/seed.js
  * 
  * Default password for all seeded users: Password123!
+ * 
+ * This seed script creates:
+ * 1. Admin user
+ * 2. 6 Colleges (Engineering, Medicine, Science, Commerce, Arts, Law)
+ * 3. 12 Departments (linked to colleges)
+ * 4. 3 Students (with college and department)
+ * 5. 3 Doctors (approved)
+ * 6. 3 Delivery personnel (with wallets)
+ * 7. 2 Wholesale Customers
+ * 8. 7 Book Categories
+ * 9. 16 Product Categories (linked to colleges)
+ * 10. 6 Books (with college, department, pricing)
+ * 11. 13 Products (with pricing tiers)
+ * 12. Roles & Permissions (Admin, Doctor roles)
+ * 
+ * All data is in English.
+ * Product categories are linked to colleges.
+ * Books are linked to colleges and departments.
  */
 
 // Load environment variables from .env file
@@ -223,12 +241,21 @@ async function main() {
       email: 'delivery1@studify.com',
       name: 'Mohamed Driver',
       vehicleType: 'Motorcycle',
+      vehiclePlateNumber: 'MOT-123',
     },
     {
       phone: '+203333333332',
       email: 'delivery2@studify.com',
       name: 'Ahmed Carrier',
       vehicleType: 'Car',
+      vehiclePlateNumber: 'CAR-456',
+    },
+    {
+      phone: '+203333333333',
+      email: 'delivery3@studify.com',
+      name: 'Sara Delivery',
+      vehicleType: 'Motorcycle',
+      vehiclePlateNumber: 'MOT-789',
     },
   ];
 
@@ -248,6 +275,7 @@ async function main() {
           create: {
             name: delivery.name,
             vehicleType: delivery.vehicleType,
+            vehiclePlateNumber: delivery.vehiclePlateNumber,
             status: 'AVAILABLE',
           },
         },
@@ -256,6 +284,17 @@ async function main() {
     });
     createdDeliveries.push(user);
     console.log(`✅ Delivery created: ${delivery.name}`);
+    
+    // Create delivery wallet
+    await prisma.deliveryWallet.upsert({
+      where: { deliveryId: user.delivery.id },
+      update: {},
+      create: {
+        deliveryId: user.delivery.id,
+        balance: 0,
+      },
+    });
+    console.log(`  ✅ Delivery wallet created`);
   }
 
   // 7. Create Customer (Wholesale)
@@ -336,11 +375,28 @@ async function main() {
   // 9. Create Product Categories
   console.log('\n🛍️ Creating product categories...');
   const productCategories = [
+    // Engineering College Categories
     { name: 'Office Supplies', collegeId: createdColleges[0].id },
-    { name: 'Books and References', collegeId: createdColleges[0].id },
+    { name: 'Engineering Tools', collegeId: createdColleges[0].id },
+    { name: 'Technical Books', collegeId: createdColleges[0].id },
+    // Medicine College Categories
+    { name: 'Medical Supplies', collegeId: createdColleges[1].id },
     { name: 'Electronic Devices', collegeId: createdColleges[1].id },
+    { name: 'Medical Books', collegeId: createdColleges[1].id },
+    // Science College Categories
+    { name: 'Lab Equipment', collegeId: createdColleges[2].id },
     { name: 'University Apparel', collegeId: createdColleges[2].id },
+    { name: 'Science Books', collegeId: createdColleges[2].id },
+    // Commerce College Categories
     { name: 'Study Supplies', collegeId: createdColleges[3].id },
+    { name: 'Business Books', collegeId: createdColleges[3].id },
+    { name: 'Stationery', collegeId: createdColleges[3].id },
+    // Arts College Categories
+    { name: 'Art Supplies', collegeId: createdColleges[4].id },
+    { name: 'Literature Books', collegeId: createdColleges[4].id },
+    // Law College Categories
+    { name: 'Legal Books', collegeId: createdColleges[5].id },
+    { name: 'Law Supplies', collegeId: createdColleges[5].id },
   ];
 
   const createdProductCategories = [];
@@ -354,9 +410,19 @@ async function main() {
       created = await prisma.productCategory.create({
         data: category,
       });
-      console.log(`✅ Product category created: ${category.name} (College: ${createdColleges.find(c => c.id === category.collegeId)?.name || 'N/A'})`);
+      const collegeName = createdColleges.find(c => c.id === category.collegeId)?.name || 'N/A';
+      console.log(`✅ Product category created: ${category.name} (College: ${collegeName})`);
     } else {
-      console.log(`⏭️  Product category already exists: ${category.name}`);
+      // Update existing category with collegeId if it doesn't have one
+      if (!created.collegeId && category.collegeId) {
+        created = await prisma.productCategory.update({
+          where: { id: created.id },
+          data: { collegeId: category.collegeId },
+        });
+        console.log(`✅ Product category updated with college: ${category.name}`);
+      } else {
+        console.log(`⏭️  Product category already exists: ${category.name}`);
+      }
     }
     createdProductCategories.push(created);
   }
@@ -371,6 +437,19 @@ async function main() {
       totalPages: 350,
       categoryId: createdBookCategories[0].id,
       doctorId: createdDoctors[0].doctor.id,
+      collegeId: createdColleges[0].id,
+      departmentId: createdDepartments[0].id,
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Data Structures and Algorithms',
+      description: 'Complete guide to data structures and algorithm design',
+      fileUrl: 'https://example.com/books/data-structures.pdf',
+      totalPages: 450,
+      categoryId: createdBookCategories[0].id,
+      doctorId: createdDoctors[0].doctor.id,
+      collegeId: createdColleges[0].id,
+      departmentId: createdDepartments[0].id,
       approvalStatus: 'APPROVED',
     },
     {
@@ -380,6 +459,19 @@ async function main() {
       totalPages: 500,
       categoryId: createdBookCategories[1].id,
       doctorId: createdDoctors[1].doctor.id,
+      collegeId: createdColleges[1].id,
+      departmentId: createdDepartments[3].id,
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Anatomy and Physiology',
+      description: 'Detailed study of human anatomy and physiological systems',
+      fileUrl: 'https://example.com/books/anatomy.pdf',
+      totalPages: 600,
+      categoryId: createdBookCategories[1].id,
+      doctorId: createdDoctors[1].doctor.id,
+      collegeId: createdColleges[1].id,
+      departmentId: createdDepartments[3].id,
       approvalStatus: 'APPROVED',
     },
     {
@@ -389,6 +481,19 @@ async function main() {
       totalPages: 420,
       categoryId: createdBookCategories[2].id,
       doctorId: createdDoctors[2].doctor.id,
+      collegeId: createdColleges[2].id,
+      departmentId: createdDepartments[6].id,
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Calculus and Analysis',
+      description: 'Comprehensive guide to calculus and mathematical analysis',
+      fileUrl: 'https://example.com/books/calculus.pdf',
+      totalPages: 480,
+      categoryId: createdBookCategories[2].id,
+      doctorId: createdDoctors[2].doctor.id,
+      collegeId: createdColleges[2].id,
+      departmentId: createdDepartments[6].id,
       approvalStatus: 'APPROVED',
     },
   ];
@@ -430,20 +535,76 @@ async function main() {
   // 11. Create Sample Products
   console.log('\n🛒 Creating sample products...');
   const products = [
+    // Office Supplies (Engineering)
     {
       name: 'University Notebook',
       description: 'High-quality notebook suitable for students',
-      categoryId: createdProductCategories[0].id,
+      categoryId: createdProductCategories.find(c => c.name === 'Office Supplies')?.id || createdProductCategories[0].id,
     },
+    {
+      name: 'Ballpoint Pens Set',
+      description: 'Set of 10 high-quality ballpoint pens',
+      categoryId: createdProductCategories.find(c => c.name === 'Office Supplies')?.id || createdProductCategories[0].id,
+    },
+    {
+      name: 'Engineering Calculator',
+      description: 'Scientific calculator for engineering students',
+      categoryId: createdProductCategories.find(c => c.name === 'Engineering Tools')?.id || createdProductCategories[1].id,
+    },
+    {
+      name: 'Drawing Set',
+      description: 'Complete drawing set for technical drawings',
+      categoryId: createdProductCategories.find(c => c.name === 'Engineering Tools')?.id || createdProductCategories[1].id,
+    },
+    // Medical Supplies
+    {
+      name: 'Medical Lab Coat',
+      description: 'Professional lab coat for medical students',
+      categoryId: createdProductCategories.find(c => c.name === 'Medical Supplies')?.id || createdProductCategories[4].id,
+    },
+    {
+      name: 'Stethoscope',
+      description: 'Professional grade stethoscope',
+      categoryId: createdProductCategories.find(c => c.name === 'Medical Supplies')?.id || createdProductCategories[4].id,
+    },
+    // Electronic Devices
+    {
+      name: 'Tablet for Students',
+      description: 'Lightweight tablet perfect for taking notes',
+      categoryId: createdProductCategories.find(c => c.name === 'Electronic Devices')?.id || createdProductCategories[5].id,
+    },
+    // University Apparel
+    {
+      name: 'University T-Shirt',
+      description: 'Official university branded t-shirt',
+      categoryId: createdProductCategories.find(c => c.name === 'University Apparel')?.id || createdProductCategories[7].id,
+    },
+    {
+      name: 'University Hoodie',
+      description: 'Comfortable university branded hoodie',
+      categoryId: createdProductCategories.find(c => c.name === 'University Apparel')?.id || createdProductCategories[7].id,
+    },
+    // Study Supplies
     {
       name: 'Student Backpack',
       description: 'Durable and comfortable backpack for students',
-      categoryId: createdProductCategories[4].id,
+      categoryId: createdProductCategories.find(c => c.name === 'Study Supplies')?.id || createdProductCategories[9].id,
     },
     {
-      name: 'Ballpoint Pens',
-      description: 'Set of high-quality pens',
-      categoryId: createdProductCategories[0].id,
+      name: 'Highlighters Set',
+      description: 'Set of 5 colorful highlighters',
+      categoryId: createdProductCategories.find(c => c.name === 'Study Supplies')?.id || createdProductCategories[9].id,
+    },
+    // Stationery
+    {
+      name: 'A4 Paper Pack',
+      description: 'Pack of 500 A4 sheets',
+      categoryId: createdProductCategories.find(c => c.name === 'Stationery')?.id || createdProductCategories[11].id,
+    },
+    {
+      name: 'Binder Folder',
+      description: 'Durable binder folder for organizing documents',
+      categoryId: createdProductCategories.find(c => c.name === 'Stationery')?.id || createdProductCategories[11].id,
     },
   ];
 
