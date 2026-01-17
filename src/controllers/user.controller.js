@@ -25,23 +25,26 @@ const getProfile = async (req, res, next) => {
           },
         },
         doctor: true,
-        delivery: true,
+        delivery: {
+          include: {
+            wallet: true,
+          },
+        },
         customer: true,
         admin: true,
-      },
-      select: {
-        id: true,
-        phone: true,
-        email: true,
-        avatarUrl: true,
-        type: true,
-        isActive: true,
-        createdAt: true,
-        student: true,
-        doctor: true,
-        delivery: true,
-        customer: true,
-        admin: true,
+        userRoles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: {
+                    permission: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
