@@ -53,12 +53,12 @@ async function main() {
   // 2. Create Colleges
   console.log('\n🏛️ Creating colleges...');
   const colleges = [
-    { name: 'كلية الهندسة' },
-    { name: 'كلية الطب' },
-    { name: 'كلية العلوم' },
-    { name: 'كلية التجارة' },
-    { name: 'كلية الآداب' },
-    { name: 'كلية الحقوق' },
+    { name: 'Faculty of Engineering' },
+    { name: 'Faculty of Medicine' },
+    { name: 'Faculty of Science' },
+    { name: 'Faculty of Commerce' },
+    { name: 'Faculty of Arts' },
+    { name: 'Faculty of Law' },
   ];
 
   const createdColleges = [];
@@ -82,18 +82,18 @@ async function main() {
   // 3. Create Departments
   console.log('\n📚 Creating departments...');
   const departments = [
-    { name: 'هندسة البرمجيات', collegeId: createdColleges[0].id },
-    { name: 'هندسة الحاسبات', collegeId: createdColleges[0].id },
-    { name: 'هندسة الاتصالات', collegeId: createdColleges[0].id },
-    { name: 'الطب البشري', collegeId: createdColleges[1].id },
-    { name: 'طب الأسنان', collegeId: createdColleges[1].id },
-    { name: 'الصيدلة', collegeId: createdColleges[1].id },
-    { name: 'الرياضيات', collegeId: createdColleges[2].id },
-    { name: 'الفيزياء', collegeId: createdColleges[2].id },
-    { name: 'الكيمياء', collegeId: createdColleges[2].id },
-    { name: 'المحاسبة', collegeId: createdColleges[3].id },
-    { name: 'إدارة الأعمال', collegeId: createdColleges[3].id },
-    { name: 'الاقتصاد', collegeId: createdColleges[3].id },
+    { name: 'Software Engineering', collegeId: createdColleges[0].id },
+    { name: 'Computer Engineering', collegeId: createdColleges[0].id },
+    { name: 'Communications Engineering', collegeId: createdColleges[0].id },
+    { name: 'Human Medicine', collegeId: createdColleges[1].id },
+    { name: 'Dentistry', collegeId: createdColleges[1].id },
+    { name: 'Pharmacy', collegeId: createdColleges[1].id },
+    { name: 'Mathematics', collegeId: createdColleges[2].id },
+    { name: 'Physics', collegeId: createdColleges[2].id },
+    { name: 'Chemistry', collegeId: createdColleges[2].id },
+    { name: 'Accounting', collegeId: createdColleges[3].id },
+    { name: 'Business Administration', collegeId: createdColleges[3].id },
+    { name: 'Economics', collegeId: createdColleges[3].id },
   ];
 
   const createdDepartments = [];
@@ -119,21 +119,21 @@ async function main() {
     {
       phone: '+201111111111',
       email: 'student1@studify.com',
-      name: 'أحمد محمد',
+      name: 'Ahmed Mohamed',
       collegeId: createdColleges[0].id,
       departmentId: createdDepartments[0].id,
     },
     {
       phone: '+201111111112',
       email: 'student2@studify.com',
-      name: 'فاطمة علي',
+      name: 'Fatima Ali',
       collegeId: createdColleges[1].id,
       departmentId: createdDepartments[3].id,
     },
     {
       phone: '+201111111113',
       email: 'student3@studify.com',
-      name: 'محمد حسن',
+      name: 'Mohamed Hassan',
       collegeId: createdColleges[2].id,
       departmentId: createdDepartments[6].id,
     },
@@ -171,20 +171,20 @@ async function main() {
     {
       phone: '+202222222221',
       email: 'doctor1@studify.com',
-      name: 'د. سامي أحمد',
-      specialization: 'هندسة البرمجيات',
+      name: 'Dr. Sami Ahmed',
+      specialization: 'Software Engineering',
     },
     {
       phone: '+202222222222',
       email: 'doctor2@studify.com',
-      name: 'د. منى خالد',
-      specialization: 'الطب البشري',
+      name: 'Dr. Mona Khaled',
+      specialization: 'Human Medicine',
     },
     {
       phone: '+202222222223',
       email: 'doctor3@studify.com',
-      name: 'د. خالد محمود',
-      specialization: 'الرياضيات',
+      name: 'Dr. Khaled Mahmoud',
+      specialization: 'Mathematics',
     },
   ];
 
@@ -221,13 +221,13 @@ async function main() {
     {
       phone: '+203333333331',
       email: 'delivery1@studify.com',
-      name: 'محمد السائق',
+      name: 'Mohamed Driver',
       vehicleType: 'Motorcycle',
     },
     {
       phone: '+203333333332',
       email: 'delivery2@studify.com',
-      name: 'أحمد الناقل',
+      name: 'Ahmed Carrier',
       vehicleType: 'Car',
     },
   ];
@@ -264,15 +264,15 @@ async function main() {
     {
       phone: '+204444444441',
       email: 'customer1@studify.com',
-      entityName: 'مكتبة النور',
-      contactPerson: 'علي محمد',
+      entityName: 'Light Library',
+      contactPerson: 'Ali Mohamed',
       phone: '+201000000001',
     },
     {
       phone: '+204444444442',
       email: 'customer2@studify.com',
-      entityName: 'دار المعرفة',
-      contactPerson: 'سارة أحمد',
+      entityName: 'Knowledge House',
+      contactPerson: 'Sara Ahmed',
       phone: '+201000000002',
     },
   ];
@@ -306,13 +306,13 @@ async function main() {
   // 8. Create Book Categories
   console.log('\n📖 Creating book categories...');
   const bookCategories = [
-    { name: 'هندسة البرمجيات' },
-    { name: 'الطب والعلوم الصحية' },
-    { name: 'الرياضيات والفيزياء' },
-    { name: 'الأدب واللغة' },
-    { name: 'التاريخ' },
-    { name: 'الفلسفة' },
-    { name: 'العلوم الطبيعية' },
+    { name: 'Software Engineering' },
+    { name: 'Medicine and Health Sciences' },
+    { name: 'Mathematics and Physics' },
+    { name: 'Literature and Language' },
+    { name: 'History' },
+    { name: 'Philosophy' },
+    { name: 'Natural Sciences' },
   ];
 
   const createdBookCategories = [];
@@ -336,11 +336,11 @@ async function main() {
   // 9. Create Product Categories
   console.log('\n🛍️ Creating product categories...');
   const productCategories = [
-    { name: 'أدوات مكتبية' },
-    { name: 'كتب ومراجع' },
-    { name: 'أجهزة إلكترونية' },
-    { name: 'ملابس جامعية' },
-    { name: 'مستلزمات دراسية' },
+    { name: 'Office Supplies' },
+    { name: 'Books and References' },
+    { name: 'Electronic Devices' },
+    { name: 'University Apparel' },
+    { name: 'Study Supplies' },
   ];
 
   const createdProductCategories = [];
@@ -365,8 +365,8 @@ async function main() {
   console.log('\n📚 Creating sample books...');
   const books = [
     {
-      title: 'مقدمة في البرمجة',
-      description: 'كتاب شامل يغطي أساسيات البرمجة والمفاهيم الأساسية',
+      title: 'Introduction to Programming',
+      description: 'A comprehensive book covering programming fundamentals and basic concepts',
       fileUrl: 'https://example.com/books/intro-programming.pdf',
       totalPages: 350,
       categoryId: createdBookCategories[0].id,
@@ -374,8 +374,8 @@ async function main() {
       approvalStatus: 'APPROVED',
     },
     {
-      title: 'أساسيات الطب البشري',
-      description: 'مرجع شامل لطلاب الطب في السنوات الأولى',
+      title: 'Human Medicine Fundamentals',
+      description: 'A comprehensive reference for medical students in early years',
       fileUrl: 'https://example.com/books/medical-basics.pdf',
       totalPages: 500,
       categoryId: createdBookCategories[1].id,
@@ -383,8 +383,8 @@ async function main() {
       approvalStatus: 'APPROVED',
     },
     {
-      title: 'الرياضيات المتقدمة',
-      description: 'كتاب يغطي مواضيع متقدمة في الرياضيات',
+      title: 'Advanced Mathematics',
+      description: 'A book covering advanced topics in mathematics',
       fileUrl: 'https://example.com/books/advanced-math.pdf',
       totalPages: 420,
       categoryId: createdBookCategories[2].id,
@@ -431,18 +431,18 @@ async function main() {
   console.log('\n🛒 Creating sample products...');
   const products = [
     {
-      name: 'دفتر ملاحظات جامعي',
-      description: 'دفتر عالي الجودة مناسب للطلاب',
+      name: 'University Notebook',
+      description: 'High-quality notebook suitable for students',
       categoryId: createdProductCategories[0].id,
     },
     {
-      name: 'حقيبة طلابية',
-      description: 'حقيبة متينة ومريحة للطلاب',
+      name: 'Student Backpack',
+      description: 'Durable and comfortable backpack for students',
       categoryId: createdProductCategories[4].id,
     },
     {
-      name: 'أقلام جاف',
-      description: 'مجموعة من الأقلام عالية الجودة',
+      name: 'Ballpoint Pens',
+      description: 'Set of high-quality pens',
       categoryId: createdProductCategories[0].id,
     },
   ];

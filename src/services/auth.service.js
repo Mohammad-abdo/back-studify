@@ -131,11 +131,33 @@ const login = async (phone, password) => {
   const user = await prisma.user.findUnique({
     where: { phone: formattedPhone },
     include: {
-      student: true,
+      student: {
+        include: {
+          college: true,
+          department: true,
+        },
+      },
       doctor: true,
-      delivery: true,
+      delivery: {
+        include: {
+          wallet: true,
+        },
+      },
       customer: true,
       admin: true,
+      userRoles: {
+        include: {
+          role: {
+            include: {
+              permissions: {
+                include: {
+                  permission: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
