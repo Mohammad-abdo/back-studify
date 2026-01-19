@@ -536,6 +536,11 @@ const getDashboardStats = async (req, res, next) => {
       totalReviews,
       totalBookCategories,
       totalProductCategories,
+      totalMaterials,
+      totalCarts,
+      totalCartItems,
+      totalSliders,
+      totalPrintOptions,
       // Revenue calculations
       totalRevenue,
       totalWholesaleRevenue,
@@ -561,6 +566,11 @@ const getDashboardStats = async (req, res, next) => {
       prisma.review.count(),
       prisma.bookCategory.count(),
       prisma.productCategory.count(),
+      prisma.material.count(),
+      prisma.cart.count(),
+      prisma.cartItem.count(),
+      prisma.slider.count(),
+      prisma.printOption.count(),
       // Calculate total revenue from completed orders
       prisma.order.aggregate({
         where: {
@@ -645,6 +655,19 @@ const getDashboardStats = async (req, res, next) => {
       },
       reviews: {
         total: totalReviews,
+      },
+      materials: {
+        total: totalMaterials,
+      },
+      carts: {
+        total: totalCarts,
+        items: totalCartItems,
+      },
+      sliders: {
+        total: totalSliders,
+      },
+      printOptions: {
+        total: totalPrintOptions,
       },
       revenue: {
         total: (totalRevenue._sum.total || 0) + (totalWholesaleRevenue._sum.total || 0),
