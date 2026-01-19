@@ -73,6 +73,7 @@ app.use('/api/docs', docsRoutes);
 const authRoutes = require('./routes/auth.routes');
 const userRoutes = require('./routes/user.routes');
 const bookRoutes = require('./routes/book.routes');
+const materialRoutes = require('./routes/material.routes');
 const productRoutes = require('./routes/product.routes');
 const orderRoutes = require('./routes/order.routes');
 const reviewRoutes = require('./routes/review.routes');
@@ -103,10 +104,12 @@ const deliveryWalletRoutes = require('./routes/deliveryWallet.routes');
 const deliveryLocationRoutes = require('./routes/deliveryLocation.routes');
 const dashboardMetricRoutes = require('./routes/dashboardMetric.routes');
 const mobileRoutes = require('./routes/mobile');
+const sliderRoutes = require('./routes/slider.routes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
+app.use('/api/materials', materialRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/reviews', reviewRoutes);
@@ -139,6 +142,9 @@ app.use('/api/dashboard-metrics', dashboardMetricRoutes);
 
 // Mobile routes
 app.use('/api/mobile', mobileRoutes);
+
+// Slider routes
+app.use('/api/sliders', sliderRoutes);
 
 // 404 handler
 app.use((req, res) => {

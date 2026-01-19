@@ -103,8 +103,17 @@ const deleteBookCategory = async (req, res, next) => {
  */
 const getProductCategories = async (req, res, next) => {
   try {
+    const { collegeId } = req.query;
+    const where = {};
+    
+    if (collegeId) {
+      where.collegeId = collegeId;
+    }
+
     const categories = await prisma.productCategory.findMany({
+      where,
       include: {
+        college: true,
         _count: {
           select: {
             products: true,
@@ -115,6 +124,37 @@ const getProductCategories = async (req, res, next) => {
     });
 
     sendSuccess(res, categories, 'Product categories retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get material categories
+ */
+const getMaterialCategories = async (req, res, next) => {
+  try {
+    const { collegeId } = req.query;
+    const where = {};
+    
+    if (collegeId) {
+      where.collegeId = collegeId;
+    }
+
+    const categories = await prisma.materialCategory.findMany({
+      where,
+      include: {
+        college: true,
+        _count: {
+          select: {
+            materials: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    });
+
+    sendSuccess(res, categories, 'Material categories retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -198,5 +238,6 @@ module.exports = {
   createProductCategory,
   updateProductCategory,
   deleteProductCategory,
+  getMaterialCategories,
 };
 

@@ -522,20 +522,91 @@ const getDashboardStats = async (req, res, next) => {
       totalUsers,
       totalDoctors,
       totalStudents,
+      totalDelivery,
+      totalCustomers,
       totalBooks,
       totalProducts,
       totalOrders,
+      totalWholesaleOrders,
       pendingDoctors,
       pendingBooks,
+      rejectedBooks,
+      totalColleges,
+      totalDepartments,
+      totalReviews,
+      totalBookCategories,
+      totalProductCategories,
+      // Revenue calculations
+      totalRevenue,
+      totalWholesaleRevenue,
+      // Recent activity (last 7 days)
+      recentOrders,
+      recentBooks,
+      recentProducts,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.doctor.count(),
       prisma.student.count(),
+      prisma.delivery.count(),
+      prisma.customer.count(),
       prisma.book.count({ where: { approvalStatus: APPROVAL_STATUS.APPROVED } }),
       prisma.product.count(),
       prisma.order.count(),
+      prisma.wholesaleOrder.count(),
       prisma.doctor.count({ where: { approvalStatus: APPROVAL_STATUS.PENDING } }),
       prisma.book.count({ where: { approvalStatus: APPROVAL_STATUS.PENDING } }),
+      prisma.book.count({ where: { approvalStatus: APPROVAL_STATUS.REJECTED } }),
+      prisma.college.count(),
+      prisma.department.count(),
+      prisma.review.count(),
+      prisma.bookCategory.count(),
+      prisma.productCategory.count(),
+      // Calculate total revenue from completed orders
+      prisma.order.aggregate({
+        where: {
+          status: {
+            in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+          },
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+      // Calculate total wholesale revenue
+      prisma.wholesaleOrder.aggregate({
+        where: {
+          status: {
+            in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+          },
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+      // Recent orders (last 7 days)
+      prisma.order.count({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+      // Recent books (last 7 days)
+      prisma.book.count({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+      // Recent products (last 7 days)
+      prisma.product.count({
+        where: {
+          createdAt: {
+            gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
     ]);
 
     const stats = {
@@ -543,20 +614,47 @@ const getDashboardStats = async (req, res, next) => {
         total: totalUsers,
         doctors: totalDoctors,
         students: totalStudents,
+        delivery: totalDelivery,
+        customers: totalCustomers,
       },
       books: {
         total: totalBooks,
         pending: pendingBooks,
+        rejected: rejectedBooks,
       },
       products: {
         total: totalProducts,
       },
       orders: {
         total: totalOrders,
+        wholesale: totalWholesaleOrders,
       },
       approvals: {
         pendingDoctors,
         pendingBooks,
+      },
+      colleges: {
+        total: totalColleges,
+      },
+      departments: {
+        total: totalDepartments,
+      },
+      categories: {
+        books: totalBookCategories,
+        products: totalProductCategories,
+      },
+      reviews: {
+        total: totalReviews,
+      },
+      revenue: {
+        total: (totalRevenue._sum.total || 0) + (totalWholesaleRevenue._sum.total || 0),
+        orders: totalRevenue._sum.total || 0,
+        wholesale: totalWholesaleRevenue._sum.total || 0,
+      },
+      recent: {
+        orders: recentOrders,
+        books: recentBooks,
+        products: recentProducts,
       },
     };
 

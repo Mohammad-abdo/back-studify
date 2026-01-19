@@ -29,7 +29,17 @@ const getMyOrders = async (req, res, next) => {
         skip: (page - 1) * limit,
         take: limit,
         include: {
-          items: true,
+          items: {
+            include: {
+              order: {
+                select: {
+                  id: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
           assignment: {
             include: {
               delivery: {
@@ -51,9 +61,213 @@ const getMyOrders = async (req, res, next) => {
       prisma.order.count({ where }),
     ]);
 
+    // Enrich order items with material/book/product details
+    const enrichedOrders = await Promise.all(orders.map(async (order) => {
+      const enrichedItems = await Promise.all(order.items.map(async (item) => {
+        let referenceData = null;
+        
+        if (item.referenceType === 'BOOK') {
+          const book = await prisma.book.findUnique({
+            where: { id: item.referenceId },
+            include: {
+              doctor: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      phone: true,
+                      email: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+              category: true,
+            },
+          });
+          referenceData = book;
+        } else if (item.referenceType === 'MATERIAL') {
+          const material = await prisma.material.findUnique({
+            where: { id: item.referenceId },
+            include: {
+              doctor: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      phone: true,
+                      email: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+              category: true,
+            },
+          });
+          referenceData = material;
+        } else if (item.referenceType === 'PRODUCT') {
+          const product = await prisma.product.findUnique({
+            where: { id: item.referenceId },
+            include: {
+              category: true,
+            },
+          });
+          referenceData = product;
+        }
+
+        return {
+          ...item,
+          reference: referenceData,
+        };
+      }));
+
+      return {
+        ...order,
+        items: enrichedItems,
+      };
+    }));
+
     const pagination = buildPagination(page, limit, total);
 
-    sendPaginated(res, orders, pagination, 'Orders retrieved successfully');
+    sendPaginated(res, enrichedOrders, pagination, 'Orders retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get active orders (orders that are not completed or cancelled)
+ */
+const getActiveOrders = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+
+    const where = {
+      userId,
+      status: {
+        notIn: ['DELIVERED', 'CANCELLED'],
+      },
+    };
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          items: {
+            include: {
+              order: {
+                select: {
+                  id: true,
+                  status: true,
+                  createdAt: true,
+                },
+              },
+            },
+          },
+          assignment: {
+            include: {
+              delivery: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      phone: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    // Enrich order items with material/book/product details
+    const enrichedOrders = await Promise.all(orders.map(async (order) => {
+      const enrichedItems = await Promise.all(order.items.map(async (item) => {
+        let referenceData = null;
+        let title = '';
+        let doctorName = '';
+        
+        if (item.referenceType === 'BOOK') {
+          const book = await prisma.book.findUnique({
+            where: { id: item.referenceId },
+            include: {
+              doctor: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      phone: true,
+                      email: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+              category: true,
+            },
+          });
+          referenceData = book;
+          title = book?.title || '';
+          doctorName = book?.doctor?.name || '';
+        } else if (item.referenceType === 'MATERIAL') {
+          const material = await prisma.material.findUnique({
+            where: { id: item.referenceId },
+            include: {
+              doctor: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      phone: true,
+                      email: true,
+                      avatarUrl: true,
+                    },
+                  },
+                },
+              },
+              category: true,
+            },
+          });
+          referenceData = material;
+          title = material?.title || '';
+          doctorName = material?.doctor?.name || '';
+        } else if (item.referenceType === 'PRODUCT') {
+          const product = await prisma.product.findUnique({
+            where: { id: item.referenceId },
+            include: {
+              category: true,
+            },
+          });
+          referenceData = product;
+          title = product?.name || '';
+        }
+
+        return {
+          ...item,
+          reference: referenceData,
+          displayTitle: title,
+          doctorName: doctorName,
+        };
+      }));
+
+      return {
+        ...order,
+        items: enrichedItems,
+      };
+    }));
+
+    const pagination = buildPagination(page, limit, total);
+
+    sendPaginated(res, enrichedOrders, pagination, 'Active orders retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -218,6 +432,7 @@ const cancelOrder = async (req, res, next) => {
 
 module.exports = {
   getMyOrders,
+  getActiveOrders,
   getOrderById,
   createOrder,
   updateOrderStatus,

@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "Studify - Mobile Doctor API",
-    "description": "Complete API collection for Doctor mobile app\n\nAll endpoints require authentication with Bearer token.\nSet the 'token' variable after login.",
+    "description": "Complete API collection for Doctor mobile app\n\nAll endpoints require authentication with Bearer token.\nSet the 'token' variable after login.\n\nNote: Login and Profile endpoints now return 'username' field extracted from user profile (Student.name, Doctor.name, etc.).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "studify-mobile-doctor",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "item": [
     {
@@ -274,6 +274,23 @@
               "raw": "{{base_url}}/mobile/doctor/change-password",
               "host": ["{{base_url}}"],
               "path": ["mobile", "doctor", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Delete Account",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/profile",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "profile"]
             }
           }
         }
@@ -875,6 +892,336 @@
               "raw": "{{base_url}}/mobile/doctor/categories/products",
               "host": ["{{base_url}}"],
               "path": ["mobile", "doctor", "categories", "products"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Materials",
+      "item": [
+        {
+          "name": "Get My Materials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/materials?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "materials"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "collegeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "departmentId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "materialType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "approvalStatus",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Material by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/materials/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "material-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"New Material Title\",\n  \"description\": \"Material description here\",\n  \"fileUrl\": \"https://example.com/material.pdf\",\n  \"imageUrls\": [\"https://example.com/image1.jpg\"],\n  \"totalPages\": 100,\n  \"categoryId\": \"category-uuid-here\",\n  \"collegeId\": \"college-uuid-here\",\n  \"departmentId\": \"department-uuid-here\",\n  \"materialType\": \"LECTURE_NOTE\",\n  \"pricing\": [\n    {\n      \"accessType\": \"READ\",\n      \"price\": 10.0\n    },\n    {\n      \"accessType\": \"BUY\",\n      \"price\": 20.0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/materials",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "materials"]
+            }
+          }
+        },
+        {
+          "name": "Update Material",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Material Title\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/materials/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "material-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Material",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/materials/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "material-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Material Pricing",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessType\": \"READ\",\n  \"price\": 15.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/materials/:id/pricing",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "materials", ":id", "pricing"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "material-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/cart",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referenceType\": \"BOOK\",\n  \"referenceId\": \"book-uuid-here\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/cart/items",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/cart/items/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "cart", "items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "cart-item-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/cart/items/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "cart", "items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "cart-item-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/doctor/cart",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "doctor", "cart"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sliders",
+      "item": [
+        {
+          "name": "Get Active Sliders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mobile/sliders",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "sliders"]
             }
           }
         }

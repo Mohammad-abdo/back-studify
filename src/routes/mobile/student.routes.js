@@ -83,7 +83,12 @@ router.get('/products/:id', productController.getProductById);
 // CATEGORIES (for filtering)
 // ============================================
 router.get('/categories/books', categoryController.getBookCategories);
-router.get('/categories/products', categoryController.getProductCategories);
+router.get('/categories/products', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+})), categoryController.getProductCategories);
+router.get('/categories/materials', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+})), categoryController.getMaterialCategories);
 
 // ============================================
 // COLLEGES (for filtering)
@@ -145,12 +150,28 @@ router.get('/books/:bookId/print-options', validateQuery(paginationSchema), prin
 router.get('/print-options/:id', printOptionController.getPrintOptionById);
 
 // ============================================
+// MATERIALS
+// ============================================
+const materialController = require('../../controllers/material.controller');
+router.get('/materials', validateQuery(paginationSchema.extend({
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  departmentId: uuidSchema.optional(),
+  materialType: z.string().optional(),
+  search: z.string().optional(),
+})), materialController.getMaterials);
+
+router.get('/materials/:id', materialController.getMaterialById);
+router.post('/materials/:id/download', materialController.incrementDownloads);
+
+// ============================================
 // ORDERS
 // ============================================
 router.get('/orders', validateQuery(paginationSchema.extend({
   status: z.enum(['CREATED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
 })), orderController.getMyOrders);
 
+router.get('/orders/active', validateQuery(paginationSchema), orderController.getActiveOrders);
 router.get('/orders/:id', orderController.getOrderById);
 router.post('/orders', validateBody(createOrderSchema), orderController.createOrder);
 router.post('/orders/:id/cancel', orderController.cancelOrder);
@@ -166,6 +187,12 @@ router.get('/reviews', validateQuery(paginationSchema.extend({
 router.post('/reviews', validateBody(createReviewSchema), reviewController.createReview);
 router.put('/reviews/:id', validateBody(createReviewSchema.partial()), reviewController.updateReview);
 router.delete('/reviews/:id', reviewController.deleteReview);
+
+// ============================================
+// CART
+// ============================================
+const cartRoutes = require('../cart.routes');
+router.use('/cart', cartRoutes);
 
 // ============================================
 // NOTIFICATIONS

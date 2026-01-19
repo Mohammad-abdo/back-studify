@@ -9,6 +9,7 @@ const userController = require('../../controllers/user.controller');
 const authController = require('../../controllers/auth.controller');
 const bookController = require('../../controllers/book.controller');
 const bookPricingController = require('../../controllers/bookPricing.controller');
+const materialController = require('../../controllers/material.controller');
 const productController = require('../../controllers/product.controller');
 const orderController = require('../../controllers/order.controller');
 const categoryController = require('../../controllers/category.controller');
@@ -53,6 +54,9 @@ router.post('/change-password', validateBody(z.object({
   currentPassword: z.string().min(6),
   newPassword: z.string().min(6),
 })), authController.changePassword);
+
+// Delete account
+router.delete('/profile', userController.deleteAccount);
 
 // ============================================
 // MY BOOKS
@@ -437,9 +441,76 @@ router.get('/products', validateQuery(paginationSchema.extend({
 router.get('/products/:id', productController.getProductById);
 
 // ============================================
+// MATERIALS
+// ============================================
+router.get('/materials', validateQuery(paginationSchema.extend({
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  departmentId: uuidSchema.optional(),
+  materialType: z.string().optional(),
+  search: z.string().optional(),
+  approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
+})), async (req, res, next) => {
+  try {
+    // Get materials created by this doctor
+    const doctorId = req.user.doctor?.id;
+    if (!doctorId) {
+      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    }
+    
+    // Use material controller but filter by doctor
+    req.query.doctorId = doctorId;
+    return materialController.getMaterials(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/materials', validateBody(z.object({
+  title: z.string().min(2).max(200),
+  description: z.string().min(10),
+  fileUrl: z.string().url(),
+  imageUrls: z.array(z.string().url()).optional(),
+  totalPages: z.number().int().positive().optional(),
+  categoryId: uuidSchema,
+  collegeId: uuidSchema.optional(),
+  departmentId: uuidSchema.optional(),
+  materialType: z.string().optional(),
+  pricing: z.array(z.object({
+    accessType: z.enum(['READ', 'BUY', 'PRINT']),
+    price: z.number().nonnegative(),
+  })).optional(),
+})), materialController.createMaterial);
+
+router.put('/materials/:id', validateBody(z.object({
+  title: z.string().min(2).max(200).optional(),
+  description: z.string().min(10).optional(),
+  fileUrl: z.string().url().optional(),
+  imageUrls: z.array(z.string().url()).optional(),
+  totalPages: z.number().int().positive().optional(),
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  departmentId: uuidSchema.optional(),
+  materialType: z.string().optional(),
+})), materialController.updateMaterial);
+
+router.delete('/materials/:id', materialController.deleteMaterial);
+
+router.post('/materials/:id/pricing', validateBody(z.object({
+  accessType: z.enum(['READ', 'BUY', 'PRINT']),
+  price: z.number().nonnegative(),
+})), materialController.addMaterialPricing);
+
+router.get('/materials/:id', materialController.getMaterialById);
+
+// ============================================
 // CATEGORIES (for book creation)
 // ============================================
 router.get('/categories/books', categoryController.getBookCategories);
+
+router.get('/categories/materials', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+})), categoryController.getMaterialCategories);
 
 router.get('/categories/products', categoryController.getProductCategories);
 
@@ -494,6 +565,12 @@ router.get('/departments', validateQuery(paginationSchema.extend({
     next(error);
   }
 });
+
+// ============================================
+// CART
+// ============================================
+const cartRoutes = require('../cart.routes');
+router.use('/cart', cartRoutes);
 
 // ============================================
 // NOTIFICATIONS

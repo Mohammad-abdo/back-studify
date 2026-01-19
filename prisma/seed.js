@@ -20,14 +20,16 @@
  * 6. 3 Delivery personnel (with wallets)
  * 7. 2 Wholesale Customers
  * 8. 7 Book Categories
- * 9. 16 Product Categories (linked to colleges)
- * 10. 6 Books (with college, department, pricing)
- * 11. 13 Products (with pricing tiers)
- * 12. Roles & Permissions (Admin, Doctor roles)
+ * 9. 7 Material Categories (linked to colleges)
+ * 10. 16 Product Categories (linked to colleges)
+ * 11. 6 Books (with college, department, pricing)
+ * 12. 3 Materials (with college, department, pricing)
+ * 13. 13 Products (with pricing tiers)
+ * 14. Roles & Permissions (Admin, Doctor roles)
  * 
  * All data is in English.
- * Product categories are linked to colleges.
- * Books are linked to colleges and departments.
+ * Product and Material categories are linked to colleges.
+ * Books and Materials are linked to colleges and departments.
  */
 
 // Load environment variables from .env file
@@ -372,6 +374,37 @@ async function main() {
     createdBookCategories.push(created);
   }
 
+  // 8.5. Create Material Categories
+  console.log('\n📝 Creating material categories...');
+  const materialCategories = [
+    { name: 'Lecture Notes', collegeId: createdColleges[0].id },
+    { name: 'Summaries', collegeId: createdColleges[0].id },
+    { name: 'Final Exams', collegeId: createdColleges[0].id },
+    { name: 'Medical Notes', collegeId: createdColleges[1].id },
+    { name: 'Lab Reports', collegeId: createdColleges[1].id },
+    { name: 'Math Exercises', collegeId: createdColleges[2].id },
+    { name: 'Study Guides', collegeId: createdColleges[2].id },
+  ];
+
+  const createdMaterialCategories = [];
+  for (const category of materialCategories) {
+    // Check if category exists
+    let created = await prisma.materialCategory.findFirst({
+      where: { name: category.name },
+    });
+
+    if (!created) {
+      created = await prisma.materialCategory.create({
+        data: category,
+      });
+      const collegeName = createdColleges.find(c => c.id === category.collegeId)?.name || 'N/A';
+      console.log(`✅ Material category created: ${category.name} (College: ${collegeName})`);
+    } else {
+      console.log(`⏭️  Material category already exists: ${category.name}`);
+    }
+    createdMaterialCategories.push(created);
+  }
+
   // 9. Create Product Categories
   console.log('\n🛍️ Creating product categories...');
   const productCategories = [
@@ -530,6 +563,149 @@ async function main() {
       ],
     });
     console.log(`  ✅ Book pricing added`);
+  }
+
+  // 10.5. Create Sample Materials
+  console.log('\n📝 Creating sample materials...');
+  const materials = [
+    {
+      title: 'Calculus Lecture Notes',
+      description: 'Comprehensive lecture notes covering calculus fundamentals including limits, derivatives, and integrals',
+      fileUrl: 'https://example.com/materials/calculus-notes.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/calculus-cover.jpg']),
+      totalPages: 120,
+      categoryId: createdMaterialCategories[0].id,
+      doctorId: createdDoctors[0].doctor.id,
+      collegeId: createdColleges[0].id,
+      departmentId: createdDepartments[0].id,
+      materialType: 'LECTURE_NOTE',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Chemistry Revision Class',
+      description: 'Complete revision notes for chemistry final exam covering organic and inorganic chemistry',
+      fileUrl: 'https://example.com/materials/chemistry-revision.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/chemistry-cover.jpg']),
+      totalPages: 85,
+      categoryId: createdMaterialCategories[1].id,
+      doctorId: createdDoctors[2].doctor.id,
+      collegeId: createdColleges[2].id,
+      departmentId: createdDepartments[7].id,
+      materialType: 'SUMMARY',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Final Exam Preparation',
+      description: 'Practice questions and solutions for final exam with detailed explanations',
+      fileUrl: 'https://example.com/materials/final-exam-prep.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/exam-prep-cover.jpg']),
+      totalPages: 200,
+      categoryId: createdMaterialCategories[2].id,
+      doctorId: createdDoctors[0].doctor.id,
+      collegeId: createdColleges[0].id,
+      departmentId: createdDepartments[0].id,
+      materialType: 'FINAL_EXAM',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Data Structures Summary',
+      description: 'Complete summary of data structures including arrays, linked lists, trees, and graphs',
+      fileUrl: 'https://example.com/materials/data-structures-summary.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/ds-cover.jpg']),
+      totalPages: 95,
+      categoryId: createdMaterialCategories[0].id,
+      doctorId: createdDoctors[0].doctor.id,
+      collegeId: createdColleges[0].id,
+      departmentId: createdDepartments[0].id,
+      materialType: 'SUMMARY',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Anatomy Lecture Notes - Part 1',
+      description: 'Detailed lecture notes on human anatomy covering skeletal and muscular systems',
+      fileUrl: 'https://example.com/materials/anatomy-lecture-1.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/anatomy-cover.jpg']),
+      totalPages: 150,
+      categoryId: createdMaterialCategories[3].id,
+      doctorId: createdDoctors[1].doctor.id,
+      collegeId: createdColleges[1].id,
+      departmentId: createdDepartments[3].id,
+      materialType: 'LECTURE_NOTE',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Physics Problem Set',
+      description: 'Collection of physics problems with step-by-step solutions covering mechanics and thermodynamics',
+      fileUrl: 'https://example.com/materials/physics-problems.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/physics-cover.jpg']),
+      totalPages: 110,
+      categoryId: createdMaterialCategories[1].id,
+      doctorId: createdDoctors[2].doctor.id,
+      collegeId: createdColleges[2].id,
+      departmentId: createdDepartments[7].id,
+      materialType: 'PRACTICE_EXAM',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Programming Fundamentals Summary',
+      description: 'Quick reference guide for programming fundamentals including variables, loops, and functions',
+      fileUrl: 'https://example.com/materials/programming-fundamentals.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/programming-cover.jpg']),
+      totalPages: 75,
+      categoryId: createdMaterialCategories[0].id,
+      doctorId: createdDoctors[0].doctor.id,
+      collegeId: createdColleges[0].id,
+      departmentId: createdDepartments[0].id,
+      materialType: 'SUMMARY',
+      approvalStatus: 'APPROVED',
+    },
+    {
+      title: 'Medical Terminology Guide',
+      description: 'Comprehensive guide to medical terminology with definitions and examples',
+      fileUrl: 'https://example.com/materials/medical-terminology.pdf',
+      imageUrls: JSON.stringify(['https://example.com/images/medical-term-cover.jpg']),
+      totalPages: 180,
+      categoryId: createdMaterialCategories[3].id,
+      doctorId: createdDoctors[1].doctor.id,
+      collegeId: createdColleges[1].id,
+      departmentId: createdDepartments[3].id,
+      materialType: 'REFERENCE',
+      approvalStatus: 'APPROVED',
+    },
+  ];
+
+  const createdMaterials = [];
+  for (const material of materials) {
+    const created = await prisma.material.create({
+      data: material,
+    });
+    createdMaterials.push(created);
+    console.log(`✅ Material created: ${material.title}`);
+
+    // Add material pricing
+    await prisma.materialPricing.createMany({
+      data: [
+        {
+          materialId: created.id,
+          accessType: 'READ',
+          price: 9.99,
+          approvalStatus: 'APPROVED',
+        },
+        {
+          materialId: created.id,
+          accessType: 'BUY',
+          price: 19.99,
+          approvalStatus: 'APPROVED',
+        },
+        {
+          materialId: created.id,
+          accessType: 'PRINT',
+          price: 15.99,
+          approvalStatus: 'APPROVED',
+        },
+      ],
+    });
+    console.log(`  ✅ Material pricing added`);
   }
 
   // 11. Create Sample Products
@@ -780,12 +956,15 @@ async function clearDatabase() {
   await prisma.review.deleteMany();
   await prisma.productPricing.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.materialPricing.deleteMany();
+  await prisma.material.deleteMany();
   await prisma.bookPricing.deleteMany();
   await prisma.printOption.deleteMany();
   await prisma.book.deleteMany();
   await prisma.department.deleteMany();
   await prisma.college.deleteMany();
   await prisma.productCategory.deleteMany();
+  await prisma.materialCategory.deleteMany();
   await prisma.bookCategory.deleteMany();
   await prisma.otpVerification.deleteMany();
   await prisma.notification.deleteMany();

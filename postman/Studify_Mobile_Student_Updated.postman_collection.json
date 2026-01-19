@@ -1,10 +1,10 @@
 {
   "info": {
     "name": "Studify - Mobile Student API",
-    "description": "Complete API collection for Student mobile app\n\nAll endpoints require authentication with Bearer token.\nSet the 'token' variable after login.",
+    "description": "Complete API collection for Student mobile app\n\nAll endpoints require authentication with Bearer token.\nSet the 'token' variable after login.\n\nNote: Login and Profile endpoints now return 'username' field extracted from user profile (Student.name, Doctor.name, etc.).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "studify-mobile-student",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "item": [
     {
@@ -607,6 +607,109 @@
       ]
     },
     {
+      "name": "Materials",
+      "item": [
+        {
+          "name": "Get Materials",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/materials?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "materials"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "categoryId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "collegeId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "departmentId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "materialType",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Material by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/materials/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "materials", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "material-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Increment Material Downloads",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/materials/:id/download",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "materials", ":id", "download"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "material-uuid-here"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Categories",
       "item": [
         {
@@ -1052,6 +1155,141 @@
                   "value": "review-uuid-here"
                 }
               ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cart",
+      "item": [
+        {
+          "name": "Get Cart",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/cart",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Add Item to Cart",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"referenceType\": \"BOOK\",\n  \"referenceId\": \"book-uuid-here\",\n  \"quantity\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/cart/items",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "cart", "items"]
+            }
+          }
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/cart/items/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "cart", "items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "cart-item-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove Item from Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/cart/items/:id",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "cart", "items", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "cart-item-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/cart",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "student", "cart"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sliders",
+      "item": [
+        {
+          "name": "Get Active Sliders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/mobile/sliders",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "sliders"]
             }
           }
         }

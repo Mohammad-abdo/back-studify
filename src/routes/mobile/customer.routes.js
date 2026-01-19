@@ -216,6 +216,12 @@ router.post('/orders/:id/cancel', async (req, res, next) => {
 router.get('/categories/products', categoryController.getProductCategories);
 
 // ============================================
+// CART
+// ============================================
+const cartRoutes = require('../cart.routes');
+router.use('/cart', cartRoutes);
+
+// ============================================
 // NOTIFICATIONS
 // ============================================
 router.get('/notifications', validateQuery(paginationSchema.extend({

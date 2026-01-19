@@ -46,6 +46,7 @@ enum OrderStatus {
 enum ReviewTarget {
   BOOK
   PRODUCT
+  MATERIAL
 }
 
 enum ImportType {
@@ -106,6 +107,7 @@ model User {
   customer      Customer?
   admin         Admin?
   otpCodes      OTPVerification[]
+  cart          Cart?
   orders        Order[]
   reviews       Review[]
   notifications Notification[]
@@ -160,8 +162,9 @@ model Doctor {
   approvedAt     DateTime?
   createdAt      DateTime       @default(now())
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books Book[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  books     Book[]
+  materials Material[]
 
   @@index([userId])
   @@index([approvalStatus])
@@ -319,10 +322,12 @@ model College {
   name      String
   createdAt DateTime @default(now())
 
-  departments       Department[]
-  students          Student[]
-  books             Book[]
-  productCategories ProductCategory[]
+  departments         Department[]
+  students            Student[]
+  books               Book[]
+  materials           Material[]
+  productCategories   ProductCategory[]
+  materialCategories  MaterialCategory[]
 
   @@map("colleges")
 }
@@ -333,9 +338,10 @@ model Department {
   collegeId String
   createdAt DateTime @default(now())
 
-  college  College   @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-  students Student[]
-  books    Book[]
+  college   College    @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  students  Student[]
+  books     Book[]
+  materials Material[]
 
   @@index([collegeId])
   @@map("departments")
@@ -353,6 +359,19 @@ model BookCategory {
   books Book[]
 
   @@map("book_categories")
+}
+
+model MaterialCategory {
+  id        String   @id @default(uuid())
+  name      String
+  collegeId String?
+  createdAt DateTime @default(now())
+
+  college   College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  materials Material[]
+
+  @@index([collegeId])
+  @@map("material_categories")
 }
 
 model Book {
@@ -409,6 +428,56 @@ model PrintOption {
 
   @@index([bookId])
   @@map("print_options")
+}
+
+// ============================================
+// DOMAIN 4.5: MATERIALS
+// ============================================
+
+model Material {
+  id             String         @id @default(uuid())
+  title          String
+  description    String         @db.Text
+  fileUrl        String
+  imageUrls      String?        @db.Text // JSON array of image URLs
+  totalPages     Int?
+  categoryId     String
+  doctorId       String
+  collegeId      String?
+  departmentId   String?
+  materialType   String         // "LECTURE_NOTE", "SUMMARY", "FINAL_EXAM", etc.
+  downloads      Int            @default(0)
+  rating         Float          @default(0)
+  approvalStatus ApprovalStatus @default(PENDING)
+  createdAt      DateTime       @default(now())
+
+  category     MaterialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  doctor       Doctor           @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  college      College?         @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department   Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  pricing      MaterialPricing[]
+
+  @@index([categoryId])
+  @@index([doctorId])
+  @@index([collegeId])
+  @@index([departmentId])
+  @@index([approvalStatus])
+  @@index([materialType])
+  @@map("materials")
+}
+
+model MaterialPricing {
+  id             String         @id @default(uuid())
+  materialId     String
+  accessType     BookAccessType // READ, BUY, PRINT
+  price          Float
+  approvalStatus ApprovalStatus @default(PENDING)
+
+  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, accessType])
+  @@index([materialId])
+  @@map("material_pricing")
 }
 
 // ============================================
@@ -478,7 +547,41 @@ model Review {
 }
 
 // ============================================
-// DOMAIN 7: ORDERS
+// DOMAIN 7: CART
+// ============================================
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+
+  @@index([userId])
+  @@map("carts")
+}
+
+model CartItem {
+  id            String   @id @default(uuid())
+  cartId        String
+  referenceType String   // "BOOK", "PRODUCT", "MATERIAL", "PRINT_OPTION"
+  referenceId   String
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, referenceType, referenceId])
+  @@index([cartId])
+  @@index([referenceType, referenceId])
+  @@map("cart_items")
+}
+
+// ============================================
+// DOMAIN 8: ORDERS
 // ============================================
 
 model Order {
@@ -501,7 +604,7 @@ model Order {
 model OrderItem {
   id            String @id @default(uuid())
   orderId       String
-  referenceType String // "BOOK", "PRODUCT", "PRINT_OPTION"
+  referenceType String // "BOOK", "PRODUCT", "PRINT_OPTION", "MATERIAL"
   referenceId   String
   quantity      Int
   price         Float
@@ -514,7 +617,7 @@ model OrderItem {
 }
 
 // ============================================
-// DOMAIN 8: SYSTEM
+// DOMAIN 9: SYSTEM
 // ============================================
 
 model Notification {
@@ -543,7 +646,7 @@ model StaticPage {
 }
 
 // ============================================
-// DOMAIN 9: ONBOARDING
+// DOMAIN 10: ONBOARDING
 // ============================================
 
 model Onboarding {
@@ -557,6 +660,22 @@ model Onboarding {
 
   @@index([order])
   @@map("onboarding")
+}
+
+model Slider {
+  id          String   @id @default(uuid())
+  imageUrl    String
+  title       String?
+  description String?   @db.Text
+  linkUrl     String?   // Optional link when slider is clicked
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([order])
+  @@index([isActive])
+  @@map("sliders")
 }
 
 model AIChatSession {
@@ -610,7 +729,7 @@ model Report {
 }
 
 // ============================================
-// DOMAIN 10: WHOLESALE ORDERS
+// DOMAIN 11: WHOLESALE ORDERS
 // ============================================
 
 model WholesaleOrder {
@@ -645,7 +764,7 @@ model WholesaleOrderItem {
 }
 
 // ============================================
-// DOMAIN 11: FINANCIAL MANAGEMENT
+// DOMAIN 12: FINANCIAL MANAGEMENT
 // ============================================
 
 model FinancialTransaction {
@@ -671,7 +790,7 @@ model FinancialTransaction {
 }
 
 // ============================================
-// DOMAIN 12: ADMIN OPERATIONS & DASHBOARD
+// DOMAIN 13: ADMIN OPERATIONS & DASHBOARD
 // ============================================
 
 model AdminOperationLog {

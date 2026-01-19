@@ -123,7 +123,25 @@ const getProfile = async (req, res, next) => {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
-    sendSuccess(res, userWithoutPassword, 'Profile retrieved successfully');
+    // Extract username from related profile
+    let username = null;
+    if (user.student) {
+      username = user.student?.name;
+    } else if (user.doctor) {
+      username = user.doctor?.name;
+    } else if (user.delivery) {
+      username = user.delivery?.name;
+    } else if (user.customer) {
+      username = user.customer?.contactPerson || user.customer?.entityName;
+    }
+
+    // Add username to user object
+    const userWithUsername = {
+      ...userWithoutPassword,
+      username,
+    };
+
+    sendSuccess(res, userWithUsername, 'Profile retrieved successfully');
   } catch (error) {
     next(error);
   }

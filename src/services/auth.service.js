@@ -183,8 +183,26 @@ const login = async (phone, password) => {
   // Remove password from response
   const { password: _, ...userWithoutPassword } = user;
 
+  // Extract username from related profile
+  let username = null;
+  if (user.student) {
+    username = user.student.name;
+  } else if (user.doctor) {
+    username = user.doctor.name;
+  } else if (user.delivery) {
+    username = user.delivery.name;
+  } else if (user.customer) {
+    username = user.customer.contactPerson || user.customer.entityName;
+  }
+
+  // Add username to user object
+  const userWithUsername = {
+    ...userWithoutPassword,
+    username,
+  };
+
   return {
-    user: userWithoutPassword,
+    user: userWithUsername,
     token,
     refreshToken,
   };
