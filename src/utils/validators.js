@@ -34,6 +34,7 @@ const registerSchema = z.object({
   repeatPassword: z.string(),
   type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER']),
   email: emailSchema.optional(),
+  name: z.string().min(2).max(100).optional(),
 }).refine((data) => data.password === data.repeatPassword, {
   message: "Passwords don't match",
   path: ['repeatPassword'],

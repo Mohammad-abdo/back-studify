@@ -119,7 +119,13 @@ const register = async (phone, password, type, email = null, name = null) => {
     }
   }
 
-  return user;
+  // Add name to user object for response
+  const userWithName = {
+    ...user,
+    name: name || null,
+  };
+
+  return userWithName;
 };
 
 /**
@@ -183,26 +189,32 @@ const login = async (phone, password) => {
   // Remove password from response
   const { password: _, ...userWithoutPassword } = user;
 
-  // Extract username from related profile
+  // Extract name and username from related profile
+  let name = null;
   let username = null;
   if (user.student) {
+    name = user.student.name;
     username = user.student.name;
   } else if (user.doctor) {
+    name = user.doctor.name;
     username = user.doctor.name;
   } else if (user.delivery) {
+    name = user.delivery.name;
     username = user.delivery.name;
   } else if (user.customer) {
+    name = user.customer.contactPerson || user.customer.entityName;
     username = user.customer.contactPerson || user.customer.entityName;
   }
 
-  // Add username to user object
-  const userWithUsername = {
+  // Add name and username to user object
+  const userWithProfile = {
     ...userWithoutPassword,
+    name,
     username,
   };
 
   return {
-    user: userWithUsername,
+    user: userWithProfile,
     token,
     refreshToken,
   };

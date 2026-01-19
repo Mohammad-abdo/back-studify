@@ -52,25 +52,48 @@ const getProfile = async (req, res, next) => {
       throw new NotFoundError('User not found');
     }
 
-    // Extract username from related profile
+    // Remove password from response
+    const { password: _, ...userWithoutPassword } = user;
+
+    // Extract name and username from related profile
+    let name = null;
     let username = null;
     if (user.student) {
+      name = user.student.name;
       username = user.student.name;
     } else if (user.doctor) {
+      name = user.doctor.name;
       username = user.doctor.name;
     } else if (user.delivery) {
+      name = user.delivery.name;
       username = user.delivery.name;
     } else if (user.customer) {
+      name = user.customer.contactPerson || user.customer.entityName;
       username = user.customer.contactPerson || user.customer.entityName;
     }
 
-    // Add username to user object
-    const userWithUsername = {
-      ...user,
+    // Build response object, excluding null profile fields
+    const responseData = {
+      ...userWithoutPassword,
+      name,
       username,
+      userRole: user.type, // Add userRole as the user type
+      // Add boolean flags for user types
+      isStudent: user.type === 'STUDENT',
+      isDoctor: user.type === 'DOCTOR',
+      isDelivery: user.type === 'DELIVERY',
+      isCustomer: user.type === 'CUSTOMER',
+      isAdmin: user.type === 'ADMIN',
     };
 
-    sendSuccess(res, userWithUsername, 'Profile retrieved successfully');
+    // Remove null profile fields
+    if (!user.student) delete responseData.student;
+    if (!user.doctor) delete responseData.doctor;
+    if (!user.delivery) delete responseData.delivery;
+    if (!user.customer) delete responseData.customer;
+    if (!user.admin) delete responseData.admin;
+
+    sendSuccess(res, responseData, 'Profile retrieved successfully');
   } catch (error) {
     next(error);
   }
