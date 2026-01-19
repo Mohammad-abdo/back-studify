@@ -55,21 +55,69 @@ const getProfile = async (req, res, next) => {
     // Remove password from response
     const { password: _, ...userWithoutPassword } = user;
 
+    // Ensure profile exists for STUDENT type users
+    if (user.type === 'STUDENT' && !user.student) {
+      // Create student profile if it doesn't exist
+      await prisma.student.create({
+        data: {
+          userId: user.id,
+          name: '', // Default empty name, can be updated later
+        },
+      });
+      // Re-fetch user with student profile
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: {
+          student: {
+            include: {
+              college: true,
+              department: true,
+            },
+          },
+          doctor: true,
+          delivery: {
+            include: {
+              wallet: true,
+            },
+          },
+          customer: true,
+          admin: true,
+          userRoles: {
+            include: {
+              role: {
+                include: {
+                  permissions: {
+                    include: {
+                      permission: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+      if (updatedUser) {
+        Object.assign(user, updatedUser);
+        Object.assign(userWithoutPassword, { ...updatedUser, password: undefined });
+      }
+    }
+
     // Extract name and username from related profile
     let name = null;
     let username = null;
     if (user.student) {
-      name = user.student.name;
-      username = user.student.name;
+      name = user.student.name || '';
+      username = user.student.name || '';
     } else if (user.doctor) {
-      name = user.doctor.name;
-      username = user.doctor.name;
+      name = user.doctor.name || '';
+      username = user.doctor.name || '';
     } else if (user.delivery) {
-      name = user.delivery.name;
-      username = user.delivery.name;
+      name = user.delivery.name || '';
+      username = user.delivery.name || '';
     } else if (user.customer) {
-      name = user.customer.contactPerson || user.customer.entityName;
-      username = user.customer.contactPerson || user.customer.entityName;
+      name = user.customer.contactPerson || user.customer.entityName || '';
+      username = user.customer.contactPerson || user.customer.entityName || '';
     }
 
     // Build response object, excluding null profile fields
