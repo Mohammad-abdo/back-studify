@@ -12,9 +12,12 @@ const { HTTP_STATUS } = require('../utils/constants');
  */
 const register = async (req, res, next) => {
   try {
-    const { phone, password, type, email, name } = req.body;
+    const { phone, password, type, email, name, nameAr, nameEn, collegeId, departmentId } = req.body;
 
-    const user = await authService.register(phone, password, type, email, name);
+    // Use nameEn if provided, otherwise name, otherwise nameAr
+    const finalName = nameEn || name || nameAr || '';
+
+    const user = await authService.register(phone, password, type, email, finalName, collegeId, departmentId);
 
     sendSuccess(res, user, 'Registration successful. Please verify your OTP.', HTTP_STATUS.CREATED);
   } catch (error) {

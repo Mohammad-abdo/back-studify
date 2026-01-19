@@ -5,7 +5,7 @@
 
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError } = require('../utils/errors');
+const { NotFoundError, ValidationError } = require('../utils/errors');
 const { getFileUrl } = require('../services/fileUpload.service');
 
 /**
@@ -197,12 +197,41 @@ const updateStudentProfile = async (req, res, next) => {
       throw new NotFoundError('Student profile not found');
     }
 
-    const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (collegeId !== undefined) updateData.collegeId = collegeId;
-    if (departmentId !== undefined) updateData.departmentId = departmentId;
+    if (!user.student) {
+      throw new NotFoundError('Student profile not found');
+    }
 
-    const student = await prisma.student.update({
+    const student = user.student;
+    const updateData = {};
+    
+    // Always allow name updates
+    if (name !== undefined) updateData.name = name;
+
+    // Check college update limit (max 2 times)
+    if (collegeId !== undefined) {
+      if (collegeId !== student.collegeId) {
+        // Only count if actually changing
+        if (student.collegeUpdateCount >= 2) {
+          throw new ValidationError('College can only be updated 2 times. This limit has been reached.');
+        }
+        updateData.collegeId = collegeId;
+        updateData.collegeUpdateCount = student.collegeUpdateCount + 1;
+      }
+    }
+
+    // Check department update limit (max 2 times)
+    if (departmentId !== undefined) {
+      if (departmentId !== student.departmentId) {
+        // Only count if actually changing
+        if (student.departmentUpdateCount >= 2) {
+          throw new ValidationError('Department can only be updated 2 times. This limit has been reached.');
+        }
+        updateData.departmentId = departmentId;
+        updateData.departmentUpdateCount = student.departmentUpdateCount + 1;
+      }
+    }
+
+    const updatedStudent = await prisma.student.update({
       where: { userId },
       data: updateData,
       include: {
@@ -211,7 +240,7 @@ const updateStudentProfile = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, student, 'Student profile updated successfully');
+    sendSuccess(res, updatedStudent, 'Student profile updated successfully');
   } catch (error) {
     next(error);
   }
@@ -223,7 +252,7 @@ const updateStudentProfile = async (req, res, next) => {
 const updateDoctorProfile = async (req, res, next) => {
   try {
     const userId = req.userId;
-    const { name, specialization } = req.body;
+    const { name, specialization, collegeId, departmentId } = req.body;
 
     // Check if user is a doctor
     const user = await prisma.user.findUnique({
@@ -238,10 +267,17 @@ const updateDoctorProfile = async (req, res, next) => {
     const updateData = {};
     if (name !== undefined) updateData.name = name;
     if (specialization !== undefined) updateData.specialization = specialization;
+    // Doctors can update college/department unlimited times
+    if (collegeId !== undefined) updateData.collegeId = collegeId;
+    if (departmentId !== undefined) updateData.departmentId = departmentId;
 
     const doctor = await prisma.doctor.update({
       where: { userId },
       data: updateData,
+      include: {
+        college: true,
+        department: true,
+      },
     });
 
     sendSuccess(res, doctor, 'Doctor profile updated successfully');

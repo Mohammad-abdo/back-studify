@@ -35,9 +35,23 @@ const registerSchema = z.object({
   type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER']),
   email: emailSchema.optional(),
   name: z.string().min(2).max(100).optional(),
+  nameAr: z.string().min(2).max(100).optional(), // Arabic name
+  nameEn: z.string().min(2).max(100).optional(), // English name
+  collegeId: uuidSchema.optional().nullable(),
+  departmentId: uuidSchema.optional().nullable(),
 }).refine((data) => data.password === data.repeatPassword, {
   message: "Passwords don't match",
   path: ['repeatPassword'],
+}).refine((data) => {
+  // collegeId and departmentId are only allowed for STUDENT and DOCTOR types
+  if ((data.collegeId !== undefined && data.collegeId !== null) || 
+      (data.departmentId !== undefined && data.departmentId !== null)) {
+    return data.type === 'STUDENT' || data.type === 'DOCTOR';
+  }
+  return true;
+}, {
+  message: "collegeId and departmentId are only allowed for STUDENT and DOCTOR types",
+  path: ['collegeId'],
 });
 
 const verifyOTPSchema = z.object({

@@ -15,7 +15,7 @@ const config = require('../config/env');
 /**
  * Register new user
  */
-const register = async (phone, password, type, email = null, name = null) => {
+const register = async (phone, password, type, email = null, name = null, collegeId = null, departmentId = null) => {
   const formattedPhone = formatPhoneNumber(phone);
 
   // Check if user already exists
@@ -60,19 +60,23 @@ const register = async (phone, password, type, email = null, name = null) => {
   });
 
   // Create user-specific profile based on type
-  if (type === 'STUDENT' && name) {
+  if (type === 'STUDENT') {
     await prisma.student.create({
       data: {
         userId: user.id,
-        name,
+        name: name || '',
+        collegeId: collegeId || null,
+        departmentId: departmentId || null,
       },
     });
-  } else if (type === 'DOCTOR' && name) {
+  } else if (type === 'DOCTOR') {
     await prisma.doctor.create({
       data: {
         userId: user.id,
-        name,
+        name: name || '',
         specialization: '', // Will be updated later
+        collegeId: collegeId || null,
+        departmentId: departmentId || null,
       },
     });
   } else if (type === 'DELIVERY' && name) {

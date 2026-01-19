@@ -22,7 +22,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"type\": \"DOCTOR\",\n  \"email\": \"doctor@example.com\",\n  \"name\": \"Dr. Doctor Name\"\n}"
+              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"repeatPassword\": \"Password123!\",\n  \"type\": \"DOCTOR\",\n  \"email\": \"doctor@example.com\",\n  \"name\": \"Dr. Doctor Name\",\n  \"collegeId\": \"college-uuid-here\",\n  \"departmentId\": \"department-uuid-here\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
@@ -216,7 +216,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Dr. Updated Name\",\n  \"specialization\": \"Updated Specialization\"\n}"
+              "raw": "{\n  \"name\": \"Dr. Updated Name\",\n  \"specialization\": \"Updated Specialization\",\n  \"collegeId\": \"college-uuid-here\",\n  \"departmentId\": \"department-uuid-here\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/mobile/doctor/profile/doctor",

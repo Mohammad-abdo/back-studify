@@ -22,7 +22,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"type\": \"STUDENT\",\n  \"email\": \"student@example.com\",\n  \"name\": \"Student Name\"\n}"
+              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"repeatPassword\": \"Password123!\",\n  \"type\": \"STUDENT\",\n  \"email\": \"student@example.com\",\n  \"name\": \"Student Name\",\n  \"nameAr\": \"اسم الطالب\",\n  \"nameEn\": \"Student Name\",\n  \"collegeId\": \"college-uuid-here\",\n  \"departmentId\": \"department-uuid-here\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
@@ -181,6 +186,119 @@
                 "reset-password"
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public",
+      "item": [
+        {
+          "name": "Get Colleges",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/colleges",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "colleges"
+              ]
+            },
+            "description": "Get all colleges (public endpoint - no authentication required). Use this to get collegeId for registration."
+          }
+        },
+        {
+          "name": "Get College by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/colleges/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "colleges",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "college-uuid-here"
+                }
+              ]
+            },
+            "description": "Get a specific college by ID (public endpoint - no authentication required)."
+          }
+        },
+        {
+          "name": "Get Departments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/departments?collegeId=college-uuid-here",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "departments"
+              ],
+              "query": [
+                {
+                  "key": "collegeId",
+                  "value": "college-uuid-here",
+                  "description": "Filter departments by college ID"
+                },
+                {
+                  "key": "page",
+                  "value": "1",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all departments (public endpoint - no authentication required). Use collegeId query parameter to filter by college. Use this to get departmentId for registration."
+          }
+        },
+        {
+          "name": "Get Department by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/departments/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "departments",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "department-uuid-here"
+                }
+              ]
+            },
+            "description": "Get a specific department by ID (public endpoint - no authentication required)."
           }
         }
       ]

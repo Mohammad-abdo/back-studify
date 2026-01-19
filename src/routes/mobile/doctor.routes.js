@@ -40,10 +40,12 @@ router.use(transformImageUrlsMiddleware);
 router.get('/profile', userController.getProfile);
 router.put('/profile', userController.updateProfile);
 
-// Update doctor-specific profile (name, specialization)
+// Update doctor-specific profile (name, specialization, collegeId, departmentId)
 router.put('/profile/doctor', validateBody(z.object({
   name: z.string().min(2).max(100).optional(),
   specialization: z.string().min(2).max(200).optional(),
+  collegeId: uuidSchema.optional().nullable(),
+  departmentId: uuidSchema.optional().nullable(),
 })), userController.updateDoctorProfile);
 
 // Upload profile image

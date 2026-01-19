@@ -136,12 +136,14 @@ model OTPVerification {
 }
 
 model Student {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  name         String
-  collegeId    String?
-  departmentId String?
-  createdAt    DateTime @default(now())
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  name               String
+  collegeId          String?
+  departmentId       String?
+  collegeUpdateCount Int      @default(0)
+  departmentUpdateCount Int  @default(0)
+  createdAt          DateTime @default(now())
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   college    College?    @relation(fields: [collegeId], references: [id], onDelete: SetNull)
@@ -158,15 +160,21 @@ model Doctor {
   userId         String         @unique
   name           String
   specialization String
+  collegeId      String?
+  departmentId   String?
   approvalStatus ApprovalStatus @default(PENDING)
   approvedAt     DateTime?
   createdAt      DateTime       @default(now())
 
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  books     Book[]
-  materials Material[]
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  college    College?    @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  books      Book[]
+  materials  Material[]
 
   @@index([userId])
+  @@index([collegeId])
+  @@index([departmentId])
   @@index([approvalStatus])
   @@map("doctors")
 }
@@ -324,6 +332,7 @@ model College {
 
   departments         Department[]
   students            Student[]
+  doctors             Doctor[]
   books               Book[]
   materials           Material[]
   productCategories   ProductCategory[]
@@ -340,6 +349,7 @@ model Department {
 
   college   College    @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   students  Student[]
+  doctors   Doctor[]
   books     Book[]
   materials Material[]
 
