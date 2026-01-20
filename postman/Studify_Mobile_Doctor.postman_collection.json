@@ -755,6 +755,60 @@
           }
         },
         {
+          "name": "Create Print Option with File Upload",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "colorType",
+                  "value": "COLOR",
+                  "type": "text"
+                },
+                {
+                  "key": "copies",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "paperType",
+                  "value": "A4",
+                  "type": "text"
+                },
+                {
+                  "key": "doubleSide",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "totalPages",
+                  "value": "50",
+                  "type": "text",
+                  "description": "Optional: Number of pages in the uploaded file"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/print-options/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options", "upload"]
+            },
+            "description": "Upload a file and create a print option. File will be uploaded and URL will be saved automatically."
+          }
+        },
+        {
           "name": "Update Print Option",
           "request": {
             "method": "PUT",

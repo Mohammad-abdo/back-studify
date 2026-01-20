@@ -6,6 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, BadRequestError } = require('../utils/errors');
+const { getFileUrl } = require('../services/fileUpload.service');
 
 /**
  * Get all print options
@@ -13,11 +14,13 @@ const { NotFoundError, BadRequestError } = require('../utils/errors');
 const getPrintOptions = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { bookId, materialId } = req.query;
+    const { bookId, materialId, hasUploadedFile } = req.query;
 
     const where = {
       ...(bookId && { bookId }),
       ...(materialId && { materialId }),
+      ...(hasUploadedFile === 'true' && { uploadedFileUrl: { not: null } }),
+      ...(hasUploadedFile === 'false' && { uploadedFileUrl: null }),
     };
 
     const [printOptions, total] = await Promise.all([
@@ -153,6 +156,43 @@ const createPrintOption = async (req, res, next) => {
     });
 
     sendSuccess(res, printOption, 'Print option created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Create print option with file upload
+ */
+const createPrintOptionWithUpload = async (req, res, next) => {
+  try {
+    const { colorType, copies, paperType, doubleSide, totalPages } = req.body;
+    const uploadedFile = req.file;
+
+    if (!uploadedFile) {
+      throw new BadRequestError('File is required');
+    }
+
+    // Get file URL
+    const uploadedFileUrl = getFileUrl(uploadedFile.filename);
+
+    const printOption = await prisma.printOption.create({
+      data: {
+        bookId: null,
+        materialId: null,
+        uploadedFileUrl,
+        colorType,
+        copies,
+        paperType,
+        doubleSide,
+      },
+    });
+
+    sendSuccess(res, {
+      ...printOption,
+      uploadedFileUrl,
+      totalPages: totalPages || null,
+    }, 'Print option created successfully with uploaded file', 201);
   } catch (error) {
     next(error);
   }
@@ -512,6 +552,7 @@ module.exports = {
   getPrintOptions,
   getPrintOptionById,
   createPrintOption,
+  createPrintOptionWithUpload,
   updatePrintOption,
   deletePrintOption,
   getPrintQuote,

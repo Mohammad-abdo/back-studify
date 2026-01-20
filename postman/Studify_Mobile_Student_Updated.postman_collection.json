@@ -974,6 +974,385 @@
       "name": "Print Center",
       "item": [
         {
+          "name": "Get Print Options for Book",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/books/:bookId/print-options?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "books",
+                ":bookId",
+                "print-options"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "bookId",
+                  "value": "book-uuid-here"
+                }
+              ]
+            },
+            "description": "Get all print options available for a specific book."
+          }
+        },
+        {
+          "name": "Get Print Options for Material",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/materials/:materialId/print-options?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "materials",
+                ":materialId",
+                "print-options"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ],
+              "variable": [
+                {
+                  "key": "materialId",
+                  "value": "material-uuid-here"
+                }
+              ]
+            },
+            "description": "Get all print options available for a specific material."
+          }
+        },
+        {
+          "name": "Get All Print Options",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-options?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-options"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "bookId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "materialId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "hasUploadedFile",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by uploaded files: 'true' or 'false'"
+                }
+              ]
+            },
+            "description": "Get all print options. Filter by bookId, materialId, or hasUploadedFile."
+          }
+        },
+        {
+          "name": "Get Print Option by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-options/:id",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-options",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Print Quote",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-options/:id/quote",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-options",
+                ":id",
+                "quote"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            },
+            "description": "Get pricing quote for a print option. Returns total price based on the print option's configuration (copies, paperType, colorType, doubleSide)."
+          }
+        },
+        {
+          "name": "Create Print Order from Print Option",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-options/:id/order",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-options",
+                ":id",
+                "order"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            },
+            "description": "Create an order from a print option. The print option must already exist with all configuration (copies, paperType, colorType, doubleSide)."
+          }
+        },
+        {
+          "name": "Upload File and Create Print Option",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "colorType",
+                  "value": "COLOR",
+                  "type": "text"
+                },
+                {
+                  "key": "copies",
+                  "value": "1",
+                  "type": "text"
+                },
+                {
+                  "key": "paperType",
+                  "value": "A4",
+                  "type": "text"
+                },
+                {
+                  "key": "doubleSide",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "totalPages",
+                  "value": "50",
+                  "type": "text",
+                  "description": "Optional: Number of pages in the uploaded file"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-center/upload",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-center",
+                "upload"
+              ]
+            },
+            "description": "Upload a file (PDF/DOC) and create a print option. File will be uploaded and URL will be saved automatically. Returns the created print option with uploadedFileUrl."
+          }
+        },
+        {
+          "name": "Create Print Option - Book",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"colorType\": \"COLOR\",\n  \"copies\": 1,\n  \"paperType\": \"A4\",\n  \"doubleSide\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-center/book/:bookId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-center",
+                "book",
+                ":bookId"
+              ],
+              "variable": [
+                {
+                  "key": "bookId",
+                  "value": "book-uuid-here"
+                }
+              ]
+            },
+            "description": "Create a print option for a book. Book ID is in the URL path."
+          }
+        },
+        {
+          "name": "Create Print Option - Material",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"colorType\": \"BLACK_WHITE\",\n  \"copies\": 3,\n  \"paperType\": \"A4\",\n  \"doubleSide\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/print-center/material/:materialId",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "print-center",
+                "material",
+                ":materialId"
+              ],
+              "variable": [
+                {
+                  "key": "materialId",
+                  "value": "material-uuid-here"
+                }
+              ]
+            },
+            "description": "Create a print option for a material. Material ID is in the URL path."
+          }
+        },
+        {
           "name": "Create Content Order - Material Access",
           "request": {
             "method": "POST",
@@ -1107,7 +1486,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"referenceType\": \"BOOK\",\n      \"referenceId\": \"book-uuid-here\",\n      \"quantity\": 1,\n      \"price\": 100.0\n    }\n  ]\n}"
+              "raw": "{\n  \"items\": [\n    {\n      \"referenceType\": \"PRODUCT\",\n      \"referenceId\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"quantity\": 2,\n      \"price\": 25.0\n    },\n    {\n      \"referenceType\": \"PRODUCT\",\n      \"referenceId\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"quantity\": 1,\n      \"price\": 30.0\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{base_url}}/mobile/student/orders",
@@ -1119,7 +1503,8 @@
                 "student",
                 "orders"
               ]
-            }
+            },
+            "description": "Create a PRODUCT order (for items from cart). Order type is automatically set to 'PRODUCT'.\n\nNote: For BOOK/MATERIAL orders, use:\n- POST /mobile/student/books/:bookId/access (for books)\n- POST /mobile/student/materials/:materialId/access (for materials)\n\nThese will create CONTENT orders automatically."
           }
         },
         {

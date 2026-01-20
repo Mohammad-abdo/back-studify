@@ -9,6 +9,7 @@ const authenticate = require('../middleware/auth.middleware');
 const { requireUserType } = require('../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../utils/validators');
+const { singleUpload } = require('../services/fileUpload.service');
 const { z } = require('zod');
 
 // All routes require authentication
@@ -17,6 +18,7 @@ router.use(authenticate);
 router.get('/', validateQuery(paginationSchema.extend({
   bookId: uuidSchema.optional(),
   materialId: uuidSchema.optional(),
+  hasUploadedFile: z.enum(['true', 'false']).optional(),
 })), printOptionController.getPrintOptions);
 router.get('/:id', printOptionController.getPrintOptionById);
 
@@ -47,6 +49,21 @@ const updatePrintOptionSchema = z.object({
   paperType: z.enum(['A4', 'A3', 'LETTER']).optional(),
   doubleSide: z.boolean().optional(),
 });
+
+// Create print option with file upload support
+router.post(
+  '/upload',
+  requireUserType('DOCTOR'),
+  singleUpload('file'),
+  validateBody(z.object({
+    colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+    copies: z.number().int().positive(),
+    paperType: z.enum(['A4', 'A3', 'LETTER']),
+    doubleSide: z.boolean(),
+    totalPages: z.number().int().positive().optional(), // Optional for uploaded files
+  })),
+  printOptionController.createPrintOptionWithUpload
+);
 
 router.post(
   '/',

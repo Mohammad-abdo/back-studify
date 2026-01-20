@@ -61,10 +61,13 @@ const register = async (phone, password, type, email = null, name = null, colleg
 
   // Create user-specific profile based on type
   if (type === 'STUDENT') {
+    // Ensure name is not empty - use a default if all name fields are empty
+    const finalName = (name && name.trim()) || '';
+    
     await prisma.student.create({
       data: {
         userId: user.id,
-        name: name || '',
+        name: finalName,
         collegeId: collegeId || null,
         departmentId: departmentId || null,
       },

@@ -140,7 +140,7 @@ const createProductPricingSchema = z.object({
  */
 const createOrderSchema = z.object({
   items: z.array(z.object({
-    referenceType: z.enum(['BOOK', 'PRODUCT', 'PRINT_OPTION']),
+    referenceType: z.enum(['BOOK', 'PRODUCT', 'PRINT_OPTION', 'MATERIAL']),
     referenceId: uuidSchema,
     quantity: z.number().int().positive(),
     price: z.number().nonnegative(),

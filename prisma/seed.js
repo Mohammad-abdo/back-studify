@@ -994,8 +994,61 @@ async function main() {
   // 13. Create sample carts & orders for testing
   console.log('\n🛒 Creating sample carts and orders...');
 
-  if (createdStudents.length > 0 && createdProducts.length > 0) {
-    const sampleStudent = createdStudents[0];
+  // Find or create the specific user that logs in (+1234567890)
+  let targetStudent = null;
+  const targetPhone = '+1234567890';
+  const targetEmail = 'student@example.com';
+  const targetUserId = '595e76e0-2b2d-4924-a6d9-0cfa76b13f91';
+  
+  // Try to find the user by ID first, then phone or email
+  let existingUser = await prisma.user.findUnique({
+    where: { id: targetUserId },
+    include: { student: true },
+  });
+
+  if (!existingUser) {
+    existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { phone: targetPhone },
+          { email: targetEmail },
+        ],
+      },
+      include: { student: true },
+    });
+  }
+
+  if (existingUser) {
+    // Ensure student profile exists
+    if (!existingUser.student) {
+      await prisma.student.create({
+        data: {
+          userId: existingUser.id,
+          name: 'Student Name', // Set a default name
+        },
+      });
+      // Re-fetch with student profile
+      existingUser = await prisma.user.findUnique({
+        where: { id: existingUser.id },
+        include: { student: true },
+      });
+    } else if (!existingUser.student.name || existingUser.student.name === '') {
+      // Update empty name
+      await prisma.student.update({
+        where: { id: existingUser.student.id },
+        data: { name: 'Mohamed  Abo' },
+      });
+    }
+    targetStudent = existingUser;
+    console.log(`✅ Found/updated target student: ${targetStudent.phone} (${targetStudent.id})`);
+  } else if (createdStudents.length > 0) {
+    // Fallback to first created student
+    targetStudent = createdStudents[0];
+    console.log(`✅ Using first created student: ${targetStudent.phone} (${targetStudent.id})`);
+  }
+
+  if (targetStudent && createdProducts.length > 0) {
+    const sampleStudent = targetStudent;
 
 //new    // Create a cart for the first student with a couple of items (if not already exists)
     let cart = await prisma.cart.findFirst({
@@ -1057,7 +1110,39 @@ async function main() {
         items: true,
       },
     });
-    console.log(`✅ Sample product order created for student: ${productOrder.id}`);
+    // Check if order already exists to avoid duplicates
+    const existingOrder = await prisma.order.findFirst({
+      where: {
+        userId: sampleStudent.id,
+        orderType: 'PRODUCT',
+        status: 'PROCESSING',
+      },
+    });
+
+    if (!existingOrder) {
+      const productOrder = await prisma.order.create({
+        data: {
+          userId: sampleStudent.id,
+          total: orderTotal,
+          status: 'PROCESSING',
+          orderType: 'PRODUCT',
+          items: {
+            create: cart.items.map((item) => ({
+              referenceType: item.referenceType,
+              referenceId: item.referenceId,
+              quantity: item.quantity,
+              price: 25, // demo price
+            })),
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+      console.log(`✅ Sample product order created for student: ${productOrder.id}`);
+    } else {
+      console.log(`⏭️  Product order already exists for student: ${sampleStudent.phone}`);
+    }
 
     // Additionally create sample CONTENT orders (READ / BUY / PRINT) for book & material
     if (createdBooks.length > 0) {
@@ -1073,28 +1158,46 @@ async function main() {
       });
 
       if (readPricing) {
-        const contentOrder = await prisma.order.create({
-          data: {
+        // Check if order already exists
+        const existingBookOrder = await prisma.order.findFirst({
+          where: {
             userId: sampleStudent.id,
-            total: readPricing.price,
-            status: 'CREATED',
             orderType: 'CONTENT',
             items: {
-              create: [
-                {
-                  referenceType: 'BOOK',
-                  referenceId: sampleBook.id,
-                  quantity: 1,
-                  price: readPricing.price,
-                },
-              ],
+              some: {
+                referenceType: 'BOOK',
+                referenceId: sampleBook.id,
+              },
             },
           },
-          include: {
-            items: true,
-          },
         });
-        console.log(`✅ Sample CONTENT (READ) order created for book: ${contentOrder.id}`);
+
+        if (!existingBookOrder) {
+          const contentOrder = await prisma.order.create({
+            data: {
+              userId: sampleStudent.id,
+              total: readPricing.price,
+              status: 'PAID',
+              orderType: 'CONTENT',
+              items: {
+                create: [
+                  {
+                    referenceType: 'BOOK',
+                    referenceId: sampleBook.id,
+                    quantity: 1,
+                    price: readPricing.price,
+                  },
+                ],
+              },
+            },
+            include: {
+              items: true,
+            },
+          });
+          console.log(`✅ Sample CONTENT (READ) order created for book: ${contentOrder.id}`);
+        } else {
+          console.log(`⏭️  CONTENT order for book already exists`);
+        }
       }
     }
 
@@ -1111,28 +1214,46 @@ async function main() {
       });
 
       if (buyPricing) {
-        const contentOrderMat = await prisma.order.create({
-          data: {
+        // Check if order already exists
+        const existingMaterialOrder = await prisma.order.findFirst({
+          where: {
             userId: sampleStudent.id,
-            total: buyPricing.price,
-            status: 'CREATED',
             orderType: 'CONTENT',
             items: {
-              create: [
-                {
-                  referenceType: 'MATERIAL',
-                  referenceId: sampleMaterial.id,
-                  quantity: 1,
-                  price: buyPricing.price,
-                },
-              ],
+              some: {
+                referenceType: 'MATERIAL',
+                referenceId: sampleMaterial.id,
+              },
             },
           },
-          include: {
-            items: true,
-          },
         });
-        console.log(`✅ Sample CONTENT (BUY) order created for material: ${contentOrderMat.id}`);
+
+        if (!existingMaterialOrder) {
+          const contentOrderMat = await prisma.order.create({
+            data: {
+              userId: sampleStudent.id,
+              total: buyPricing.price,
+              status: 'PAID',
+              orderType: 'CONTENT',
+              items: {
+                create: [
+                  {
+                    referenceType: 'MATERIAL',
+                    referenceId: sampleMaterial.id,
+                    quantity: 1,
+                    price: buyPricing.price,
+                  },
+                ],
+              },
+            },
+            include: {
+              items: true,
+            },
+          });
+          console.log(`✅ Sample CONTENT (BUY) order created for material: ${contentOrderMat.id}`);
+        } else {
+          console.log(`⏭️  CONTENT order for material already exists`);
+        }
       }
     }
   } else {

@@ -320,6 +320,10 @@ const getOrderById = async (req, res, next) => {
 
 /**
  * Create order
+ * Automatically determines orderType based on items:
+ * - PRODUCT items → PRODUCT order
+ * - BOOK/MATERIAL items → CONTENT order
+ * - PRINT_OPTION items → PRINT order (if implemented)
  */
 const createOrder = async (req, res, next) => {
   try {
@@ -328,6 +332,28 @@ const createOrder = async (req, res, next) => {
 
     if (!items || items.length === 0) {
       throw new ValidationError('Order must have at least one item');
+    }
+
+    // Determine orderType based on items
+    // If all items are PRODUCT → PRODUCT order
+    // If all items are BOOK or MATERIAL → CONTENT order
+    // If mixed, default to PRODUCT (cart-based)
+    const hasProduct = items.some(item => item.referenceType === 'PRODUCT');
+    const hasBookOrMaterial = items.some(item => item.referenceType === 'BOOK' || item.referenceType === 'MATERIAL');
+    const hasPrintOption = items.some(item => item.referenceType === 'PRINT_OPTION');
+
+    let orderType = 'PRODUCT'; // default
+    if (hasPrintOption && !hasProduct && !hasBookOrMaterial) {
+      orderType = 'PRINT';
+    } else if (hasBookOrMaterial && !hasProduct && !hasPrintOption) {
+      orderType = 'CONTENT';
+    } else if (hasProduct) {
+      orderType = 'PRODUCT';
+    }
+
+    // Validate: Don't allow mixing PRODUCT with BOOK/MATERIAL/PRINT_OPTION
+    if ((hasProduct && hasBookOrMaterial) || (hasProduct && hasPrintOption) || (hasBookOrMaterial && hasPrintOption)) {
+      throw new ValidationError('Cannot mix PRODUCT items with BOOK/MATERIAL/PRINT_OPTION items in the same order');
     }
 
     // Calculate total
@@ -339,6 +365,7 @@ const createOrder = async (req, res, next) => {
         userId,
         total,
         status: ORDER_STATUS.CREATED,
+        orderType,
         items: {
           create: items.map((item) => ({
             referenceType: item.referenceType,

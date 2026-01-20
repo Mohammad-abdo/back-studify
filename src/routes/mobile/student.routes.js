@@ -279,6 +279,74 @@ router.get('/materials/:id', materialController.getMaterialById);
 router.post('/materials/:id/download', materialController.incrementDownloads);
 
 // ============================================
+// PRINT OPTIONS & PRINT CENTER
+// ============================================
+// Get print options for a book
+router.get('/books/:bookId/print-options', validateQuery(paginationSchema.extend({
+  bookId: uuidSchema.optional(),
+})), printOptionController.getPrintOptions);
+
+// Get print options for a material
+router.get('/materials/:materialId/print-options', validateQuery(paginationSchema.extend({
+  materialId: uuidSchema.optional(),
+})), printOptionController.getPrintOptions);
+
+// Get all print options (filtered by bookId or materialId)
+router.get('/print-options', validateQuery(paginationSchema.extend({
+  bookId: uuidSchema.optional(),
+  materialId: uuidSchema.optional(),
+  hasUploadedFile: z.enum(['true', 'false']).optional(),
+})), printOptionController.getPrintOptions);
+
+// Get print option by ID
+router.get('/print-options/:id', printOptionController.getPrintOptionById);
+
+// Get print quote for a print option
+router.get('/print-options/:id/quote', printOptionController.getPrintQuote);
+
+// Create print order from print option
+router.post('/print-options/:id/order', printOptionController.createPrintOrder);
+
+// Print Center - Upload file and create print option
+router.post('/print-center/upload', singleUpload('file'), validateBody(z.object({
+  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+  copies: z.number().int().positive(),
+  paperType: z.enum(['A4', 'A3', 'LETTER']),
+  doubleSide: z.boolean(),
+  totalPages: z.number().int().positive().optional(),
+})), printOptionController.createPrintOptionWithUpload);
+
+// Print Center - Create print option for book
+router.post('/print-center/book/:bookId', validateBody(z.object({
+  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+  copies: z.number().int().positive(),
+  paperType: z.enum(['A4', 'A3', 'LETTER']),
+  doubleSide: z.boolean(),
+})), async (req, res, next) => {
+  try {
+    req.body.bookId = req.params.bookId;
+    return printOptionController.createPrintOption(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Print Center - Create print option for material
+router.post('/print-center/material/:materialId', validateBody(z.object({
+  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+  copies: z.number().int().positive(),
+  paperType: z.enum(['A4', 'A3', 'LETTER']),
+  doubleSide: z.boolean(),
+})), async (req, res, next) => {
+  try {
+    req.body.materialId = req.params.materialId;
+    return printOptionController.createPrintOption(req, res, next);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ============================================
 // ORDERS
 // ============================================
 router.get('/orders', validateQuery(paginationSchema.extend({
