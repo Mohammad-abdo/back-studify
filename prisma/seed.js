@@ -1263,6 +1263,11 @@ async function main() {
   console.log('   Doctor: +202222222221 / Password123!');
   console.log('   Delivery: +203333333331 / Password123!');
   console.log('   Customer: +204444444441 / Password123!');
+  
+  // Seed orders for specific user if requested
+  if (process.argv.includes('--seed-orders')) {
+    await seedOrdersForUser();
+  }
 }
 
 async function clearDatabase() {
@@ -1310,12 +1315,428 @@ async function clearDatabase() {
   console.log('✅ Database cleared');
 }
 
-main()
-  .catch((e) => {
-    console.error('❌ Error seeding database:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
+async function seedOrdersForUser() {
+  const userId = '595e76e0-2b2d-4924-a6d9-0cfa76b13f91';
+  const userPhone = '+1234567890';
+  const userEmail = 'student@example.com';
+  
+  console.log('\n🛒 Seeding orders for user:', userId);
+  
+  // Try to find user by ID first, then by phone or email
+  let user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { student: true },
   });
+  
+  if (!user) {
+    console.log('⚠️ User not found by ID, trying by phone...');
+    user = await prisma.user.findUnique({
+      where: { phone: userPhone },
+      include: { student: true },
+    });
+  }
+  
+  if (!user) {
+    console.log('⚠️ User not found by phone, trying by email...');
+    user = await prisma.user.findUnique({
+      where: { email: userEmail },
+      include: { student: true },
+    });
+  }
+  
+  if (!user) {
+    console.log('⚠️ User not found. Creating user based on login data...');
+    
+    // Create the user if they don't exist (based on the login response)
+    // Note: We'll use a placeholder password since we don't have the actual hash
+    const placeholderPassword = bcrypt.hashSync('Password123!', 12);
+    
+    try {
+      user = await prisma.user.create({
+        data: {
+          id: userId, // Use the exact ID from the login response
+          phone: userPhone,
+          email: userEmail,
+          password: placeholderPassword, // Placeholder - user should change this
+          type: 'STUDENT',
+          isActive: true,
+          student: {
+            create: {
+              name: '', // Empty name as per login response
+              collegeId: null,
+              departmentId: null,
+            },
+          },
+        },
+        include: { student: true },
+      });
+      console.log(`✅ Created user: ${user.phone} (${user.email})`);
+    } catch (error) {
+      if (error.code === 'P2002') {
+        // Unique constraint violation - user might exist with different ID
+        console.log('⚠️ User with this phone/email already exists with different ID.');
+        console.log('   Trying to find by phone/email...');
+        user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { phone: userPhone },
+              { email: userEmail },
+            ],
+          },
+          include: { student: true },
+        });
+        if (user) {
+          console.log(`✅ Found existing user: ${user.id} | ${user.phone} (${user.email})`);
+        } else {
+          console.log('❌ Could not create or find user. Error:', error.message);
+          return;
+        }
+      } else {
+        console.log('❌ Error creating user:', error.message);
+        return;
+      }
+    }
+  } else {
+    console.log(`✅ Found user: ${user.phone} (${user.email})`);
+  }
+  
+  const actualUserId = user.id;
+  
+  // Get some products, books, and materials to create orders
+  const products = await prisma.product.findMany({
+    take: 5,
+    include: {
+      pricing: {
+        orderBy: { minQuantity: 'asc' },
+      },
+    },
+  });
+  
+  const books = await prisma.book.findMany({
+    take: 3,
+    where: { approvalStatus: 'APPROVED' },
+    include: {
+      pricing: true,
+    },
+  });
+  
+  const materials = await prisma.material.findMany({
+    take: 3,
+    where: { approvalStatus: 'APPROVED' },
+    include: {
+      pricing: true,
+    },
+  });
+  
+  if (products.length === 0 && books.length === 0 && materials.length === 0) {
+    console.log('⚠️ No products, books, or materials found. Please run main seed first.');
+    return;
+  }
+  
+  // Create PRODUCT orders with different statuses
+  if (products.length > 0) {
+    // Order 1: CREATED status - 2 products
+    const product1 = products[0];
+    const product2 = products[1] || products[0];
+    const price1 = product1.pricing[0]?.price || 25.0;
+    const price2 = product2.pricing[0]?.price || 25.0;
+    
+    const order1 = await prisma.order.create({
+      data: {
+        userId: actualUserId,
+        total: (price1 * 2) + (price2 * 1),
+        status: 'CREATED',
+        orderType: 'PRODUCT',
+        items: {
+          create: [
+            {
+              referenceType: 'PRODUCT',
+              referenceId: product1.id,
+              quantity: 2,
+              price: price1,
+            },
+            {
+              referenceType: 'PRODUCT',
+              referenceId: product2.id,
+              quantity: 1,
+              price: price2,
+            },
+          ],
+        },
+      },
+    });
+    console.log(`✅ Created PRODUCT order (CREATED): ${order1.id} - Total: ${order1.total}`);
+    
+    // Order 2: PAID status - 1 product
+    if (products.length > 2) {
+      const product3 = products[2];
+      const price3 = product3.pricing[0]?.price || 25.0;
+      
+      const order2 = await prisma.order.create({
+        data: {
+          userId: actualUserId,
+          total: price3 * 3,
+          status: 'PAID',
+          orderType: 'PRODUCT',
+          items: {
+            create: [
+              {
+                referenceType: 'PRODUCT',
+                referenceId: product3.id,
+                quantity: 3,
+                price: price3,
+              },
+            ],
+          },
+        },
+      });
+      console.log(`✅ Created PRODUCT order (PAID): ${order2.id} - Total: ${order2.total}`);
+    }
+    
+    // Order 3: PROCESSING status
+    if (products.length > 3) {
+      const product4 = products[3];
+      const price4 = product4.pricing[0]?.price || 25.0;
+      
+      const order3 = await prisma.order.create({
+        data: {
+          userId: actualUserId,
+          total: price4 * 1,
+          status: 'PROCESSING',
+          orderType: 'PRODUCT',
+          items: {
+            create: [
+              {
+                referenceType: 'PRODUCT',
+                referenceId: product4.id,
+                quantity: 1,
+                price: price4,
+              },
+            ],
+          },
+        },
+      });
+      console.log(`✅ Created PRODUCT order (PROCESSING): ${order3.id} - Total: ${order3.total}`);
+    }
+    
+    // Order 4: DELIVERED status
+    if (products.length > 4) {
+      const product5 = products[4];
+      const price5 = product5.pricing[0]?.price || 25.0;
+      
+      const order4 = await prisma.order.create({
+        data: {
+          userId: actualUserId,
+          total: price5 * 2,
+          status: 'DELIVERED',
+          orderType: 'PRODUCT',
+          items: {
+            create: [
+              {
+                referenceType: 'PRODUCT',
+                referenceId: product5.id,
+                quantity: 2,
+                price: price5,
+              },
+            ],
+          },
+        },
+      });
+      console.log(`✅ Created PRODUCT order (DELIVERED): ${order4.id} - Total: ${order4.total}`);
+    }
+  }
+  
+  // Create CONTENT orders for books
+  if (books.length > 0) {
+    // Order 5: Book READ access
+    const book1 = books[0];
+    const readPricing = book1.pricing.find(p => p.accessType === 'READ');
+    
+    if (readPricing) {
+      const order5 = await prisma.order.create({
+        data: {
+          userId: actualUserId,
+          total: readPricing.price,
+          status: 'PAID',
+          orderType: 'CONTENT',
+          items: {
+            create: [
+              {
+                referenceType: 'BOOK',
+                referenceId: book1.id,
+                quantity: 1,
+                price: readPricing.price,
+              },
+            ],
+          },
+        },
+      });
+      console.log(`✅ Created CONTENT order (BOOK READ): ${order5.id} - Total: ${order5.total}`);
+    }
+    
+    // Order 6: Book BUY access
+    if (books.length > 1) {
+      const book2 = books[1];
+      const buyPricing = book2.pricing.find(p => p.accessType === 'BUY');
+      
+      if (buyPricing) {
+        const order6 = await prisma.order.create({
+          data: {
+            userId: actualUserId,
+            total: buyPricing.price,
+            status: 'CREATED',
+            orderType: 'CONTENT',
+            items: {
+              create: [
+                {
+                  referenceType: 'BOOK',
+                  referenceId: book2.id,
+                  quantity: 1,
+                  price: buyPricing.price,
+                },
+              ],
+            },
+          },
+        });
+        console.log(`✅ Created CONTENT order (BOOK BUY): ${order6.id} - Total: ${order6.total}`);
+      }
+    }
+    
+    // Order 7: Book PRINT access
+    if (books.length > 2) {
+      const book3 = books[2];
+      const printPricing = book3.pricing.find(p => p.accessType === 'PRINT');
+      
+      if (printPricing) {
+        const order7 = await prisma.order.create({
+          data: {
+            userId: actualUserId,
+            total: printPricing.price,
+            status: 'PROCESSING',
+            orderType: 'CONTENT',
+            items: {
+              create: [
+                {
+                  referenceType: 'BOOK',
+                  referenceId: book3.id,
+                  quantity: 1,
+                  price: printPricing.price,
+                },
+              ],
+            },
+          },
+        });
+        console.log(`✅ Created CONTENT order (BOOK PRINT): ${order7.id} - Total: ${order7.total}`);
+      }
+    }
+  }
+  
+  // Create CONTENT orders for materials
+  if (materials.length > 0) {
+    // Order 8: Material READ access
+    const material1 = materials[0];
+    const readPricing = material1.pricing.find(p => p.accessType === 'READ');
+    
+    if (readPricing) {
+      const order8 = await prisma.order.create({
+        data: {
+          userId: actualUserId,
+          total: readPricing.price,
+          status: 'PAID',
+          orderType: 'CONTENT',
+          items: {
+            create: [
+              {
+                referenceType: 'MATERIAL',
+                referenceId: material1.id,
+                quantity: 1,
+                price: readPricing.price,
+              },
+            ],
+          },
+        },
+      });
+      console.log(`✅ Created CONTENT order (MATERIAL READ): ${order8.id} - Total: ${order8.total}`);
+    }
+    
+    // Order 9: Material BUY access
+    if (materials.length > 1) {
+      const material2 = materials[1];
+      const buyPricing = material2.pricing.find(p => p.accessType === 'BUY');
+      
+      if (buyPricing) {
+        const order9 = await prisma.order.create({
+          data: {
+            userId: actualUserId,
+            total: buyPricing.price,
+            status: 'DELIVERED',
+            orderType: 'CONTENT',
+            items: {
+              create: [
+                {
+                  referenceType: 'MATERIAL',
+                  referenceId: material2.id,
+                  quantity: 1,
+                  price: buyPricing.price,
+                },
+              ],
+            },
+          },
+        });
+        console.log(`✅ Created CONTENT order (MATERIAL BUY): ${order9.id} - Total: ${order9.total}`);
+      }
+    }
+    
+    // Order 10: Material PRINT access
+    if (materials.length > 2) {
+      const material3 = materials[2];
+      const printPricing = material3.pricing.find(p => p.accessType === 'PRINT');
+      
+      if (printPricing) {
+        const order10 = await prisma.order.create({
+          data: {
+            userId: actualUserId,
+            total: printPricing.price,
+            status: 'CREATED',
+            orderType: 'CONTENT',
+            items: {
+              create: [
+                {
+                  referenceType: 'MATERIAL',
+                  referenceId: material3.id,
+                  quantity: 1,
+                  price: printPricing.price,
+                },
+              ],
+            },
+          },
+        });
+        console.log(`✅ Created CONTENT order (MATERIAL PRINT): ${order10.id} - Total: ${order10.total}`);
+      }
+    }
+  }
+  
+  console.log('\n✨ Orders seeded successfully for user!');
+}
+
+// Run seed orders function if called directly with --orders-only flag
+if (process.argv.includes('--orders-only')) {
+  seedOrdersForUser()
+    .catch((e) => {
+      console.error('❌ Error seeding orders:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+} else {
+  main()
+    .catch((e) => {
+      console.error('❌ Error seeding database:', e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
 
