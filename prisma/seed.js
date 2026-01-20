@@ -997,7 +997,7 @@ async function main() {
   if (createdStudents.length > 0 && createdProducts.length > 0) {
     const sampleStudent = createdStudents[0];
 
-    // Create a cart for the first student with a couple of items (if not already exists)
+//new    // Create a cart for the first student with a couple of items (if not already exists)
     let cart = await prisma.cart.findFirst({
       where: { userId: sampleStudent.id },
       include: { items: true },
