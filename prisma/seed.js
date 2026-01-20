@@ -997,30 +997,39 @@ async function main() {
   if (createdStudents.length > 0 && createdProducts.length > 0) {
     const sampleStudent = createdStudents[0];
 
-    // Create a cart for the first student with a couple of items
-    const cart = await prisma.cart.create({
-      data: {
-        userId: sampleStudent.id,
-        items: {
-          create: [
-            {
-              referenceType: 'PRODUCT',
-              referenceId: createdProducts[0].id,
-              quantity: 1,
-            },
-            {
-              referenceType: 'PRODUCT',
-              referenceId: createdProducts[1]?.id || createdProducts[0].id,
-              quantity: 2,
-            },
-          ],
-        },
-      },
-      include: {
-        items: true,
-      },
+    // Create a cart for the first student with a couple of items (if not already exists)
+    let cart = await prisma.cart.findFirst({
+      where: { userId: sampleStudent.id },
+      include: { items: true },
     });
-    console.log(`✅ Sample cart created for student: ${sampleStudent.phone}`);
+
+    if (!cart) {
+      cart = await prisma.cart.create({
+        data: {
+          userId: sampleStudent.id,
+          items: {
+            create: [
+              {
+                referenceType: 'PRODUCT',
+                referenceId: createdProducts[0].id,
+                quantity: 1,
+              },
+              {
+                referenceType: 'PRODUCT',
+                referenceId: createdProducts[1]?.id || createdProducts[0].id,
+                quantity: 2,
+              },
+            ],
+          },
+        },
+        include: {
+          items: true,
+        },
+      });
+      console.log(`✅ Sample cart created for student: ${sampleStudent.phone}`);
+    } else {
+      console.log(`⏭️  Sample cart already exists for student: ${sampleStudent.phone}`);
+    }
 
     // Create a sample order from that cart
     const orderTotal =
