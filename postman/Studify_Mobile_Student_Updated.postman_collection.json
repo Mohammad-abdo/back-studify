@@ -569,17 +569,30 @@
           }
         },
         {
-          "name": "Get Print Options for Book",
+          "name": "Create Content Order - Book Access",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessType\": \"READ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
-              "raw": "{{base_url}}/mobile/student/books/:bookId/print-options?page=1&limit=10",
+              "raw": "{{base_url}}/mobile/student/books/:bookId/access",
               "host": [
                 "{{base_url}}"
               ],
@@ -588,17 +601,7 @@
                 "student",
                 "books",
                 ":bookId",
-                "print-options"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                }
+                "access"
               ],
               "variable": [
                 {
@@ -606,37 +609,8 @@
                   "value": "book-uuid-here"
                 }
               ]
-            }
-          }
-        },
-        {
-          "name": "Get Print Option by ID",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/mobile/student/print-options/:id",
-              "host": [
-                "{{base_url}}"
-              ],
-              "path": [
-                "mobile",
-                "student",
-                "print-options",
-                ":id"
-              ],
-              "variable": [
-                {
-                  "key": "id",
-                  "value": "print-option-uuid-here"
-                }
-              ]
-            }
+            },
+            "description": "Create a content order for a book with accessType READ, BUY, or PRINT. Uses BookPricing for the given accessType and creates a CONTENT order."
           }
         }
       ]
@@ -992,6 +966,56 @@
                 }
               ]
             }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Print Center",
+      "item": [
+        {
+          "name": "Create Content Order - Material Access",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accessType\": \"READ\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/materials/:materialId/access",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "materials",
+                ":materialId",
+                "access"
+              ],
+              "variable": [
+                {
+                  "key": "materialId",
+                  "value": "material-uuid-here"
+                }
+              ]
+            },
+            "description": "Create a content order for a material with accessType READ, BUY, or PRINT. Uses MaterialPricing for the given accessType and creates a CONTENT order."
           }
         }
       ]

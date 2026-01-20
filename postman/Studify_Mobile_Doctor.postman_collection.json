@@ -660,6 +660,187 @@
       ]
     },
     {
+      "name": "Print Options",
+      "item": [
+        {
+          "name": "Get All Print Options",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/print-options?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "bookId",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "materialId",
+                  "value": "",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all print options. Filter by bookId or materialId."
+          }
+        },
+        {
+          "name": "Get Print Option by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/print-options/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Print Option",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"book-uuid-here\",\n  \"materialId\": null,\n  \"uploadedFileUrl\": null,\n  \"colorType\": \"COLOR\",\n  \"copies\": 1,\n  \"paperType\": \"A4\",\n  \"doubleSide\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/print-options",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options"]
+            },
+            "description": "Create a print option. Must provide either bookId, materialId, or uploadedFileUrl. For uploaded files, ensure totalPages is set if needed."
+          }
+        },
+        {
+          "name": "Update Print Option",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"colorType\": \"BLACK_WHITE\",\n  \"copies\": 2,\n  \"paperType\": \"A3\",\n  \"doubleSide\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/api/print-options/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            },
+            "description": "Update a print option. All fields are optional."
+          }
+        },
+        {
+          "name": "Delete Print Option",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/print-options/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Print Quote",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/print-options/:id/quote",
+              "host": ["{{base_url}}"],
+              "path": ["api", "print-options", ":id", "quote"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "print-option-uuid-here"
+                }
+              ]
+            },
+            "description": "Get pricing quote for a print option. Returns total price based on the print option's configuration."
+          }
+        }
+      ]
+    },
+    {
       "name": "Orders",
       "item": [
         {

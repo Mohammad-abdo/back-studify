@@ -755,8 +755,84 @@ async function main() {
     });
     console.log(`  ✅ Material pricing added`);
   }
+  // 11. Create sample print options for books & materials
+  console.log('\n🖨️ Creating sample print options...');
 
-  // 11. Create Sample Products
+  const createdPrintOptions = [];
+
+  // Create print options for first few books
+  if (createdBooks.length > 0) {
+    const bookPrintConfigs = [
+      {
+        bookId: createdBooks[0].id,
+        colorType: 'COLOR',
+        copies: 1,
+        paperType: 'A4',
+        doubleSide: true,
+      },
+      createdBooks[1] && {
+        bookId: createdBooks[1].id,
+        colorType: 'BLACK_WHITE',
+        copies: 2,
+        paperType: 'A4',
+        doubleSide: false,
+      },
+    ].filter(Boolean);
+
+    for (const cfg of bookPrintConfigs) {
+      const option = await prisma.printOption.create({
+        data: {
+          bookId: cfg.bookId,
+          materialId: null,
+          uploadedFileUrl: null,
+          colorType: cfg.colorType,
+          copies: cfg.copies,
+          paperType: cfg.paperType,
+          doubleSide: cfg.doubleSide,
+        },
+      });
+      createdPrintOptions.push(option);
+      console.log(`✅ Print option created for book: ${option.bookId} (${option.colorType} / ${option.paperType})`);
+    }
+  }
+
+  // Create print options for first few materials
+  if (createdMaterials.length > 0) {
+    const materialPrintConfigs = [
+      {
+        materialId: createdMaterials[0].id,
+        colorType: 'BLACK_WHITE',
+        copies: 1,
+        paperType: 'A4',
+        doubleSide: true,
+      },
+      createdMaterials[1] && {
+        materialId: createdMaterials[1].id,
+        colorType: 'COLOR',
+        copies: 1,
+        paperType: 'A3',
+        doubleSide: false,
+      },
+    ].filter(Boolean);
+
+    for (const cfg of materialPrintConfigs) {
+      const option = await prisma.printOption.create({
+        data: {
+          bookId: null,
+          materialId: cfg.materialId,
+          uploadedFileUrl: null,
+          colorType: cfg.colorType,
+          copies: cfg.copies,
+          paperType: cfg.paperType,
+          doubleSide: cfg.doubleSide,
+        },
+      });
+      createdPrintOptions.push(option);
+      console.log(`✅ Print option created for material: ${option.materialId} (${option.colorType} / ${option.paperType})`);
+    }
+  }
+
+  // 12. Create Sample Products
   console.log('\n🛒 Creating sample products...');
   const products = [
     // Office Supplies (Engineering)
@@ -915,7 +991,7 @@ async function main() {
     console.log(`  ✅ Product pricing added`);
   }
 
-  // 12. Create sample carts & orders for testing
+  // 13. Create sample carts & orders for testing
   console.log('\n🛒 Creating sample carts and orders...');
 
   if (createdStudents.length > 0 && createdProducts.length > 0) {
@@ -953,11 +1029,12 @@ async function main() {
         return sum + item.quantity * 25;
       }, 0) || 0;
 
-    const order = await prisma.order.create({
+    const productOrder = await prisma.order.create({
       data: {
         userId: sampleStudent.id,
         total: orderTotal,
         status: 'PROCESSING',
+        orderType: 'PRODUCT',
         items: {
           create: cart.items.map((item) => ({
             referenceType: item.referenceType,
@@ -971,7 +1048,84 @@ async function main() {
         items: true,
       },
     });
-    console.log(`✅ Sample order created for student: ${order.id}`);
+    console.log(`✅ Sample product order created for student: ${productOrder.id}`);
+
+    // Additionally create sample CONTENT orders (READ / BUY / PRINT) for book & material
+    if (createdBooks.length > 0) {
+      const sampleBook = createdBooks[0];
+
+      const readPricing = await prisma.bookPricing.findUnique({
+        where: {
+          bookId_accessType: {
+            bookId: sampleBook.id,
+            accessType: 'READ',
+          },
+        },
+      });
+
+      if (readPricing) {
+        const contentOrder = await prisma.order.create({
+          data: {
+            userId: sampleStudent.id,
+            total: readPricing.price,
+            status: 'CREATED',
+            orderType: 'CONTENT',
+            items: {
+              create: [
+                {
+                  referenceType: 'BOOK',
+                  referenceId: sampleBook.id,
+                  quantity: 1,
+                  price: readPricing.price,
+                },
+              ],
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
+        console.log(`✅ Sample CONTENT (READ) order created for book: ${contentOrder.id}`);
+      }
+    }
+
+    if (createdMaterials.length > 0) {
+      const sampleMaterial = createdMaterials[0];
+
+      const buyPricing = await prisma.materialPricing.findUnique({
+        where: {
+          materialId_accessType: {
+            materialId: sampleMaterial.id,
+            accessType: 'BUY',
+          },
+        },
+      });
+
+      if (buyPricing) {
+        const contentOrderMat = await prisma.order.create({
+          data: {
+            userId: sampleStudent.id,
+            total: buyPricing.price,
+            status: 'CREATED',
+            orderType: 'CONTENT',
+            items: {
+              create: [
+                {
+                  referenceType: 'MATERIAL',
+                  referenceId: sampleMaterial.id,
+                  quantity: 1,
+                  price: buyPricing.price,
+                },
+              ],
+            },
+          },
+          include: {
+            items: true,
+          },
+        });
+        console.log(`✅ Sample CONTENT (BUY) order created for material: ${contentOrderMat.id}`);
+      }
+    }
   } else {
     console.log('⚠️ Skipped sample carts/orders seeding (no students or products)');
   }

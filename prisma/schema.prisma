@@ -43,6 +43,13 @@ enum OrderStatus {
   CANCELLED
 }
 
+// Distinguish between different order domains
+enum OrderType {
+  PRODUCT  // Cart / physical products
+  CONTENT  // Books & materials (READ, BUY, PRINT access)
+  PRINT    // Dedicated print-center jobs (optional, currently we use CONTENT + PRINT access)
+}
+
 enum ReviewTarget {
   BOOK
   PRODUCT
@@ -428,18 +435,31 @@ model BookPricing {
 }
 
 model PrintOption {
-  id           String @id @default(uuid())
-  bookId       String
-  colorType    String
-  paperSize    String
-  pricePerPage Float
+  id             String     @id @default(uuid())
+  bookId         String?
+  materialId     String?
+  uploadedFileUrl String?
+  colorType      ColorType
+  copies         Int
+  paperType      PaperType
+  doubleSide     Boolean
 
-  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book     Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  material Material? @relation(fields: [materialId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
+  @@index([materialId])
   @@map("print_options")
 }
-
+enum ColorType {
+  COLOR
+  BLACK_WHITE
+}
+enum PaperType {
+  A4
+  A3
+  LETTER
+}
 // ============================================
 // DOMAIN 4.5: MATERIALS
 // ============================================
@@ -466,6 +486,7 @@ model Material {
   college      College?         @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   department   Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   pricing      MaterialPricing[]
+  printOptions PrintOption[]
 
   @@index([categoryId])
   @@index([doctorId])
@@ -599,6 +620,7 @@ model Order {
   userId    String
   total     Float
   status    OrderStatus @default(CREATED)
+  orderType OrderType   @default(PRODUCT)
   createdAt DateTime    @default(now())
 
   user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)

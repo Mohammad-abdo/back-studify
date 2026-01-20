@@ -143,11 +143,125 @@ router.get('/departments', validateQuery(paginationSchema.extend({
 });
 
 // ============================================
-// PRINT OPTIONS (for books)
+// CONTENT ORDERS (BOOKS & MATERIALS READ / BUY / PRINT)
 // ============================================
-router.get('/books/:bookId/print-options', validateQuery(paginationSchema), printOptionController.getPrintOptions);
+// Book content order: READ, BUY, PRINT
+router.post('/books/:bookId/access', validateBody(z.object({
+  accessType: z.enum(['READ', 'BUY', 'PRINT']),
+})), async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { bookId } = req.params;
+    const { accessType } = req.body;
 
-router.get('/print-options/:id', printOptionController.getPrintOptionById);
+    // Ensure book exists
+    const book = await prisma.book.findUnique({
+      where: { id: bookId },
+    });
+    if (!book) {
+      return next(new NotFoundError('Book not found'));
+    }
+
+    // Get pricing for this access type
+    const pricing = await prisma.bookPricing.findUnique({
+      where: {
+        bookId_accessType: {
+          bookId,
+          accessType,
+        },
+      },
+    });
+    if (!pricing) {
+      return next(new NotFoundError(`No pricing found for access type ${accessType}`));
+    }
+
+    // Create a CONTENT order
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        total: pricing.price,
+        status: 'CREATED',
+        orderType: 'CONTENT',
+        items: {
+          create: [
+            {
+              referenceType: 'BOOK',
+              referenceId: bookId,
+              quantity: 1,
+              price: pricing.price,
+            },
+          ],
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    sendSuccess(res, order, 'Content order for book created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Material content order: READ, BUY, PRINT
+router.post('/materials/:materialId/access', validateBody(z.object({
+  accessType: z.enum(['READ', 'BUY', 'PRINT']),
+})), async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { materialId } = req.params;
+    const { accessType } = req.body;
+
+    // Ensure material exists
+    const material = await prisma.material.findUnique({
+      where: { id: materialId },
+    });
+    if (!material) {
+      return next(new NotFoundError('Material not found'));
+    }
+
+    // Get pricing for this access type
+    const pricing = await prisma.materialPricing.findUnique({
+      where: {
+        materialId_accessType: {
+          materialId,
+          accessType,
+        },
+      },
+    });
+    if (!pricing) {
+      return next(new NotFoundError(`No pricing found for access type ${accessType}`));
+    }
+
+    // Create a CONTENT order
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        total: pricing.price,
+        status: 'CREATED',
+        orderType: 'CONTENT',
+        items: {
+          create: [
+            {
+              referenceType: 'MATERIAL',
+              referenceId: materialId,
+              quantity: 1,
+              price: pricing.price,
+            },
+          ],
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+
+    sendSuccess(res, order, 'Content order for material created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ============================================
 // MATERIALS

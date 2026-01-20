@@ -14,19 +14,66 @@ const { z } = require('zod');
 // All routes require authentication
 router.use(authenticate);
 
-router.get('/', validateQuery(paginationSchema), printOptionController.getPrintOptions);
+router.get('/', validateQuery(paginationSchema.extend({
+  bookId: uuidSchema.optional(),
+  materialId: uuidSchema.optional(),
+})), printOptionController.getPrintOptions);
 router.get('/:id', printOptionController.getPrintOptionById);
-router.post('/', requireUserType('DOCTOR'), validateBody(z.object({
-  bookId: uuidSchema,
-  colorType: z.string().min(1).max(50),
-  paperSize: z.string().min(1).max(50),
-  pricePerPage: z.number().nonnegative(),
-})), printOptionController.createPrintOption);
-router.put('/:id', requireUserType('DOCTOR'), validateBody(z.object({
-  colorType: z.string().min(1).max(50).optional(),
-  paperSize: z.string().min(1).max(50).optional(),
-  pricePerPage: z.number().nonnegative().optional(),
-})), printOptionController.updatePrintOption);
+
+// Validation for creating a print option (configured by doctor)
+const createPrintOptionSchema = z.object({
+  bookId: uuidSchema.optional().nullable(),
+  materialId: uuidSchema.optional().nullable(),
+  uploadedFileUrl: z.string().url().optional().nullable(),
+  // COLOR or BLACK_WHITE
+  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+  copies: z.number().int().positive(),
+  paperType: z.enum(['A4', 'A3', 'LETTER']),
+  doubleSide: z.boolean(),
+}).refine(
+  (data) => data.bookId || data.materialId || data.uploadedFileUrl,
+  {
+    message: 'Either bookId, materialId, or uploadedFileUrl must be provided',
+  }
+);
+
+// Validation for updating a print option
+const updatePrintOptionSchema = z.object({
+  bookId: uuidSchema.optional().nullable(),
+  materialId: uuidSchema.optional().nullable(),
+  uploadedFileUrl: z.string().url().optional().nullable(),
+  colorType: z.enum(['COLOR', 'BLACK_WHITE']).optional(),
+  copies: z.number().int().positive().optional(),
+  paperType: z.enum(['A4', 'A3', 'LETTER']).optional(),
+  doubleSide: z.boolean().optional(),
+});
+
+router.post(
+  '/',
+  requireUserType('DOCTOR'),
+  validateBody(createPrintOptionSchema),
+  printOptionController.createPrintOption
+);
+
+router.put(
+  '/:id',
+  requireUserType('DOCTOR'),
+  validateBody(updatePrintOptionSchema),
+  printOptionController.updatePrintOption
+);
+
+// Get quote for a print option (no body needed, uses print option's own configuration)
+router.get(
+  '/:id/quote',
+  printOptionController.getPrintQuote
+);
+
+// Create print order from print option (for students)
+router.post(
+  '/:id/order',
+  printOptionController.createPrintOrder
+);
+
 router.delete('/:id', requireUserType('DOCTOR'), printOptionController.deletePrintOption);
 
 module.exports = router;
