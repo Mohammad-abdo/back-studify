@@ -541,8 +541,14 @@ const getDashboardStats = async (req, res, next) => {
       totalCartItems,
       totalSliders,
       totalPrintOptions,
+      // Order type breakdown
+      totalProductOrders,
+      totalContentOrders,
+      totalPrintOrders,
       // Revenue calculations
       totalRevenue,
+      totalProductRevenue,
+      totalContentRevenue,
       totalWholesaleRevenue,
       // Recent activity (last 7 days)
       recentOrders,
@@ -571,7 +577,11 @@ const getDashboardStats = async (req, res, next) => {
       prisma.cartItem.count(),
       prisma.slider.count(),
       prisma.printOption.count(),
-      // Calculate total revenue from completed orders
+      // Order type breakdown
+      prisma.order.count({ where: { orderType: 'PRODUCT' } }),
+      prisma.order.count({ where: { orderType: 'CONTENT' } }),
+      prisma.order.count({ where: { orderType: 'PRINT' } }),
+      // Calculate total revenue from completed orders (all types)
       prisma.order.aggregate({
         where: {
           status: {
@@ -582,7 +592,31 @@ const getDashboardStats = async (req, res, next) => {
           total: true,
         },
       }),
-      // Calculate total wholesale revenue
+      // Product revenue only
+      prisma.order.aggregate({
+        where: {
+          status: {
+            in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+          },
+          orderType: 'PRODUCT',
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+      // Content revenue (books & materials: READ / BUY / PRINT)
+      prisma.order.aggregate({
+        where: {
+          status: {
+            in: ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'],
+          },
+          orderType: 'CONTENT',
+        },
+        _sum: {
+          total: true,
+        },
+      }),
+      // Total wholesale revenue
       prisma.wholesaleOrder.aggregate({
         where: {
           status: {
@@ -638,6 +672,11 @@ const getDashboardStats = async (req, res, next) => {
       orders: {
         total: totalOrders,
         wholesale: totalWholesaleOrders,
+        byType: {
+          product: totalProductOrders,
+          content: totalContentOrders,
+          print: totalPrintOrders,
+        },
       },
       approvals: {
         pendingDoctors,
@@ -672,6 +711,8 @@ const getDashboardStats = async (req, res, next) => {
       revenue: {
         total: (totalRevenue._sum.total || 0) + (totalWholesaleRevenue._sum.total || 0),
         orders: totalRevenue._sum.total || 0,
+        product: totalProductRevenue._sum.total || 0,
+        content: totalContentRevenue._sum.total || 0,
         wholesale: totalWholesaleRevenue._sum.total || 0,
       },
       recent: {
