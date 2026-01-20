@@ -184,24 +184,20 @@ const addToCart = async (req, res, next) => {
       },
     });
 
-    let cartItem;
+    // If the item is already in the cart, return it WITHOUT increasing quantity
     if (existingItem) {
-      // Update quantity
-      cartItem = await prisma.cartItem.update({
-        where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + quantity },
-      });
-    } else {
-      // Create new item
-      cartItem = await prisma.cartItem.create({
-        data: {
-          cartId: cart.id,
-          referenceType,
-          referenceId,
-          quantity,
-        },
-      });
+      return sendSuccess(res, existingItem, 'Item already exists in cart');
     }
+
+    // Create new item
+    const cartItem = await prisma.cartItem.create({
+      data: {
+        cartId: cart.id,
+        referenceType,
+        referenceId,
+        quantity,
+      },
+    });
 
     sendSuccess(res, cartItem, 'Item added to cart successfully');
   } catch (error) {
@@ -315,4 +311,5 @@ module.exports = {
   removeFromCart,
   clearCart,
 };
+
 

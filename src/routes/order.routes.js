@@ -16,6 +16,8 @@ router.use(authenticate);
 // User routes
 router.get('/', validateQuery(paginationSchema), orderController.getMyOrders);
 router.get('/active', validateQuery(paginationSchema), orderController.getActiveOrders);
+// Alias for tracking orders (mobile-friendly name)
+router.get('/track', validateQuery(paginationSchema), orderController.getActiveOrders);
 router.get('/:id', orderController.getOrderById);
 router.post('/', validateBody(createOrderSchema), orderController.createOrder);
 router.post('/:id/cancel', orderController.cancelOrder);

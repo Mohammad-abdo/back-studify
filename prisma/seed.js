@@ -467,6 +467,10 @@ async function main() {
       title: 'Introduction to Programming',
       description: 'A comprehensive book covering programming fundamentals and basic concepts',
       fileUrl: 'https://example.com/books/intro-programming.pdf',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800',
+        'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800'
+      ]),
       totalPages: 350,
       categoryId: createdBookCategories[0].id,
       doctorId: createdDoctors[0].doctor.id,
@@ -478,6 +482,10 @@ async function main() {
       title: 'Data Structures and Algorithms',
       description: 'Complete guide to data structures and algorithm design',
       fileUrl: 'https://example.com/books/data-structures.pdf',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800',
+        'https://images.unsplash.com/photo-1551033406-611cf9a28f61?w=800'
+      ]),
       totalPages: 450,
       categoryId: createdBookCategories[0].id,
       doctorId: createdDoctors[0].doctor.id,
@@ -489,6 +497,10 @@ async function main() {
       title: 'Human Medicine Fundamentals',
       description: 'A comprehensive reference for medical students in early years',
       fileUrl: 'https://example.com/books/medical-basics.pdf',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800',
+        'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800'
+      ]),
       totalPages: 500,
       categoryId: createdBookCategories[1].id,
       doctorId: createdDoctors[1].doctor.id,
@@ -500,6 +512,10 @@ async function main() {
       title: 'Anatomy and Physiology',
       description: 'Detailed study of human anatomy and physiological systems',
       fileUrl: 'https://example.com/books/anatomy.pdf',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800',
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800'
+      ]),
       totalPages: 600,
       categoryId: createdBookCategories[1].id,
       doctorId: createdDoctors[1].doctor.id,
@@ -511,6 +527,10 @@ async function main() {
       title: 'Advanced Mathematics',
       description: 'A book covering advanced topics in mathematics',
       fileUrl: 'https://example.com/books/advanced-math.pdf',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800',
+        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800'
+      ]),
       totalPages: 420,
       categoryId: createdBookCategories[2].id,
       doctorId: createdDoctors[2].doctor.id,
@@ -522,6 +542,10 @@ async function main() {
       title: 'Calculus and Analysis',
       description: 'Comprehensive guide to calculus and mathematical analysis',
       fileUrl: 'https://example.com/books/calculus.pdf',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1596495577886-d920f1fb0de4?w=800',
+        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800'
+      ]),
       totalPages: 480,
       categoryId: createdBookCategories[2].id,
       doctorId: createdDoctors[2].doctor.id,
@@ -572,7 +596,10 @@ async function main() {
       title: 'Calculus Lecture Notes',
       description: 'Comprehensive lecture notes covering calculus fundamentals including limits, derivatives, and integrals',
       fileUrl: 'https://example.com/materials/calculus-notes.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/calculus-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800',
+        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800'
+      ]),
       totalPages: 120,
       categoryId: createdMaterialCategories[0].id,
       doctorId: createdDoctors[0].doctor.id,
@@ -585,7 +612,10 @@ async function main() {
       title: 'Chemistry Revision Class',
       description: 'Complete revision notes for chemistry final exam covering organic and inorganic chemistry',
       fileUrl: 'https://example.com/materials/chemistry-revision.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/chemistry-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800',
+        'https://images.unsplash.com/photo-1554475901-4538ddfbccc2?w=800'
+      ]),
       totalPages: 85,
       categoryId: createdMaterialCategories[1].id,
       doctorId: createdDoctors[2].doctor.id,
@@ -598,7 +628,10 @@ async function main() {
       title: 'Final Exam Preparation',
       description: 'Practice questions and solutions for final exam with detailed explanations',
       fileUrl: 'https://example.com/materials/final-exam-prep.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/exam-prep-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800',
+        'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800'
+      ]),
       totalPages: 200,
       categoryId: createdMaterialCategories[2].id,
       doctorId: createdDoctors[0].doctor.id,
@@ -611,7 +644,10 @@ async function main() {
       title: 'Data Structures Summary',
       description: 'Complete summary of data structures including arrays, linked lists, trees, and graphs',
       fileUrl: 'https://example.com/materials/data-structures-summary.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/ds-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800',
+        'https://images.unsplash.com/photo-1551033406-611cf9a28f61?w=800'
+      ]),
       totalPages: 95,
       categoryId: createdMaterialCategories[0].id,
       doctorId: createdDoctors[0].doctor.id,
@@ -624,7 +660,10 @@ async function main() {
       title: 'Anatomy Lecture Notes - Part 1',
       description: 'Detailed lecture notes on human anatomy covering skeletal and muscular systems',
       fileUrl: 'https://example.com/materials/anatomy-lecture-1.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/anatomy-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800',
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800'
+      ]),
       totalPages: 150,
       categoryId: createdMaterialCategories[3].id,
       doctorId: createdDoctors[1].doctor.id,
@@ -637,7 +676,10 @@ async function main() {
       title: 'Physics Problem Set',
       description: 'Collection of physics problems with step-by-step solutions covering mechanics and thermodynamics',
       fileUrl: 'https://example.com/materials/physics-problems.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/physics-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800',
+        'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800'
+      ]),
       totalPages: 110,
       categoryId: createdMaterialCategories[1].id,
       doctorId: createdDoctors[2].doctor.id,
@@ -650,7 +692,10 @@ async function main() {
       title: 'Programming Fundamentals Summary',
       description: 'Quick reference guide for programming fundamentals including variables, loops, and functions',
       fileUrl: 'https://example.com/materials/programming-fundamentals.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/programming-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800',
+        'https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800'
+      ]),
       totalPages: 75,
       categoryId: createdMaterialCategories[0].id,
       doctorId: createdDoctors[0].doctor.id,
@@ -663,7 +708,10 @@ async function main() {
       title: 'Medical Terminology Guide',
       description: 'Comprehensive guide to medical terminology with definitions and examples',
       fileUrl: 'https://example.com/materials/medical-terminology.pdf',
-      imageUrls: JSON.stringify(['https://example.com/images/medical-term-cover.jpg']),
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800',
+        'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800'
+      ]),
       totalPages: 180,
       categoryId: createdMaterialCategories[3].id,
       doctorId: createdDoctors[1].doctor.id,
@@ -715,71 +763,123 @@ async function main() {
     {
       name: 'University Notebook',
       description: 'High-quality notebook suitable for students',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800',
+        'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Office Supplies')?.id || createdProductCategories[0].id,
     },
     {
       name: 'Ballpoint Pens Set',
       description: 'Set of 10 high-quality ballpoint pens',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800',
+        'https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Office Supplies')?.id || createdProductCategories[0].id,
     },
     {
       name: 'Engineering Calculator',
       description: 'Scientific calculator for engineering students',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1587145820266-a5955ee7f620?w=800',
+        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Engineering Tools')?.id || createdProductCategories[1].id,
     },
     {
       name: 'Drawing Set',
       description: 'Complete drawing set for technical drawings',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800',
+        'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Engineering Tools')?.id || createdProductCategories[1].id,
     },
     // Medical Supplies
     {
       name: 'Medical Lab Coat',
       description: 'Professional lab coat for medical students',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=800',
+        'https://images.unsplash.com/photo-1576091160399-112ba8d25d1f?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Medical Supplies')?.id || createdProductCategories[4].id,
     },
     {
       name: 'Stethoscope',
       description: 'Professional grade stethoscope',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800',
+        'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Medical Supplies')?.id || createdProductCategories[4].id,
     },
     // Electronic Devices
     {
       name: 'Tablet for Students',
       description: 'Lightweight tablet perfect for taking notes',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800',
+        'https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Electronic Devices')?.id || createdProductCategories[5].id,
     },
     // University Apparel
     {
       name: 'University T-Shirt',
       description: 'Official university branded t-shirt',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
+        'https://images.unsplash.com/photo-1503341504253-dff4815485f1?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'University Apparel')?.id || createdProductCategories[7].id,
     },
     {
       name: 'University Hoodie',
       description: 'Comfortable university branded hoodie',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800',
+        'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'University Apparel')?.id || createdProductCategories[7].id,
     },
     // Study Supplies
     {
       name: 'Student Backpack',
       description: 'Durable and comfortable backpack for students',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800',
+        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Study Supplies')?.id || createdProductCategories[9].id,
     },
     {
       name: 'Highlighters Set',
       description: 'Set of 5 colorful highlighters',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800',
+        'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Study Supplies')?.id || createdProductCategories[9].id,
     },
     // Stationery
     {
       name: 'A4 Paper Pack',
       description: 'Pack of 500 A4 sheets',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800',
+        'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Stationery')?.id || createdProductCategories[11].id,
     },
     {
       name: 'Binder Folder',
       description: 'Durable binder folder for organizing documents',
+      imageUrls: JSON.stringify([
+        'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=800',
+        'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=800'
+      ]),
       categoryId: createdProductCategories.find(c => c.name === 'Stationery')?.id || createdProductCategories[11].id,
     },
   ];
@@ -815,7 +915,68 @@ async function main() {
     console.log(`  ✅ Product pricing added`);
   }
 
-  // 12. Create Roles & Permissions
+  // 12. Create sample carts & orders for testing
+  console.log('\n🛒 Creating sample carts and orders...');
+
+  if (createdStudents.length > 0 && createdProducts.length > 0) {
+    const sampleStudent = createdStudents[0];
+
+    // Create a cart for the first student with a couple of items
+    const cart = await prisma.cart.create({
+      data: {
+        userId: sampleStudent.id,
+        items: {
+          create: [
+            {
+              referenceType: 'PRODUCT',
+              referenceId: createdProducts[0].id,
+              quantity: 1,
+            },
+            {
+              referenceType: 'PRODUCT',
+              referenceId: createdProducts[1]?.id || createdProducts[0].id,
+              quantity: 2,
+            },
+          ],
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+    console.log(`✅ Sample cart created for student: ${sampleStudent.phone}`);
+
+    // Create a sample order from that cart
+    const orderTotal =
+      cart.items.reduce((sum, item) => {
+        // Simple demo total: use a flat price 25 per quantity
+        return sum + item.quantity * 25;
+      }, 0) || 0;
+
+    const order = await prisma.order.create({
+      data: {
+        userId: sampleStudent.id,
+        total: orderTotal,
+        status: 'PROCESSING',
+        items: {
+          create: cart.items.map((item) => ({
+            referenceType: item.referenceType,
+            referenceId: item.referenceId,
+            quantity: item.quantity,
+            price: 25, // demo price
+          })),
+        },
+      },
+      include: {
+        items: true,
+      },
+    });
+    console.log(`✅ Sample order created for student: ${order.id}`);
+  } else {
+    console.log('⚠️ Skipped sample carts/orders seeding (no students or products)');
+  }
+
+  // 13. Create Roles & Permissions
   console.log('\n🔐 Creating roles and permissions...');
   
   const permissions = [

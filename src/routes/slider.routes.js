@@ -40,3 +40,4 @@ router.delete('/:id', sliderController.deleteSlider);
 
 module.exports = router;
 
+
