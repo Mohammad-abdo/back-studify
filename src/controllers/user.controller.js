@@ -120,7 +120,7 @@ const getProfile = async (req, res, next) => {
       username = user.customer.contactPerson || user.customer.entityName || '';
     }
 
-    // Build response object, excluding null profile fields
+    // Build response object
     const responseData = {
       ...userWithoutPassword,
       name,
@@ -133,13 +133,6 @@ const getProfile = async (req, res, next) => {
       isCustomer: user.type === 'CUSTOMER',
       isAdmin: user.type === 'ADMIN',
     };
-
-    // Remove null profile fields
-    if (!user.student) delete responseData.student;
-    if (!user.doctor) delete responseData.doctor;
-    if (!user.delivery) delete responseData.delivery;
-    if (!user.customer) delete responseData.customer;
-    if (!user.admin) delete responseData.admin;
 
     sendSuccess(res, responseData, 'Profile retrieved successfully');
   } catch (error) {

@@ -143,11 +143,17 @@ const getProfile = async (req, res, next) => {
       username = user.customer?.contactPerson || user.customer?.entityName;
     }
 
-    // Add name and username to user object
+    // Add name, username and role flags to user object
     const userWithProfile = {
       ...userWithoutPassword,
       name,
       username,
+      userRole: user.type,
+      isStudent: user.type === 'STUDENT',
+      isDoctor: user.type === 'DOCTOR',
+      isDelivery: user.type === 'DELIVERY',
+      isCustomer: user.type === 'CUSTOMER',
+      isAdmin: user.type === 'ADMIN',
     };
 
     sendSuccess(res, userWithProfile, 'Profile retrieved successfully');

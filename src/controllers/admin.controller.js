@@ -766,6 +766,45 @@ const getReviews = async (req, res, next) => {
   }
 };
 
+/**
+ * Get recent orders for admin dashboard
+ */
+const getRecentOrders = async (req, res, next) => {
+  try {
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+    const { status } = req.query;
+
+    const where = {
+      ...(status && { status }),
+    };
+
+    const [orders, total] = await Promise.all([
+      prisma.order.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          user: {
+            select: {
+              id: true,
+              phone: true,
+              email: true,
+            },
+          },
+          items: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.order.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, orders, pagination, 'Orders retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   approveDoctor,
   rejectDoctor,
@@ -778,5 +817,6 @@ module.exports = {
   getUserById,
   updateUser,
   getReviews,
+  getRecentOrders,
   logAdminOperation,
 };

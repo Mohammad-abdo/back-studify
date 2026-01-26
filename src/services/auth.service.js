@@ -213,11 +213,17 @@ const login = async (phone, password) => {
     username = user.customer.contactPerson || user.customer.entityName;
   }
 
-  // Add name and username to user object
+  // Add name and username and role flags to user object
   const userWithProfile = {
     ...userWithoutPassword,
     name,
     username,
+    userRole: user.type,
+    isStudent: user.type === 'STUDENT',
+    isDoctor: user.type === 'DOCTOR',
+    isDelivery: user.type === 'DELIVERY',
+    isCustomer: user.type === 'CUSTOMER',
+    isAdmin: user.type === 'ADMIN',
   };
 
   return {
