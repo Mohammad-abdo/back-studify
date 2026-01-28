@@ -31,7 +31,7 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   phone: phoneSchema,
   password: passwordSchema,
-  repeatPassword: z.string(),
+  repeatPassword: z.string().optional(),
   type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER']),
   email: emailSchema.optional(),
   name: z.string().min(2).max(100).optional(),
@@ -39,7 +39,7 @@ const registerSchema = z.object({
   nameEn: z.string().min(2).max(100).optional(), // English name
   collegeId: uuidSchema.optional().nullable(),
   departmentId: uuidSchema.optional().nullable(),
-}).refine((data) => data.password === data.repeatPassword, {
+}).refine((data) => !data.repeatPassword || data.password === data.repeatPassword, {
   message: "Passwords don't match",
   path: ['repeatPassword'],
 }).refine((data) => {
@@ -71,8 +71,8 @@ const resetPasswordSchema = z.object({
   userId: uuidSchema,
   code: z.string().length(6).regex(/^\d+$/),
   newPassword: passwordSchema,
-  repeatPassword: z.string(),
-}).refine((data) => data.newPassword === data.repeatPassword, {
+  repeatPassword: z.string().optional(),
+}).refine((data) => !data.repeatPassword || data.newPassword === data.repeatPassword, {
   message: "Passwords don't match",
   path: ['repeatPassword'],
 });

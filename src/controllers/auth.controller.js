@@ -41,6 +41,22 @@ const login = async (req, res, next) => {
 };
 
 /**
+ * Specialized login for delivery personnel
+ */
+const deliveryLogin = async (req, res, next) => {
+  try {
+    const { phone, password } = req.body;
+
+    const result = await authService.deliveryLogin(phone, password);
+
+    // Using Profile retrieved successfully as message to match user request
+    sendSuccess(res, result, 'Profile retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Verify OTP
  */
 const verifyOTP = async (req, res, next) => {
@@ -165,6 +181,7 @@ const getProfile = async (req, res, next) => {
 module.exports = {
   register,
   login,
+  deliveryLogin,
   verifyOTP,
   resendOTP,
   forgotPassword,

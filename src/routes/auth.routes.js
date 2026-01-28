@@ -20,6 +20,7 @@ const {
 // Public routes
 router.post('/register', authLimiter, validateBody(registerSchema), authController.register);
 router.post('/login', authLimiter, validateBody(loginSchema), authController.login);
+router.post('/delivery/login', authLimiter, validateBody(loginSchema), authController.deliveryLogin);
 router.post('/verify-otp', otpLimiter, validateBody(verifyOTPSchema), authController.verifyOTP);
 router.post('/resend-otp', otpLimiter, validateBody(resendOTPSchema), authController.resendOTP);
 router.post('/forgot-password', authLimiter, validateBody(forgotPasswordSchema), authController.forgotPassword);

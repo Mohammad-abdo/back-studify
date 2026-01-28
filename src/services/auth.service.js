@@ -234,6 +234,75 @@ const login = async (phone, password) => {
 };
 
 /**
+ * Specialized login for delivery personnel
+ */
+const deliveryLogin = async (phone, password) => {
+  const formattedPhone = formatPhoneNumber(phone);
+
+  const user = await prisma.user.findUnique({
+    where: { phone: formattedPhone },
+    include: {
+      delivery: {
+        include: {
+          wallet: true,
+        },
+      },
+    },
+  });
+
+  if (!user || user.type !== 'DELIVERY') {
+    throw new InvalidCredentialsError('Invalid phone number or password');
+  }
+
+  if (!user.isActive) {
+    throw new InvalidCredentialsError('Account is inactive. Please contact support.');
+  }
+
+  const isPasswordValid = await comparePassword(password, user.password);
+
+  if (!isPasswordValid) {
+    throw new InvalidCredentialsError('Invalid phone number or password');
+  }
+
+  // Generate tokens
+  const payload = generateTokenPayload(user);
+  const token = generateToken(payload);
+  const refreshToken = generateRefreshToken(payload);
+
+  const delivery = user.delivery;
+  if (!delivery) {
+    throw new NotFoundError('Delivery profile not found');
+  }
+
+  // Structure the data exactly as requested
+  const data = {
+    id: delivery.id,
+    userId: delivery.userId,
+    name: delivery.name,
+    vehicleType: delivery.vehicleType,
+    vehiclePlateNumber: delivery.vehiclePlateNumber,
+    status: delivery.status,
+    createdAt: delivery.createdAt,
+    user: {
+      id: user.id,
+      phone: user.phone,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    },
+    wallet: delivery.wallet ? {
+      id: delivery.wallet.id,
+      deliveryId: delivery.wallet.deliveryId,
+      balance: delivery.wallet.balance,
+      updatedAt: delivery.wallet.updatedAt,
+    } : null,
+    token,
+    refreshToken,
+  };
+
+  return data;
+};
+
+/**
  * Verify OTP
  */
 const verifyOTP = async (userId, code) => {
@@ -404,6 +473,7 @@ const changePassword = async (userId, currentPassword, newPassword) => {
 module.exports = {
   register,
   login,
+  deliveryLogin,
   verifyOTP,
   resendOTP,
   forgotPassword,
