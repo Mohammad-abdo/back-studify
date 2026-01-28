@@ -1,6 +1,6 @@
 /**
  * Database Seed Script
- * Populates the database with initial data
+ * Populates the database with comprehensive test data for all features
  * 
  * IMPORTANT: Make sure your database is set up and DATABASE_URL is configured in .env file
  * 
@@ -12,24 +12,35 @@
  * Default password for all seeded users: Password123!
  * 
  * This seed script creates:
- * 1. Admin user
+ * 1. Admin user with full permissions
  * 2. 6 Colleges (Engineering, Medicine, Science, Commerce, Arts, Law)
  * 3. 12 Departments (linked to colleges)
  * 4. 3 Students (with college and department)
- * 5. 3 Doctors (approved)
- * 6. 3 Delivery personnel (with wallets)
+ * 5. 3 Doctors (approved, with specializations)
+ * 6. 3 Delivery personnel (with wallets and different statuses)
  * 7. 2 Wholesale Customers
  * 8. 7 Book Categories
  * 9. 7 Material Categories (linked to colleges)
  * 10. 16 Product Categories (linked to colleges)
- * 11. 6 Books (with college, department, pricing)
- * 12. 3 Materials (with college, department, pricing)
- * 13. 13 Products (with pricing tiers)
- * 14. Roles & Permissions (Admin, Doctor roles)
+ * 11. 6 Books (with college, department, pricing for READ/BUY/PRINT)
+ * 12. 8 Materials (with college, department, pricing)
+ * 13. 13 Products (with tiered pricing for bulk orders)
+ * 14. Print Options (for books and materials)
+ * 15. Sample Carts and Orders (PRODUCT and CONTENT types)
+ * 16. Delivery Assignments (PROCESSING, SHIPPED, DELIVERED statuses)
+ * 17. Delivery Locations (GPS tracking for active deliveries)
+ * 18. Financial Transactions (commissions, withdrawals, deposits)
+ * 19. Delivery Wallet balances (with transaction history)
+ * 20. Notifications (read and unread, for students)
+ * 21. Reviews (for books, materials, and products - 1-5 stars)
+ * 22. Wholesale Orders (with bulk pricing and multiple items)
+ * 23. Roles & Permissions (Admin, Doctor roles with RBAC)
  * 
  * All data is in English.
  * Product and Material categories are linked to colleges.
  * Books and Materials are linked to colleges and departments.
+ * Order statuses cover the full lifecycle: CREATED → PAID → PROCESSING → SHIPPED → DELIVERED
+ * Delivery personnel have realistic assignments and wallet transactions.
  */
 
 // Load environment variables from .env file
@@ -118,7 +129,7 @@ async function main() {
 
   const createdDepartments = [];
   for (const dept of departments) {
-      // Check if department exists
+    // Check if department exists
     const existing = await prisma.department.findFirst({
       where: {
         name: dept.name,
@@ -286,7 +297,7 @@ async function main() {
     });
     createdDeliveries.push(user);
     console.log(`✅ Delivery created: ${delivery.name}`);
-    
+
     // Create delivery wallet
     await prisma.deliveryWallet.upsert({
       where: { deliveryId: user.delivery.id },
@@ -999,7 +1010,7 @@ async function main() {
   const targetPhone = '+1234567890';
   const targetEmail = 'student@example.com';
   const targetUserId = '595e76e0-2b2d-4924-a6d9-0cfa76b13f91';
-  
+
   // Try to find the user by ID first, then phone or email
   let existingUser = await prisma.user.findUnique({
     where: { id: targetUserId },
@@ -1050,7 +1061,7 @@ async function main() {
   if (targetStudent && createdProducts.length > 0) {
     const sampleStudent = targetStudent;
 
-//new    // Create a cart for the first student with a couple of items (if not already exists)
+    //new    // Create a cart for the first student with a couple of items (if not already exists)
     let cart = await prisma.cart.findFirst({
       where: { userId: sampleStudent.id },
       include: { items: true },
@@ -1260,9 +1271,517 @@ async function main() {
     console.log('⚠️ Skipped sample carts/orders seeding (no students or products)');
   }
 
-  // 13. Create Roles & Permissions
+  // 14. Create Delivery Assignments
+  console.log('\n🚚 Creating delivery assignments...');
+
+  if (createdDeliveries.length > 0) {
+    // Get some orders that need delivery
+    const ordersToAssign = await prisma.order.findMany({
+      where: {
+        status: {
+          in: ['PROCESSING', 'PAID'],
+        },
+      },
+      take: 3,
+    });
+
+    if (ordersToAssign.length > 0) {
+      // Assign first order to first delivery (PROCESSING -> picked up, not delivered yet)
+      const assignment1 = await prisma.deliveryAssignment.create({
+        data: {
+          orderId: ordersToAssign[0].id,
+          deliveryId: createdDeliveries[0].delivery.id,
+          status: 'PROCESSING',
+          assignedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+          pickedUpAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+        },
+      });
+      console.log(`✅ Delivery assignment created: ${assignment1.id} (PROCESSING)`);
+
+      // Update the order status to match
+      await prisma.order.update({
+        where: { id: ordersToAssign[0].id },
+        data: { status: 'PROCESSING' },
+      });
+
+      // Add delivery location for this delivery
+      await prisma.deliveryLocation.create({
+        data: {
+          deliveryId: createdDeliveries[0].delivery.id,
+          latitude: 30.0444,
+          longitude: 31.2357,
+          address: 'Cairo, Egypt',
+          createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+        },
+      });
+      console.log(`  ✅ Delivery location added`);
+
+      if (ordersToAssign.length > 1) {
+        // Assign second order to second delivery (SHIPPED -> picked up, in transit)
+        const assignment2 = await prisma.deliveryAssignment.create({
+          data: {
+            orderId: ordersToAssign[1].id,
+            deliveryId: createdDeliveries[1].delivery.id,
+            status: 'SHIPPED',
+            assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
+            pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+          },
+        });
+        console.log(`✅ Delivery assignment created: ${assignment2.id} (SHIPPED)`);
+
+        await prisma.order.update({
+          where: { id: ordersToAssign[1].id },
+          data: { status: 'SHIPPED' },
+        });
+
+        // Update delivery status to ON_DELIVERY
+        await prisma.delivery.update({
+          where: { id: createdDeliveries[1].delivery.id },
+          data: { status: 'ON_DELIVERY' },
+        });
+
+        // Add multiple delivery locations showing movement
+        await prisma.deliveryLocation.createMany({
+          data: [
+            {
+              deliveryId: createdDeliveries[1].delivery.id,
+              latitude: 30.0626,
+              longitude: 31.2497,
+              address: 'Nasr City, Cairo',
+              createdAt: new Date(Date.now() - 90 * 60 * 1000), // 90 minutes ago
+            },
+            {
+              deliveryId: createdDeliveries[1].delivery.id,
+              latitude: 30.0711,
+              longitude: 31.2859,
+              address: 'Heliopolis, Cairo',
+              createdAt: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
+            },
+            {
+              deliveryId: createdDeliveries[1].delivery.id,
+              latitude: 30.0876,
+              longitude: 31.3125,
+              address: 'New Cairo',
+              createdAt: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+            },
+          ],
+        });
+        console.log(`  ✅ Multiple delivery locations added (tracking movement)`);
+      }
+
+      if (ordersToAssign.length > 2) {
+        // Assign third order to third delivery (DELIVERED -> completed)
+        const assignment3 = await prisma.deliveryAssignment.create({
+          data: {
+            orderId: ordersToAssign[2].id,
+            deliveryId: createdDeliveries[2].delivery.id,
+            status: 'DELIVERED',
+            assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+            pickedUpAt: new Date(Date.now() - 23 * 60 * 60 * 1000), // 23 hours ago
+            deliveredAt: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
+          },
+        });
+        console.log(`✅ Delivery assignment created: ${assignment3.id} (DELIVERED)`);
+
+        await prisma.order.update({
+          where: { id: ordersToAssign[2].id },
+          data: { status: 'DELIVERED' },
+        });
+
+        // Add final delivery location
+        await prisma.deliveryLocation.create({
+          data: {
+            deliveryId: createdDeliveries[2].delivery.id,
+            latitude: 29.9792,
+            longitude: 31.1342,
+            address: 'Giza, Egypt',
+            createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
+          },
+        });
+        console.log(`  ✅ Final delivery location added`);
+      }
+    } else {
+      console.log('⚠️ No suitable orders found for delivery assignment');
+    }
+  }
+
+  // 15. Create Financial Transactions
+  console.log('\n💰 Creating financial transactions for deliveries...');
+
+  if (createdDeliveries.length > 0) {
+    // Get delivery assignments to link transactions
+    const deliveryAssignments = await prisma.deliveryAssignment.findMany({
+      include: {
+        order: true,
+        delivery: true,
+      },
+    });
+
+    for (const assignment of deliveryAssignments) {
+      // Calculate commission (10% of order total)
+      const commission = assignment.order.total * 0.1;
+
+      // Create transaction for the delivery
+      const transaction = await prisma.financialTransaction.create({
+        data: {
+          type: 'COMMISSION',
+          amount: commission,
+          status: assignment.status === 'DELIVERED' ? 'COMPLETED' : 'PENDING',
+          description: `Delivery commission for order ${assignment.orderId}`,
+          deliveryId: assignment.deliveryId,
+          orderId: assignment.orderId,
+          metadata: {
+            orderTotal: assignment.order.total,
+            commissionRate: 0.1,
+          },
+          createdAt: assignment.assignedAt,
+          completedAt: assignment.deliveredAt,
+        },
+      });
+      console.log(`✅ Transaction created: ${transaction.id} - ${transaction.type} - ${transaction.amount} EGP`);
+
+      // Update delivery wallet if transaction is completed
+      if (transaction.status === 'COMPLETED') {
+        await prisma.deliveryWallet.update({
+          where: { deliveryId: assignment.deliveryId },
+          data: {
+            balance: {
+              increment: commission,
+            },
+          },
+        });
+        console.log(`  ✅ Delivery wallet updated (+${commission} EGP)`);
+      }
+    }
+
+    // Add some additional transactions for variety
+    // Withdrawal transaction for first delivery
+    const withdrawal = await prisma.financialTransaction.create({
+      data: {
+        type: 'WITHDRAWAL',
+        amount: 50.0,
+        status: 'COMPLETED',
+        description: 'Wallet withdrawal to bank account',
+        deliveryId: createdDeliveries[0].delivery.id,
+        metadata: {
+          bankAccount: '**** 1234',
+          method: 'BANK_TRANSFER',
+        },
+        createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000), // 12 hours ago
+        completedAt: new Date(Date.now() - 10 * 60 * 60 * 1000), // 10 hours ago
+      },
+    });
+    console.log(`✅ Withdrawal transaction created: ${withdrawal.id}`);
+
+    // Update wallet balance
+    await prisma.deliveryWallet.update({
+      where: { deliveryId: createdDeliveries[0].delivery.id },
+      data: {
+        balance: {
+          decrement: 50.0,
+        },
+      },
+    });
+    console.log(`  ✅ Delivery wallet updated (-50 EGP)`);
+
+    // Deposit transaction for second delivery (bonus or adjustment)
+    const deposit = await prisma.financialTransaction.create({
+      data: {
+        type: 'DEPOSIT',
+        amount: 100.0,
+        status: 'COMPLETED',
+        description: 'Bonus for excellent performance',
+        deliveryId: createdDeliveries[1].delivery.id,
+        metadata: {
+          reason: 'PERFORMANCE_BONUS',
+        },
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+        completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      },
+    });
+    console.log(`✅ Deposit transaction created: ${deposit.id}`);
+
+    await prisma.deliveryWallet.update({
+      where: { deliveryId: createdDeliveries[1].delivery.id },
+      data: {
+        balance: {
+          increment: 100.0,
+        },
+      },
+    });
+    console.log(`  ✅ Delivery wallet updated (+100 EGP)`);
+  }
+
+  // 16. Create Notifications
+  console.log('\n🔔 Creating notifications...');
+
+  if (createdStudents.length > 0 && createdBooks.length > 0) {
+    const notificationsData = [
+      {
+        userId: createdStudents[0].id,
+        title: 'Welcome to Studify!',
+        message: 'Thank you for joining Studify. Start exploring our books and materials.',
+        isRead: true,
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+      },
+      {
+        userId: createdStudents[0].id,
+        title: 'New Book Available',
+        message: `A new book "${createdBooks[0].title}" has been added to your college.`,
+        isRead: true,
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
+      },
+      {
+        userId: createdStudents[0].id,
+        title: 'Order Confirmed',
+        message: 'Your order has been confirmed and is being processed.',
+        isRead: false,
+        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      },
+      {
+        userId: createdStudents[0].id,
+        title: 'Order Shipped',
+        message: 'Your order is on the way! Track your delivery in the orders section.',
+        isRead: false,
+        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      },
+    ];
+
+    if (createdStudents.length > 1) {
+      notificationsData.push(
+        {
+          userId: createdStudents[1].id,
+          title: 'Welcome to Studify!',
+          message: 'Thank you for joining Studify. Start exploring our books and materials.',
+          isRead: true,
+          createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+        },
+        {
+          userId: createdStudents[1].id,
+          title: 'Special Offer',
+          message: 'Get 20% off on all engineering books this week!',
+          isRead: false,
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        }
+      );
+    }
+
+    for (const notif of notificationsData) {
+      const created = await prisma.notification.create({
+        data: notif,
+      });
+      console.log(`✅ Notification created: "${created.title}"`);
+    }
+  }
+
+  // 17. Create Reviews
+  console.log('\n⭐ Creating reviews...');
+
+  if (createdStudents.length > 0 && (createdBooks.length > 0 || createdProducts.length > 0)) {
+    const reviewsData = [];
+
+    // Reviews for books
+    if (createdBooks.length > 0) {
+      reviewsData.push(
+        {
+          userId: createdStudents[0].id,
+          targetId: createdBooks[0].id,
+          targetType: 'BOOK',
+          rating: 5,
+          comment: 'Excellent book! Very helpful for my studies. Highly recommend it.',
+          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+        },
+        {
+          userId: createdStudents[0].id,
+          targetId: createdBooks[1]?.id || createdBooks[0].id,
+          targetType: 'BOOK',
+          rating: 4,
+          comment: 'Good content, but could use more examples.',
+          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        }
+      );
+
+      if (createdStudents.length > 1 && createdBooks.length > 1) {
+        reviewsData.push({
+          userId: createdStudents[1].id,
+          targetId: createdBooks[1].id,
+          targetType: 'BOOK',
+          rating: 5,
+          comment: 'Best resource for this subject. Clear and concise.',
+          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+        });
+      }
+    }
+
+    // Reviews for products
+    if (createdProducts.length > 0) {
+      reviewsData.push(
+        {
+          userId: createdStudents[0].id,
+          targetId: createdProducts[0].id,
+          targetType: 'PRODUCT',
+          rating: 5,
+          comment: 'Great quality product. Fast delivery!',
+          createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+        }
+      );
+
+      if (createdStudents.length > 1 && createdProducts.length > 1) {
+        reviewsData.push({
+          userId: createdStudents[1].id,
+          targetId: createdProducts[1].id,
+          targetType: 'PRODUCT',
+          rating: 4,
+          comment: 'Good product for the price.',
+          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+        });
+      }
+    }
+
+    // Reviews for materials
+    if (createdMaterials.length > 0 && createdStudents.length > 1) {
+      reviewsData.push({
+        userId: createdStudents[1].id,
+        targetId: createdMaterials[0].id,
+        targetType: 'MATERIAL',
+        rating: 5,
+        comment: 'Perfect summary for exam preparation!',
+        createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000),
+      });
+    }
+
+    for (const review of reviewsData) {
+      try {
+        const created = await prisma.review.create({
+          data: review,
+        });
+        console.log(`✅ Review created: ${created.rating} stars for ${created.targetType}`);
+      } catch (error) {
+        // Skip if duplicate (user already reviewed this item)
+        console.log(`⏭️  Skipping duplicate review`);
+      }
+    }
+  }
+
+  // 18. Create Wholesale Orders
+  console.log('\n📦 Creating wholesale orders...');
+
+  if (createdCustomers.length > 0 && createdProducts.length > 0) {
+    // Create wholesale order for first customer
+    const wholesaleOrder1 = await prisma.wholesaleOrder.create({
+      data: {
+        customerId: createdCustomers[0].customer.id,
+        total: 0, // Will calculate
+        status: 'PROCESSING',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      },
+    });
+
+    // Add items to the order
+    const wholesaleItems1 = [];
+    let total1 = 0;
+
+    // Order 100 units of first product (should get bulk discount)
+    const product1Pricing = await prisma.productPricing.findFirst({
+      where: {
+        productId: createdProducts[0].id,
+        minQuantity: { lte: 100 },
+      },
+      orderBy: { minQuantity: 'desc' },
+    });
+    const price1 = product1Pricing?.price || 15.0;
+    const quantity1 = 100;
+    total1 += price1 * quantity1;
+
+    wholesaleItems1.push({
+      orderId: wholesaleOrder1.id,
+      productId: createdProducts[0].id,
+      quantity: quantity1,
+      price: price1,
+    });
+
+    // Order 50 units of second product
+    if (createdProducts.length > 1) {
+      const product2Pricing = await prisma.productPricing.findFirst({
+        where: {
+          productId: createdProducts[1].id,
+          minQuantity: { lte: 50 },
+        },
+        orderBy: { minQuantity: 'desc' },
+      });
+      const price2 = product2Pricing?.price || 15.0;
+      const quantity2 = 50;
+      total1 += price2 * quantity2;
+
+      wholesaleItems1.push({
+        orderId: wholesaleOrder1.id,
+        productId: createdProducts[1].id,
+        quantity: quantity2,
+        price: price2,
+      });
+    }
+
+    await prisma.wholesaleOrderItem.createMany({
+      data: wholesaleItems1,
+    });
+
+    // Update total
+    await prisma.wholesaleOrder.update({
+      where: { id: wholesaleOrder1.id },
+      data: { total: total1 },
+    });
+
+    console.log(`✅ Wholesale order created: ${wholesaleOrder1.id} - Total: ${total1} EGP`);
+
+    // Create second wholesale order if we have another customer
+    if (createdCustomers.length > 1 && createdProducts.length > 2) {
+      const wholesaleOrder2 = await prisma.wholesaleOrder.create({
+        data: {
+          customerId: createdCustomers[1].customer.id,
+          total: 0,
+          status: 'DELIVERED',
+          createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      const wholesaleItems2 = [];
+      let total2 = 0;
+
+      // Order 200 units of third product
+      const product3Pricing = await prisma.productPricing.findFirst({
+        where: {
+          productId: createdProducts[2].id,
+          minQuantity: { lte: 200 },
+        },
+        orderBy: { minQuantity: 'desc' },
+      });
+      const price3 = product3Pricing?.price || 15.0;
+      const quantity3 = 200;
+      total2 += price3 * quantity3;
+
+      wholesaleItems2.push({
+        orderId: wholesaleOrder2.id,
+        productId: createdProducts[2].id,
+        quantity: quantity3,
+        price: price3,
+      });
+
+      await prisma.wholesaleOrderItem.createMany({
+        data: wholesaleItems2,
+      });
+
+      await prisma.wholesaleOrder.update({
+        where: { id: wholesaleOrder2.id },
+        data: { total: total2 },
+      });
+
+      console.log(`✅ Wholesale order created: ${wholesaleOrder2.id} - Total: ${total2} EGP`);
+    }
+  }
+
+  // 19. Create Roles & Permissions
   console.log('\n🔐 Creating roles and permissions...');
-  
+
   const permissions = [
     { key: 'users.read' },
     { key: 'users.create' },
@@ -1329,10 +1848,10 @@ async function main() {
   console.log('✅ Admin role created/updated');
 
   // Get or create doctor role
-  const doctorPermissions = createdPermissions.filter((p) => 
+  const doctorPermissions = createdPermissions.filter((p) =>
     p.key.startsWith('books.') || p.key === 'users.read'
   );
-  
+
   let doctorRole = await prisma.role.findUnique({
     where: { name: 'Doctor' },
   });
@@ -1384,7 +1903,7 @@ async function main() {
   console.log('   Doctor: +202222222221 / Password123!');
   console.log('   Delivery: +203333333331 / Password123!');
   console.log('   Customer: +204444444441 / Password123!');
-  
+
   // Seed orders for specific user if requested
   if (process.argv.includes('--seed-orders')) {
     await seedOrdersForUser();
@@ -1393,7 +1912,7 @@ async function main() {
 
 async function clearDatabase() {
   console.log('🗑️  Clearing existing data...');
-  
+
   // Delete in correct order to respect foreign key constraints
   await prisma.userRole.deleteMany();
   await prisma.rolePermission.deleteMany();
@@ -1432,7 +1951,7 @@ async function clearDatabase() {
   await prisma.student.deleteMany();
   await prisma.admin.deleteMany();
   await prisma.user.deleteMany();
-  
+
   console.log('✅ Database cleared');
 }
 
@@ -1440,15 +1959,15 @@ async function seedOrdersForUser() {
   const userId = '595e76e0-2b2d-4924-a6d9-0cfa76b13f91';
   const userPhone = '+1234567890';
   const userEmail = 'student@example.com';
-  
+
   console.log('\n🛒 Seeding orders for user:', userId);
-  
+
   // Try to find user by ID first, then by phone or email
   let user = await prisma.user.findUnique({
     where: { id: userId },
     include: { student: true },
   });
-  
+
   if (!user) {
     console.log('⚠️ User not found by ID, trying by phone...');
     user = await prisma.user.findUnique({
@@ -1456,7 +1975,7 @@ async function seedOrdersForUser() {
       include: { student: true },
     });
   }
-  
+
   if (!user) {
     console.log('⚠️ User not found by phone, trying by email...');
     user = await prisma.user.findUnique({
@@ -1464,14 +1983,14 @@ async function seedOrdersForUser() {
       include: { student: true },
     });
   }
-  
+
   if (!user) {
     console.log('⚠️ User not found. Creating user based on login data...');
-    
+
     // Create the user if they don't exist (based on the login response)
     // Note: We'll use a placeholder password since we don't have the actual hash
     const placeholderPassword = bcrypt.hashSync('Password123!', 12);
-    
+
     try {
       user = await prisma.user.create({
         data: {
@@ -1520,9 +2039,9 @@ async function seedOrdersForUser() {
   } else {
     console.log(`✅ Found user: ${user.phone} (${user.email})`);
   }
-  
+
   const actualUserId = user.id;
-  
+
   // Get some products, books, and materials to create orders
   const products = await prisma.product.findMany({
     take: 5,
@@ -1532,7 +2051,7 @@ async function seedOrdersForUser() {
       },
     },
   });
-  
+
   const books = await prisma.book.findMany({
     take: 3,
     where: { approvalStatus: 'APPROVED' },
@@ -1540,7 +2059,7 @@ async function seedOrdersForUser() {
       pricing: true,
     },
   });
-  
+
   const materials = await prisma.material.findMany({
     take: 3,
     where: { approvalStatus: 'APPROVED' },
@@ -1548,12 +2067,12 @@ async function seedOrdersForUser() {
       pricing: true,
     },
   });
-  
+
   if (products.length === 0 && books.length === 0 && materials.length === 0) {
     console.log('⚠️ No products, books, or materials found. Please run main seed first.');
     return;
   }
-  
+
   // Create PRODUCT orders with different statuses
   if (products.length > 0) {
     // Order 1: CREATED status - 2 products
@@ -1561,7 +2080,7 @@ async function seedOrdersForUser() {
     const product2 = products[1] || products[0];
     const price1 = product1.pricing[0]?.price || 25.0;
     const price2 = product2.pricing[0]?.price || 25.0;
-    
+
     const order1 = await prisma.order.create({
       data: {
         userId: actualUserId,
@@ -1587,12 +2106,12 @@ async function seedOrdersForUser() {
       },
     });
     console.log(`✅ Created PRODUCT order (CREATED): ${order1.id} - Total: ${order1.total}`);
-    
+
     // Order 2: PAID status - 1 product
     if (products.length > 2) {
       const product3 = products[2];
       const price3 = product3.pricing[0]?.price || 25.0;
-      
+
       const order2 = await prisma.order.create({
         data: {
           userId: actualUserId,
@@ -1613,12 +2132,12 @@ async function seedOrdersForUser() {
       });
       console.log(`✅ Created PRODUCT order (PAID): ${order2.id} - Total: ${order2.total}`);
     }
-    
+
     // Order 3: PROCESSING status
     if (products.length > 3) {
       const product4 = products[3];
       const price4 = product4.pricing[0]?.price || 25.0;
-      
+
       const order3 = await prisma.order.create({
         data: {
           userId: actualUserId,
@@ -1639,12 +2158,12 @@ async function seedOrdersForUser() {
       });
       console.log(`✅ Created PRODUCT order (PROCESSING): ${order3.id} - Total: ${order3.total}`);
     }
-    
+
     // Order 4: DELIVERED status
     if (products.length > 4) {
       const product5 = products[4];
       const price5 = product5.pricing[0]?.price || 25.0;
-      
+
       const order4 = await prisma.order.create({
         data: {
           userId: actualUserId,
@@ -1666,13 +2185,13 @@ async function seedOrdersForUser() {
       console.log(`✅ Created PRODUCT order (DELIVERED): ${order4.id} - Total: ${order4.total}`);
     }
   }
-  
+
   // Create CONTENT orders for books
   if (books.length > 0) {
     // Order 5: Book READ access
     const book1 = books[0];
     const readPricing = book1.pricing.find(p => p.accessType === 'READ');
-    
+
     if (readPricing) {
       const order5 = await prisma.order.create({
         data: {
@@ -1694,12 +2213,12 @@ async function seedOrdersForUser() {
       });
       console.log(`✅ Created CONTENT order (BOOK READ): ${order5.id} - Total: ${order5.total}`);
     }
-    
+
     // Order 6: Book BUY access
     if (books.length > 1) {
       const book2 = books[1];
       const buyPricing = book2.pricing.find(p => p.accessType === 'BUY');
-      
+
       if (buyPricing) {
         const order6 = await prisma.order.create({
           data: {
@@ -1722,12 +2241,12 @@ async function seedOrdersForUser() {
         console.log(`✅ Created CONTENT order (BOOK BUY): ${order6.id} - Total: ${order6.total}`);
       }
     }
-    
+
     // Order 7: Book PRINT access
     if (books.length > 2) {
       const book3 = books[2];
       const printPricing = book3.pricing.find(p => p.accessType === 'PRINT');
-      
+
       if (printPricing) {
         const order7 = await prisma.order.create({
           data: {
@@ -1751,13 +2270,13 @@ async function seedOrdersForUser() {
       }
     }
   }
-  
+
   // Create CONTENT orders for materials
   if (materials.length > 0) {
     // Order 8: Material READ access
     const material1 = materials[0];
     const readPricing = material1.pricing.find(p => p.accessType === 'READ');
-    
+
     if (readPricing) {
       const order8 = await prisma.order.create({
         data: {
@@ -1779,12 +2298,12 @@ async function seedOrdersForUser() {
       });
       console.log(`✅ Created CONTENT order (MATERIAL READ): ${order8.id} - Total: ${order8.total}`);
     }
-    
+
     // Order 9: Material BUY access
     if (materials.length > 1) {
       const material2 = materials[1];
       const buyPricing = material2.pricing.find(p => p.accessType === 'BUY');
-      
+
       if (buyPricing) {
         const order9 = await prisma.order.create({
           data: {
@@ -1807,12 +2326,12 @@ async function seedOrdersForUser() {
         console.log(`✅ Created CONTENT order (MATERIAL BUY): ${order9.id} - Total: ${order9.total}`);
       }
     }
-    
+
     // Order 10: Material PRINT access
     if (materials.length > 2) {
       const material3 = materials[2];
       const printPricing = material3.pricing.find(p => p.accessType === 'PRINT');
-      
+
       if (printPricing) {
         const order10 = await prisma.order.create({
           data: {
@@ -1836,7 +2355,7 @@ async function seedOrdersForUser() {
       }
     }
   }
-  
+
   console.log('\n✨ Orders seeded successfully for user!');
 }
 
