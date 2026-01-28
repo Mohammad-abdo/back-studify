@@ -99,6 +99,13 @@ const register = async (phone, password, type, email = null, name = null, colleg
         phone: formattedPhone,
       },
     });
+  } else if (type === 'PRINT_CENTER' && name) {
+    await prisma.printCenter.create({
+      data: {
+        userId: user.id,
+        name,
+      },
+    });
   }
 
   // Generate and send OTP
@@ -158,6 +165,7 @@ const login = async (phone, password) => {
       },
       customer: true,
       admin: true,
+      printCenter: true,
       userRoles: {
         include: {
           role: {
@@ -211,6 +219,9 @@ const login = async (phone, password) => {
   } else if (user.customer) {
     name = user.customer.contactPerson || user.customer.entityName;
     username = user.customer.contactPerson || user.customer.entityName;
+  } else if (user.printCenter) {
+    name = user.printCenter.name;
+    username = user.printCenter.name;
   }
 
   // Add name and username and role flags to user object
@@ -224,6 +235,7 @@ const login = async (phone, password) => {
     isDelivery: user.type === 'DELIVERY',
     isCustomer: user.type === 'CUSTOMER',
     isAdmin: user.type === 'ADMIN',
+    isPrintCenter: user.type === 'PRINT_CENTER',
   };
 
   return {

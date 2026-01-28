@@ -47,7 +47,7 @@ const formatPhoneNumber = (phone) => {
  * Validate phone number format (basic validation)
  */
 const isValidPhoneNumber = (phone) => {
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/;
+  const phoneRegex = /^\+?[0-9]\d{1,14}$/;
   return phoneRegex.test(formatPhoneNumber(phone));
 };
 

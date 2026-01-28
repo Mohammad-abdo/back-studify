@@ -298,6 +298,12 @@ async function main() {
       avatarUrl: 'https://ui-avatars.com/api/?name=Print+Center&background=0d9488&color=fff',
       type: 'PRINT_CENTER',
       isActive: true,
+      printCenter: {
+        create: {
+          name: 'Main Campus Print Center',
+          location: 'Building A, Ground Floor',
+        },
+      },
     },
   });
   console.log('✅ Print center user created:', printCenterUser.email);
@@ -1330,8 +1336,14 @@ async function main() {
 
     if (ordersToAssign.length > 0) {
       // Assign first order to first delivery (PROCESSING -> picked up, not delivered yet)
-      const assignment1 = await prisma.deliveryAssignment.create({
-        data: {
+      // Use upsert to avoid unique constraint errors
+      const assignment1 = await prisma.deliveryAssignment.upsert({
+        where: { orderId: ordersToAssign[0].id },
+        update: {
+          status: 'PROCESSING',
+          pickedUpAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        },
+        create: {
           orderId: ordersToAssign[0].id,
           deliveryId: createdDeliveries[0].delivery.id,
           status: 'PROCESSING',
@@ -1339,7 +1351,7 @@ async function main() {
           pickedUpAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
         },
       });
-      console.log(`✅ Delivery assignment created: ${assignment1.id} (PROCESSING)`);
+      console.log(`✅ Delivery assignment created/updated: ${assignment1.id} (PROCESSING)`);
 
       // Update the order status to match
       await prisma.order.update({
@@ -1361,8 +1373,13 @@ async function main() {
 
       if (ordersToAssign.length > 1) {
         // Assign second order to second delivery (SHIPPED -> picked up, in transit)
-        const assignment2 = await prisma.deliveryAssignment.create({
-          data: {
+        const assignment2 = await prisma.deliveryAssignment.upsert({
+          where: { orderId: ordersToAssign[1].id },
+          update: {
+            status: 'SHIPPED',
+            pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          },
+          create: {
             orderId: ordersToAssign[1].id,
             deliveryId: createdDeliveries[1].delivery.id,
             status: 'SHIPPED',
@@ -1370,7 +1387,7 @@ async function main() {
             pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
           },
         });
-        console.log(`✅ Delivery assignment created: ${assignment2.id} (SHIPPED)`);
+        console.log(`✅ Delivery assignment created/updated: ${assignment2.id} (SHIPPED)`);
 
         await prisma.order.update({
           where: { id: ordersToAssign[1].id },
@@ -1414,8 +1431,14 @@ async function main() {
 
       if (ordersToAssign.length > 2) {
         // Assign third order to third delivery (DELIVERED -> completed)
-        const assignment3 = await prisma.deliveryAssignment.create({
-          data: {
+        const assignment3 = await prisma.deliveryAssignment.upsert({
+          where: { orderId: ordersToAssign[2].id },
+          update: {
+            status: 'DELIVERED',
+            pickedUpAt: new Date(Date.now() - 23 * 60 * 60 * 1000),
+            deliveredAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
+          },
+          create: {
             orderId: ordersToAssign[2].id,
             deliveryId: createdDeliveries[2].delivery.id,
             status: 'DELIVERED',
@@ -1424,7 +1447,7 @@ async function main() {
             deliveredAt: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
           },
         });
-        console.log(`✅ Delivery assignment created: ${assignment3.id} (DELIVERED)`);
+        console.log(`✅ Delivery assignment created/updated: ${assignment3.id} (DELIVERED)`);
 
         await prisma.order.update({
           where: { id: ordersToAssign[2].id },

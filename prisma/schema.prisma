@@ -114,6 +114,7 @@ model User {
   delivery      Delivery?
   customer      Customer?
   admin         Admin?
+  printCenter   PrintCenter?
   otpCodes      OTPVerification[]
   cart          Cart?
   orders        Order[]
@@ -276,6 +277,20 @@ model Admin {
 
   @@index([userId])
   @@map("admins")
+}
+
+model PrintCenter {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String
+  location  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("print_centers")
 }
 
 // ============================================

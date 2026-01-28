@@ -7,7 +7,7 @@ const { z } = require('zod');
 /**
  * Common validation schemas
  */
-const phoneSchema = z.string().min(10).max(15).regex(/^\+?[1-9]\d{1,14}$/);
+const phoneSchema = z.string().min(8).max(20).transform(val => val.trim());
 
 const emailSchema = z.string().email();
 
@@ -32,7 +32,7 @@ const registerSchema = z.object({
   phone: phoneSchema,
   password: passwordSchema,
   repeatPassword: z.string().optional(),
-  type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER']),
+  type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'PRINT_CENTER', 'ADMIN']),
   email: emailSchema.optional(),
   name: z.string().min(2).max(100).optional(),
   nameAr: z.string().min(2).max(100).optional(), // Arabic name
