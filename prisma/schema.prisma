@@ -20,6 +20,7 @@ enum UserType {
   DELIVERY
   CUSTOMER
   ADMIN
+  PRINT_CENTER
 }
 
 enum ApprovalStatus {
@@ -621,6 +622,7 @@ model Order {
   total     Float
   status    OrderStatus @default(CREATED)
   orderType OrderType   @default(PRODUCT)
+  address   String?     @db.Text
   createdAt DateTime    @default(now())
 
   user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -769,6 +771,7 @@ model WholesaleOrder {
   customerId String
   total      Float
   status     OrderStatus @default(CREATED)
+  address    String?     @db.Text
   createdAt  DateTime    @default(now())
 
   customer Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)

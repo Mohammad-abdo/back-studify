@@ -181,6 +181,37 @@ const updateLocation = async (req, res, next) => {
       },
     });
 
+    // Emit socket event for real-time tracking
+    const io = req.app.get('io');
+    if (io) {
+      // Broadcast to admins
+      io.to('admin_room').emit('delivery_moved', {
+        deliveryId: delivery.id,
+        latitude,
+        longitude,
+        address,
+        timestamp: location.createdAt,
+      });
+
+      // Check if this delivery is currently assigned to any active orders
+      const activeAssignment = await prisma.deliveryAssignment.findFirst({
+        where: {
+          deliveryId: delivery.id,
+          status: { in: ['PROCESSING', 'SHIPPED'] },
+        },
+      });
+
+      if (activeAssignment) {
+        io.to(`order_${activeAssignment.orderId}`).emit('location_updated', {
+          deliveryId: delivery.id,
+          latitude,
+          longitude,
+          address,
+          timestamp: location.createdAt,
+        });
+      }
+    }
+
     sendSuccess(res, location, 'Location updated successfully', 201);
   } catch (error) {
     next(error);

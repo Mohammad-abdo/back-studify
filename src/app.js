@@ -106,6 +106,8 @@ const dashboardMetricRoutes = require('./routes/dashboardMetric.routes');
 const mobileRoutes = require('./routes/mobile');
 const sliderRoutes = require('./routes/slider.routes');
 
+const initSocket = require('./socket');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/books', bookRoutes);
@@ -164,6 +166,12 @@ const server = app.listen(PORT, () => {
   console.log(`📚 API Documentation: http://localhost:${PORT}/api/docs/swagger`);
   console.log(`📥 Postman Collection: http://localhost:${PORT}/api/docs/postman-collection.json`);
 });
+
+// Initialize Socket.io
+const io = initSocket(server, config.corsOrigin);
+
+// Make io accessible globally if needed (e.g., in controllers)
+app.set('io', io);
 
 // Graceful shutdown
 process.on('SIGTERM', () => {

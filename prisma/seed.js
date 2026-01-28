@@ -270,7 +270,37 @@ async function main() {
       vehicleType: 'Motorcycle',
       vehiclePlateNumber: 'MOT-789',
     },
+    {
+      phone: '+203333333334',
+      email: 'delivery4@studify.com',
+      name: 'Khaled Fast',
+      vehicleType: 'Car',
+      vehiclePlateNumber: 'FAST-001',
+    },
+    {
+      phone: '+203333333335',
+      email: 'delivery5@studify.com',
+      name: 'Youssef Rider',
+      vehicleType: 'Motorcycle',
+      vehiclePlateNumber: 'RIDE-999',
+    },
   ];
+
+  // 6.5 Create Print Center User
+  console.log('\n🖨️ Creating print center user...');
+  const printCenterUser = await prisma.user.upsert({
+    where: { phone: '+205555555551' },
+    update: {},
+    create: {
+      phone: '+205555555551',
+      password: hashedPassword,
+      email: 'print@studify.com',
+      avatarUrl: 'https://ui-avatars.com/api/?name=Print+Center&background=0d9488&color=fff',
+      type: 'PRINT_CENTER',
+      isActive: true,
+    },
+  });
+  console.log('✅ Print center user created:', printCenterUser.email);
 
   const createdDeliveries = [];
   for (const delivery of deliveries) {
@@ -1102,12 +1132,24 @@ async function main() {
         return sum + item.quantity * 25;
       }, 0) || 0;
 
+    const addresses = [
+      '123 University St, Cairo',
+      '45 El-Nasr Rd, Nasr City, Cairo',
+      '88 Abbas El-Akkad St, Heliopolis, Cairo',
+      '12 Nile Corniche, Maadi, Cairo',
+      '55 Tahrir Square, Downtown, Cairo',
+      '78 El-Bahr St, Giza',
+      '101 Ring Road, New Cairo',
+      '22 Shooting Club St, Dokki, Giza'
+    ];
+
     const productOrder = await prisma.order.create({
       data: {
         userId: sampleStudent.id,
         total: orderTotal,
         status: 'PROCESSING',
         orderType: 'PRODUCT',
+        address: addresses[Math.floor(Math.random() * addresses.length)],
         items: {
           create: cart.items.map((item) => ({
             referenceType: item.referenceType,
@@ -1190,6 +1232,7 @@ async function main() {
               total: readPricing.price,
               status: 'PAID',
               orderType: 'CONTENT',
+              address: 'Online Content Access',
               items: {
                 create: [
                   {
@@ -1279,10 +1322,10 @@ async function main() {
     const ordersToAssign = await prisma.order.findMany({
       where: {
         status: {
-          in: ['PROCESSING', 'PAID'],
+          in: ['PROCESSING', 'PAID', 'CREATED'],
         },
       },
-      take: 3,
+      take: 10,
     });
 
     if (ordersToAssign.length > 0) {
@@ -1399,6 +1442,50 @@ async function main() {
           },
         });
         console.log(`  ✅ Final delivery location added`);
+      }
+
+      // Add more assignments for the new delivery personnel
+      if (ordersToAssign.length > 3 && createdDeliveries.length > 3) {
+        // Assign 4th order to 4th delivery (PROCESSING)
+        const assignment4 = await prisma.deliveryAssignment.create({
+          data: {
+            orderId: ordersToAssign[3].id,
+            deliveryId: createdDeliveries[3].delivery.id,
+            status: 'PROCESSING',
+            assignedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+          },
+        });
+        console.log(`✅ Delivery assignment created: ${assignment4.id} (PROCESSING)`);
+
+        await prisma.order.update({
+          where: { id: ordersToAssign[3].id },
+          data: { status: 'PROCESSING' },
+        });
+      }
+
+      if (ordersToAssign.length > 4 && createdDeliveries.length > 4) {
+        // Assign 5th order to 5th delivery (SHIPPED)
+        const assignment5 = await prisma.deliveryAssignment.create({
+          data: {
+            orderId: ordersToAssign[4].id,
+            deliveryId: createdDeliveries[4].delivery.id,
+            status: 'SHIPPED',
+            assignedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          },
+        });
+        console.log(`✅ Delivery assignment created: ${assignment5.id} (SHIPPED)`);
+
+        await prisma.order.update({
+          where: { id: ordersToAssign[4].id },
+          data: { status: 'SHIPPED' },
+        });
+
+        await prisma.delivery.update({
+          where: { id: createdDeliveries[4].delivery.id },
+          data: { status: 'ON_DELIVERY' },
+        });
       }
     } else {
       console.log('⚠️ No suitable orders found for delivery assignment');
@@ -1673,6 +1760,7 @@ async function main() {
         customerId: createdCustomers[0].customer.id,
         total: 0, // Will calculate
         status: 'PROCESSING',
+        address: 'Library HQ - 12 Reading St',
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
       },
     });
@@ -1740,6 +1828,7 @@ async function main() {
           customerId: createdCustomers[1].customer.id,
           total: 0,
           status: 'DELIVERED',
+          address: 'Knowledge Center - 55 Science Ave',
           createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
         },
       });
@@ -2087,6 +2176,7 @@ async function seedOrdersForUser() {
         total: (price1 * 2) + (price2 * 1),
         status: 'CREATED',
         orderType: 'PRODUCT',
+        address: '123 University St, Cairo',
         items: {
           create: [
             {
@@ -2116,9 +2206,10 @@ async function seedOrdersForUser() {
         data: {
           userId: actualUserId,
           total: price3 * 3,
-          status: 'PAID',
-          orderType: 'PRODUCT',
-          items: {
+        status: 'PAID',
+        orderType: 'PRODUCT',
+        address: '45 El-Nasr Rd, Nasr City, Cairo',
+        items: {
             create: [
               {
                 referenceType: 'PRODUCT',
@@ -2168,9 +2259,10 @@ async function seedOrdersForUser() {
         data: {
           userId: actualUserId,
           total: price5 * 2,
-          status: 'DELIVERED',
-          orderType: 'PRODUCT',
-          items: {
+        status: 'DELIVERED',
+        orderType: 'PRODUCT',
+        address: '12 Nile Corniche, Maadi, Cairo',
+        items: {
             create: [
               {
                 referenceType: 'PRODUCT',

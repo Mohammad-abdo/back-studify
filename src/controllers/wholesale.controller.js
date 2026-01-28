@@ -116,7 +116,7 @@ const getWholesaleOrderById = async (req, res, next) => {
 const createWholesaleOrder = async (req, res, next) => {
   try {
     const userId = req.userId;
-    const { items } = req.body;
+    const { items, address } = req.body;
 
     if (!items || items.length === 0) {
       throw new ValidationError('Order must have at least one item');
@@ -140,6 +140,7 @@ const createWholesaleOrder = async (req, res, next) => {
         customerId: customer.id,
         total,
         status: ORDER_STATUS.CREATED,
+        address,
         items: {
           create: items.map((item) => ({
             productId: item.productId,

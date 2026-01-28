@@ -328,7 +328,7 @@ const getOrderById = async (req, res, next) => {
 const createOrder = async (req, res, next) => {
   try {
     const userId = req.userId;
-    const { items } = req.body;
+    const { items, address } = req.body;
 
     if (!items || items.length === 0) {
       throw new ValidationError('Order must have at least one item');
@@ -366,6 +366,7 @@ const createOrder = async (req, res, next) => {
         total,
         status: ORDER_STATUS.CREATED,
         orderType,
+        address,
         items: {
           create: items.map((item) => ({
             referenceType: item.referenceType,
@@ -377,8 +378,22 @@ const createOrder = async (req, res, next) => {
       },
       include: {
         items: true,
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            name: true,
+            email: true,
+          }
+        }
       },
     });
+
+    // Emit socket event for the new order
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('new_order', order);
+    }
 
     sendSuccess(res, order, 'Order created successfully', 201);
   } catch (error) {
@@ -407,8 +422,22 @@ const updateOrderStatus = async (req, res, next) => {
       data: { status },
       include: {
         items: true,
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            name: true,
+            email: true,
+          }
+        }
       },
     });
+
+    // Emit socket event for the updated order
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('order_updated', order);
+    }
 
     sendSuccess(res, order, 'Order status updated successfully');
   } catch (error) {
