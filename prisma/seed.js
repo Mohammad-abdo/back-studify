@@ -302,6 +302,9 @@ async function main() {
         create: {
           name: 'Main Campus Print Center',
           location: 'Building A, Ground Floor',
+          address: 'Cairo University Campus',
+          latitude: 30.0444,
+          longitude: 31.2357,
         },
       },
     },

@@ -44,6 +44,7 @@ const authenticate = async (req, res, next) => {
         },
         customer: true,
         admin: true,
+        printCenter: true,
         userRoles: {
           include: {
             role: {
@@ -72,6 +73,7 @@ const authenticate = async (req, res, next) => {
     req.user = user;
     req.userId = user.id;
     req.userType = user.type;
+    req.printCenterId = user.printCenter?.id || null;
 
     next();
   } catch (error) {

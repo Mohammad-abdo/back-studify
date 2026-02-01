@@ -97,6 +97,7 @@ const bookPricingRoutes = require('./routes/bookPricing.routes');
 const printOptionRoutes = require('./routes/printOption.routes');
 const productPricingRoutes = require('./routes/productPricing.routes');
 const printCenterRoutes = require('./routes/printCenter.routes');
+const printOrderAssignmentRoutes = require('./routes/printOrderAssignment.routes');
 const financialTransactionRoutes = require('./routes/financialTransaction.routes');
 const reportRoutes = require('./routes/report.routes');
 const importLogRoutes = require('./routes/importLog.routes');
@@ -104,6 +105,7 @@ const deliveryAssignmentRoutes = require('./routes/deliveryAssignment.routes');
 const deliveryWalletRoutes = require('./routes/deliveryWallet.routes');
 const deliveryLocationRoutes = require('./routes/deliveryLocation.routes');
 const dashboardMetricRoutes = require('./routes/dashboardMetric.routes');
+const settingsRoutes = require('./routes/settings.routes');
 const mobileRoutes = require('./routes/mobile');
 const sliderRoutes = require('./routes/slider.routes');
 
@@ -136,6 +138,7 @@ app.use('/api/book-pricing', bookPricingRoutes);
 app.use('/api/print-options', printOptionRoutes);
 app.use('/api/product-pricing', productPricingRoutes);
 app.use('/api/print-centers', printCenterRoutes);
+app.use('/api/print-order-assignments', printOrderAssignmentRoutes);
 app.use('/api/financial-transactions', financialTransactionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/import-logs', importLogRoutes);
@@ -143,6 +146,7 @@ app.use('/api/delivery-assignments', deliveryAssignmentRoutes);
 app.use('/api/delivery-wallets', deliveryWalletRoutes);
 app.use('/api/delivery-locations', deliveryLocationRoutes);
 app.use('/api/dashboard-metrics', dashboardMetricRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Mobile routes
 app.use('/api/mobile', mobileRoutes);

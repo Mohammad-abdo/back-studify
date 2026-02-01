@@ -68,6 +68,15 @@ enum DeliveryStatus {
   OFFLINE
 }
 
+enum PrintOrderStatus {
+  PENDING      // Assigned, waiting for print center to accept
+  ACCEPTED     // Print center accepted the order
+  PRINTING     // In progress
+  READY_FOR_PICKUP  // Ready for customer/delivery
+  COMPLETED    // Done
+  CANCELLED
+}
+
 enum TransactionType {
   DEPOSIT
   WITHDRAWAL
@@ -284,12 +293,17 @@ model PrintCenter {
   userId    String   @unique
   name      String
   location  String?
+  address   String?  @db.Text
+  latitude  Float?
+  longitude Float?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printAssignments  PrintOrderAssignment[]
 
   @@index([userId])
+  @@index([isActive])
   @@map("print_centers")
 }
 
@@ -459,6 +473,8 @@ model PrintOption {
   copies         Int
   paperType      PaperType
   doubleSide     Boolean
+  createdAt      DateTime?  @default(now())
+  updatedAt      DateTime?  @updatedAt
 
   book     Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   material Material? @relation(fields: [materialId], references: [id], onDelete: Cascade)
@@ -638,16 +654,40 @@ model Order {
   status    OrderStatus @default(CREATED)
   orderType OrderType   @default(PRODUCT)
   address   String?     @db.Text
+  latitude  Float?
+  longitude Float?
   createdAt DateTime    @default(now())
 
-  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items      OrderItem[]
-  assignment DeliveryAssignment?
+  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  assignment      DeliveryAssignment?
+  printAssignment PrintOrderAssignment?
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
   @@map("orders")
+}
+
+model PrintOrderAssignment {
+  id            String          @id @default(uuid())
+  orderId       String          @unique
+  printCenterId String
+  status        PrintOrderStatus @default(PENDING)
+  assignedAt    DateTime        @default(now())
+  acceptedAt   DateTime?
+  completedAt   DateTime?
+  notes         String?         @db.Text
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  printCenter PrintCenter @relation(fields: [printCenterId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([printCenterId])
+  @@index([status])
+  @@map("print_order_assignments")
 }
 
 model OrderItem {
@@ -873,4 +913,21 @@ model DashboardMetric {
   createdAt DateTime @default(now())
 
   @@map("dashboard_metrics")
+}
+
+// ============================================
+// SYSTEM / FINANCIAL SETTINGS (singleton)
+// ============================================
+
+model FinancialSettings {
+  id                        String   @id @default("default")
+  taxRate                   Float    @default(0)   // نسبة الضرائب %
+  commissionRate            Float    @default(0)   // العمولات/النسب العامة %
+  shippingValue             Float    @default(0)   // قيمة الشحن الافتراضية
+  deliveryCommissionRate    Float    @default(0)   // عمولة الدليفري %
+  printCenterCommissionRate Float    @default(0)   // عمولة المطابع %
+  updatedAt                 DateTime @updatedAt
+  createdAt                 DateTime @default(now())
+
+  @@map("financial_settings")
 }

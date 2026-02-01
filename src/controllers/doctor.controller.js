@@ -83,6 +83,8 @@ const getDoctorById = async (req, res, next) => {
             createdAt: true,
           },
         },
+        college: { select: { id: true, name: true } },
+        department: { select: { id: true, name: true } },
         books: {
           include: {
             category: true,
@@ -92,6 +94,7 @@ const getDoctorById = async (req, res, next) => {
         _count: {
           select: {
             books: true,
+            materials: true,
           },
         },
       },

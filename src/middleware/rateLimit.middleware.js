@@ -25,12 +25,12 @@ const apiLimiter = rateLimit({
 });
 
 /**
- * Strict rate limiter for authentication endpoints
- * Disabled for testing - set max to very high number (10000 requests per 15 minutes)
+ * Rate limiter for authentication endpoints (login/register)
+ * Higher limit to avoid 429 when dashboard retries or multiple tabs
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10000, // Very high limit - effectively disabled for testing
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '200', 10), // 200 login attempts per 15 min per IP (retries + multiple tabs)
   message: {
     success: false,
     error: {

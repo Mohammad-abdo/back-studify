@@ -8,6 +8,7 @@ const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = req
 const { NotFoundError, ValidationError } = require('../utils/errors');
 const { ORDER_STATUS } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
+const { assignOrderToNearestPrintCenter } = require('../services/printOrderAssignment.service');
 
 /**
  * Get user orders
@@ -359,6 +360,8 @@ const createOrder = async (req, res, next) => {
     // Calculate total
     const total = calculateOrderTotal(items);
 
+    const { latitude, longitude } = req.body;
+
     // Create order with items
     const order = await prisma.order.create({
       data: {
@@ -367,6 +370,8 @@ const createOrder = async (req, res, next) => {
         status: ORDER_STATUS.CREATED,
         orderType,
         address,
+        latitude: latitude != null ? Number(latitude) : null,
+        longitude: longitude != null ? Number(longitude) : null,
         items: {
           create: items.map((item) => ({
             referenceType: item.referenceType,
@@ -432,6 +437,16 @@ const updateOrderStatus = async (req, res, next) => {
         }
       },
     });
+
+    // When order becomes PAID and has print items, assign to nearest print center
+    if (status === ORDER_STATUS.PAID) {
+      try {
+        const io = req.app.get('io');
+        await assignOrderToNearestPrintCenter(id, io || null);
+      } catch (assignErr) {
+        console.error('Print assignment failed:', assignErr.message);
+      }
+    }
 
     // Emit socket event for the updated order
     const io = req.app.get('io');

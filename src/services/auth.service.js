@@ -236,6 +236,7 @@ const login = async (phone, password) => {
     isCustomer: user.type === 'CUSTOMER',
     isAdmin: user.type === 'ADMIN',
     isPrintCenter: user.type === 'PRINT_CENTER',
+    printCenterId: user.printCenter?.id || null,
   };
 
   return {

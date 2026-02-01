@@ -145,6 +145,9 @@ const createOrderSchema = z.object({
     quantity: z.number().int().positive(),
     price: z.number().nonnegative(),
   })).min(1),
+  address: z.string().max(1000).optional().nullable(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 const updateOrderStatusSchema = z.object({

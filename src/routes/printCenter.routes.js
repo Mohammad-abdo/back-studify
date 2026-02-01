@@ -23,6 +23,47 @@ router.use(requireUserType('ADMIN'));
 /**
  * @swagger
  * /print-centers:
+ *   post:
+ *     summary: Create print center account (Admin only)
+ *     tags: [Print Center]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [phone, password, name]
+ *             properties:
+ *               phone: { type: string }
+ *               password: { type: string }
+ *               email: { type: string }
+ *               name: { type: string }
+ *               location: { type: string }
+ *               address: { type: string }
+ *               latitude: { type: number }
+ *               longitude: { type: number }
+ *     responses:
+ *       201:
+ *         description: Print center created
+ *       400:
+ *         description: Validation error
+ */
+router.post('/', validateBody(z.object({
+  phone: z.string().min(8).max(20),
+  password: z.string().min(8).max(100),
+  email: z.string().email().optional().nullable(),
+  name: z.string().min(2).max(100),
+  location: z.string().max(200).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  latitude: z.union([z.number(), z.string()]).optional().nullable().transform((v) => (v === '' || v == null ? null : Number(v))),
+  longitude: z.union([z.number(), z.string()]).optional().nullable().transform((v) => (v === '' || v == null ? null : Number(v))),
+})), printCenterController.createPrintCenter);
+
+/**
+ * @swagger
+ * /print-centers:
  *   get:
  *     summary: List all registered print centers (Admin only)
  *     tags: [Print Center]
@@ -98,7 +139,10 @@ router.get('/:id', printCenterController.getPrintCenterById);
  */
 router.put('/:id', validateBody(z.object({
   name: z.string().min(2).max(100).optional(),
-  location: z.string().optional(),
+  location: z.string().max(200).optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  latitude: z.union([z.number(), z.string()]).optional().nullable().transform((v) => (v === '' || v == null ? null : Number(v))),
+  longitude: z.union([z.number(), z.string()]).optional().nullable().transform((v) => (v === '' || v == null ? null : Number(v))),
   isActive: z.boolean().optional(),
 })), printCenterController.updatePrintCenter);
 

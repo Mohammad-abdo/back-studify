@@ -157,6 +157,9 @@ const getProfile = async (req, res, next) => {
     } else if (user.customer) {
       name = user.customer?.contactPerson || user.customer?.entityName;
       username = user.customer?.contactPerson || user.customer?.entityName;
+    } else if (user.printCenter) {
+      name = user.printCenter?.name;
+      username = user.printCenter?.name;
     }
 
     // Add name, username and role flags to user object
@@ -170,6 +173,8 @@ const getProfile = async (req, res, next) => {
       isDelivery: user.type === 'DELIVERY',
       isCustomer: user.type === 'CUSTOMER',
       isAdmin: user.type === 'ADMIN',
+      isPrintCenter: user.type === 'PRINT_CENTER',
+      printCenterId: user.printCenter?.id || null,
     };
 
     sendSuccess(res, userWithProfile, 'Profile retrieved successfully');

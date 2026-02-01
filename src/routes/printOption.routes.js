@@ -50,10 +50,10 @@ const updatePrintOptionSchema = z.object({
   doubleSide: z.boolean().optional(),
 });
 
-// Create print option with file upload support
+// Create print option with file upload support (DOCTOR or ADMIN)
 router.post(
   '/upload',
-  requireUserType('DOCTOR'),
+  requireUserType('DOCTOR', 'ADMIN'),
   singleUpload('file'),
   validateBody(z.object({
     colorType: z.enum(['COLOR', 'BLACK_WHITE']),
@@ -67,14 +67,14 @@ router.post(
 
 router.post(
   '/',
-  requireUserType('DOCTOR'),
+  requireUserType('DOCTOR', 'ADMIN'),
   validateBody(createPrintOptionSchema),
   printOptionController.createPrintOption
 );
 
 router.put(
   '/:id',
-  requireUserType('DOCTOR'),
+  requireUserType('DOCTOR', 'ADMIN'),
   validateBody(updatePrintOptionSchema),
   printOptionController.updatePrintOption
 );
@@ -91,7 +91,7 @@ router.post(
   printOptionController.createPrintOrder
 );
 
-router.delete('/:id', requireUserType('DOCTOR'), printOptionController.deletePrintOption);
+router.delete('/:id', requireUserType('DOCTOR', 'ADMIN'), printOptionController.deletePrintOption);
 
 module.exports = router;
 

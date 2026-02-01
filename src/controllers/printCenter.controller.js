@@ -5,7 +5,8 @@
 
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError } = require('../utils/errors');
+const { NotFoundError, ConflictError } = require('../utils/errors');
+const { hashPassword, formatPhoneNumber } = require('../utils/helpers');
 
 /**
  * Get all print centers
@@ -53,6 +54,71 @@ const getPrintCenters = async (req, res, next) => {
 };
 
 /**
+ * Create print center (Admin only) - creates User + PrintCenter account
+ */
+const createPrintCenter = async (req, res, next) => {
+  try {
+    const { phone, password, email, name, location, address, latitude, longitude } = req.body;
+    const formattedPhone = formatPhoneNumber(phone);
+
+    const existingUser = await prisma.user.findUnique({
+      where: { phone: formattedPhone },
+    });
+    if (existingUser) {
+      throw new ConflictError('Phone number already registered');
+    }
+    if (email) {
+      const existingEmail = await prisma.user.findUnique({
+        where: { email },
+      });
+      if (existingEmail) {
+        throw new ConflictError('Email already registered');
+      }
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const center = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          phone: formattedPhone,
+          password: passwordHash,
+          email: email || null,
+          type: 'PRINT_CENTER',
+          isActive: true,
+        },
+      });
+      const pc = await tx.printCenter.create({
+        data: {
+          userId: user.id,
+          name: name || 'Print Center',
+          location: location || null,
+          address: address || null,
+          latitude: latitude != null ? Number(latitude) : null,
+          longitude: longitude != null ? Number(longitude) : null,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              phone: true,
+              email: true,
+              avatarUrl: true,
+              isActive: true,
+            },
+          },
+        },
+      });
+      return pc;
+    });
+
+    sendSuccess(res, center, 'Print center created successfully', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get print center by ID
  */
 const getPrintCenterById = async (req, res, next) => {
@@ -90,15 +156,19 @@ const getPrintCenterById = async (req, res, next) => {
 const updatePrintCenter = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, location, isActive } = req.body;
+    const { name, location, address, latitude, longitude, isActive } = req.body;
+
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (location !== undefined) data.location = location;
+    if (address !== undefined) data.address = address;
+    if (latitude !== undefined) data.latitude = latitude == null ? null : Number(latitude);
+    if (longitude !== undefined) data.longitude = longitude == null ? null : Number(longitude);
+    if (isActive !== undefined) data.isActive = isActive;
 
     const center = await prisma.printCenter.update({
       where: { id },
-      data: {
-        name,
-        location,
-        isActive,
-      },
+      data,
     });
 
     sendSuccess(res, center, 'Print center updated successfully');
@@ -136,6 +206,7 @@ const deletePrintCenter = async (req, res, next) => {
 module.exports = {
   getPrintCenters,
   getPrintCenterById,
+  createPrintCenter,
   updatePrintCenter,
   deletePrintCenter,
 };

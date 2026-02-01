@@ -20,6 +20,15 @@ const initSocket = (server, corsOrigin) => {
     // Register handlers
     deliveryHandler(io, socket);
 
+    // Print center: join room to receive assigned orders
+    socket.on('join_print_center', (data) => {
+      const { printCenterId } = data || {};
+      if (printCenterId) {
+        socket.join(`print_center_${printCenterId}`);
+        console.log(`🖨️ Print center ${printCenterId} joined room`);
+      }
+    });
+
     socket.on('disconnect', () => {
       console.log(`🔌 Client disconnected: ${socket.id}`);
     });

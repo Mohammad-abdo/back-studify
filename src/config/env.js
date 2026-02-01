@@ -35,8 +35,18 @@ const config = {
   jwtRefreshSecret: process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
 
-  // CORS
-  corsOrigin: process.env.CORS_ORIGIN || '*',
+  // CORS - must be an array so the cors package sets a single Origin header per request
+  corsOrigin: (() => {
+    const raw = process.env.CORS_ORIGIN;
+    const defaults = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:3000', 'http://localhost:5000'];
+    if (!raw) return process.env.NODE_ENV === 'development' ? defaults : '*';
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      if (raw.trim() === '*') return '*';
+      return raw.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    return defaults;
+  })(),
 
   // Email (Nodemailer)
   emailHost: process.env.EMAIL_HOST,
@@ -63,7 +73,7 @@ const config = {
 
   // Rate Limiting
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '100'), // 100 requests per window
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || process.env.RATE_LIMIT_MAX_REQUESTS || '1000'), // per window (dashboard needs more)
 
   // Payment
   paymentGateway: process.env.PAYMENT_GATEWAY || 'stripe',

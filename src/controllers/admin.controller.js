@@ -61,7 +61,7 @@ const approveDoctor = async (req, res, next) => {
       ADMIN_OPERATION_TYPE.APPROVE,
       'DOCTOR',
       id,
-      `Approved doctor: ${doctor.user.name}`,
+      `Approved doctor: ${doctor.name}`,
       { doctorId: id },
       req
     );
@@ -106,7 +106,7 @@ const rejectDoctor = async (req, res, next) => {
       ADMIN_OPERATION_TYPE.REJECT,
       'DOCTOR',
       id,
-      `Rejected doctor: ${doctor.user.name}`,
+      `Rejected doctor: ${doctor.name}`,
       { doctorId: id },
       req
     );
@@ -251,7 +251,7 @@ const getPendingApprovals = async (req, res, next) => {
                 select: {
                   id: true,
                   phone: true,
-                  name: true,
+                  email: true,
                 },
               },
             },
