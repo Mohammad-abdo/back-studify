@@ -15,11 +15,14 @@ const { HTTP_STATUS } = require('./utils/constants');
 // Initialize Express app
 const app = express();
 
-// CORS configuration
+// CORS configuration – allow frontend origins (Vercel, localhost, etc.)
 app.use(
   cors({
     origin: config.corsOrigin,
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    optionsSuccessStatus: 204,
   })
 );
 
