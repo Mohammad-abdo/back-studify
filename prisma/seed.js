@@ -1159,6 +1159,8 @@ async function main() {
         status: 'PROCESSING',
         orderType: 'PRODUCT',
         address: addresses[Math.floor(Math.random() * addresses.length)],
+        latitude: 30.0444,
+        longitude: 31.2357,
         items: {
           create: cart.items.map((item) => ({
             referenceType: item.referenceType,
@@ -1189,6 +1191,8 @@ async function main() {
           status: 'PROCESSING',
           orderType: 'PRODUCT',
           address: addresses[Math.floor(Math.random() * addresses.length)],
+          latitude: 30.0626,
+          longitude: 31.2497,
           items: {
             create: cart.items.map((item) => ({
               referenceType: item.referenceType,
@@ -1243,6 +1247,8 @@ async function main() {
               status: 'PAID',
               orderType: 'CONTENT',
               address: addresses[Math.floor(Math.random() * addresses.length)],
+              latitude: 30.0444,
+              longitude: 31.2357,
               items: {
                 create: [
                   {
@@ -1300,6 +1306,8 @@ async function main() {
               status: 'PAID',
               orderType: 'CONTENT',
               address: addresses[Math.floor(Math.random() * addresses.length)],
+              latitude: 30.0711,
+              longitude: 31.2859,
               items: {
                 create: [
                   {
@@ -2054,6 +2062,27 @@ async function main() {
     },
   });
   console.log('✅ Admin role assigned to admin user');
+
+  // Backfill: ensure ALL orders in DB have latitude/longitude (for delivery map & assignments)
+  const ordersWithoutCoords = await prisma.order.findMany({
+    where: {
+      OR: [
+        { latitude: null },
+        { longitude: null },
+      ],
+    },
+    select: { id: true },
+  });
+  if (ordersWithoutCoords.length > 0) {
+    const defaultCoords = { latitude: 30.0444, longitude: 31.2357 };
+    for (const o of ordersWithoutCoords) {
+      await prisma.order.update({
+        where: { id: o.id },
+        data: defaultCoords,
+      });
+    }
+    console.log(`\n✅ Backfilled latitude/longitude for ${ordersWithoutCoords.length} order(s)`);
+  }
 
   console.log('\n✨ Seed completed successfully!');
   console.log('\n📝 Default credentials:');

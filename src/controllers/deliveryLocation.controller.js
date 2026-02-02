@@ -13,7 +13,8 @@ const { NotFoundError } = require('../utils/errors');
 const getDeliveryLocations = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { deliveryId, startDate, endDate } = req.query;
+    const { deliveryId, startDate, endDate, order } = req.query;
+    const orderAsc = order === 'asc';
 
     const where = {
       ...(deliveryId && { deliveryId }),
@@ -43,7 +44,7 @@ const getDeliveryLocations = async (req, res, next) => {
             },
           },
         },
-        orderBy: { createdAt: 'desc' },
+        orderBy: { createdAt: orderAsc ? 'asc' : 'desc' },
       }),
       prisma.deliveryLocation.count({ where }),
     ]);
