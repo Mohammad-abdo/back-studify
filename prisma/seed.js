@@ -1325,6 +1325,34 @@ async function main() {
     console.log('⚠️ Skipped sample carts/orders seeding (no students or products)');
   }
 
+  // Backfill: ensure all orders have an address (for display in admin/assignments)
+  const ordersWithoutAddress = await prisma.order.findMany({
+    where: {
+      OR: [
+        { address: null },
+        { address: '' },
+      ],
+    },
+    select: { id: true },
+  });
+  if (ordersWithoutAddress.length > 0) {
+    const defaultAddresses = [
+      '123 University St, Cairo',
+      '45 El-Nasr Rd, Nasr City, Cairo',
+      '88 Abbas El-Akkad St, Heliopolis, Cairo',
+      '12 Nile Corniche, Maadi, Cairo',
+      '55 Tahrir Square, Downtown, Cairo',
+    ];
+    for (let i = 0; i < ordersWithoutAddress.length; i++) {
+      const addr = defaultAddresses[i % defaultAddresses.length];
+      await prisma.order.update({
+        where: { id: ordersWithoutAddress[i].id },
+        data: { address: addr },
+      });
+    }
+    console.log(`✅ Backfilled address for ${ordersWithoutAddress.length} order(s)`);
+  }
+
   // 14. Create Delivery Assignments
   console.log('\n🚚 Creating delivery assignments...');
 
@@ -1475,8 +1503,15 @@ async function main() {
       // Add more assignments for the new delivery personnel
       if (ordersToAssign.length > 3 && createdDeliveries.length > 3) {
         // Assign 4th order to 4th delivery (PROCESSING)
-        const assignment4 = await prisma.deliveryAssignment.create({
-          data: {
+        const assignment4 = await prisma.deliveryAssignment.upsert({
+          where: { orderId: ordersToAssign[3].id },
+          update: {
+            deliveryId: createdDeliveries[3].delivery.id,
+            status: 'PROCESSING',
+            assignedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+          },
+          create: {
             orderId: ordersToAssign[3].id,
             deliveryId: createdDeliveries[3].delivery.id,
             status: 'PROCESSING',
@@ -1484,7 +1519,7 @@ async function main() {
             pickedUpAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
           },
         });
-        console.log(`✅ Delivery assignment created: ${assignment4.id} (PROCESSING)`);
+        console.log(`✅ Delivery assignment created/updated: ${assignment4.id} (PROCESSING)`);
 
         await prisma.order.update({
           where: { id: ordersToAssign[3].id },
@@ -1494,8 +1529,15 @@ async function main() {
 
       if (ordersToAssign.length > 4 && createdDeliveries.length > 4) {
         // Assign 5th order to 5th delivery (SHIPPED)
-        const assignment5 = await prisma.deliveryAssignment.create({
-          data: {
+        const assignment5 = await prisma.deliveryAssignment.upsert({
+          where: { orderId: ordersToAssign[4].id },
+          update: {
+            deliveryId: createdDeliveries[4].delivery.id,
+            status: 'SHIPPED',
+            assignedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          },
+          create: {
             orderId: ordersToAssign[4].id,
             deliveryId: createdDeliveries[4].delivery.id,
             status: 'SHIPPED',
@@ -1503,7 +1545,7 @@ async function main() {
             pickedUpAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
           },
         });
-        console.log(`✅ Delivery assignment created: ${assignment5.id} (SHIPPED)`);
+        console.log(`✅ Delivery assignment created/updated: ${assignment5.id} (SHIPPED)`);
 
         await prisma.order.update({
           where: { id: ordersToAssign[4].id },
@@ -2490,6 +2532,31 @@ const order9 = await prisma.order.create({
         console.log(`✅ Created CONTENT order (MATERIAL PRINT): ${order10.id} - Total: ${order10.total}`);
       }
     }
+  }
+
+  // Backfill: ensure all orders in DB have an address
+  const ordersWithoutAddress = await prisma.order.findMany({
+    where: {
+      OR: [
+        { address: null },
+        { address: '' },
+      ],
+    },
+    select: { id: true },
+  });
+  if (ordersWithoutAddress.length > 0) {
+    const defaultAddresses = [
+      '123 University St, Cairo',
+      '45 El-Nasr Rd, Nasr City, Cairo',
+      '88 Abbas El-Akkad St, Heliopolis, Cairo',
+    ];
+    for (let i = 0; i < ordersWithoutAddress.length; i++) {
+      await prisma.order.update({
+        where: { id: ordersWithoutAddress[i].id },
+        data: { address: defaultAddresses[i % defaultAddresses.length] },
+      });
+    }
+    console.log(`✅ Backfilled address for ${ordersWithoutAddress.length} order(s)`);
   }
 
   console.log('\n✨ Orders seeded successfully for user!');

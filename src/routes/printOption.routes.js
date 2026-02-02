@@ -88,6 +88,9 @@ router.get(
 // Create print order from print option (for students)
 router.post(
   '/:id/order',
+  validateBody(z.object({
+    address: z.string().max(2000).optional(),
+  })),
   printOptionController.createPrintOrder
 );
 

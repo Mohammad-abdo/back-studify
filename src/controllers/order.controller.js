@@ -291,6 +291,9 @@ const getOrderById = async (req, res, next) => {
             phone: true,
             email: true,
             avatarUrl: true,
+            student: { select: { name: true } },
+            doctor: { select: { name: true } },
+            customer: { select: { contactPerson: true, entityName: true } },
           },
         },
         items: true,
@@ -309,6 +312,21 @@ const getOrderById = async (req, res, next) => {
             },
           },
         },
+        printAssignment: {
+          include: {
+            printCenter: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    phone: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
 
@@ -321,7 +339,16 @@ const getOrderById = async (req, res, next) => {
       throw new NotFoundError('Order not found');
     }
 
-    sendSuccess(res, order, 'Order retrieved successfully');
+    // Ensure address is never null for display (backfill happens in seed for DB)
+    const orderForResponse = {
+      ...order,
+      address: (order.address && String(order.address).trim()) ? order.address : 'Address not provided',
+    };
+    const user = orderForResponse.user || {};
+    orderForResponse.customerName =
+      user.student?.name || user.doctor?.name || user.customer?.contactPerson || user.customer?.entityName || user.phone || null;
+
+    sendSuccess(res, orderForResponse, 'Order retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -342,6 +369,8 @@ const createOrder = async (req, res, next) => {
     if (!items || items.length === 0) {
       throw new ValidationError('Order must have at least one item');
     }
+
+    const deliveryAddress = (address && String(address).trim()) ? String(address).trim() : 'Address not provided';
 
     // Determine orderType based on items
     // If all items are PRODUCT → PRODUCT order
@@ -377,7 +406,7 @@ const createOrder = async (req, res, next) => {
         total,
         status: ORDER_STATUS.CREATED,
         orderType,
-        address,
+        address: deliveryAddress,
         latitude: latitude != null ? Number(latitude) : null,
         longitude: longitude != null ? Number(longitude) : null,
         items: {
@@ -395,9 +424,8 @@ const createOrder = async (req, res, next) => {
           select: {
             id: true,
             phone: true,
-            name: true,
             email: true,
-          }
+          },
         }
       },
     });
@@ -439,9 +467,8 @@ const updateOrderStatus = async (req, res, next) => {
           select: {
             id: true,
             phone: true,
-            name: true,
             email: true,
-          }
+          },
         }
       },
     });

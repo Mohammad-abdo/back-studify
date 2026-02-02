@@ -148,6 +148,7 @@ router.get('/departments', validateQuery(paginationSchema.extend({
 // Book content order: READ, BUY, PRINT
 router.post('/books/:bookId/access', validateBody(z.object({
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
+  address: z.string().max(2000).optional(),
 })), async (req, res, next) => {
   try {
     const userId = req.userId;
@@ -175,13 +176,15 @@ router.post('/books/:bookId/access', validateBody(z.object({
       return next(new NotFoundError(`No pricing found for access type ${accessType}`));
     }
 
-    // Create a CONTENT order
+    // Create a CONTENT order (address from body or default)
+    const address = (req.body?.address && String(req.body.address).trim()) ? String(req.body.address).trim() : 'Address not provided';
     const order = await prisma.order.create({
       data: {
         userId,
         total: pricing.price,
         status: 'CREATED',
         orderType: 'CONTENT',
+        address,
         items: {
           create: [
             {
@@ -207,6 +210,7 @@ router.post('/books/:bookId/access', validateBody(z.object({
 // Material content order: READ, BUY, PRINT
 router.post('/materials/:materialId/access', validateBody(z.object({
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
+  address: z.string().max(2000).optional(),
 })), async (req, res, next) => {
   try {
     const userId = req.userId;
@@ -234,13 +238,15 @@ router.post('/materials/:materialId/access', validateBody(z.object({
       return next(new NotFoundError(`No pricing found for access type ${accessType}`));
     }
 
-    // Create a CONTENT order
+    // Create a CONTENT order (address from body or default)
+    const address = (req.body?.address && String(req.body.address).trim()) ? String(req.body.address).trim() : 'Address not provided';
     const order = await prisma.order.create({
       data: {
         userId,
         total: pricing.price,
         status: 'CREATED',
         orderType: 'CONTENT',
+        address,
         items: {
           create: [
             {

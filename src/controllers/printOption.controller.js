@@ -520,12 +520,15 @@ const createPrintOrder = async (req, res, next) => {
     const totalSheets = sheetsPerCopy * printOption.copies;
     const totalPrice = parseFloat((totalSheets * pricePerPage).toFixed(2));
 
-    // Create order with PRINT_OPTION reference type
+    // Create order with PRINT_OPTION reference type (address from body or default)
+    const address = (req.body?.address && String(req.body.address).trim()) ? String(req.body.address).trim() : 'Address not provided';
     const order = await prisma.order.create({
       data: {
         userId,
         total: totalPrice,
         status: 'CREATED',
+        orderType: 'PRINT',
+        address,
         items: {
           create: [
             {

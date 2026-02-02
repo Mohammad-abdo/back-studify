@@ -115,6 +115,8 @@ const getAllAssignments = async (req, res, next) => {
                   phone: true,
                   email: true,
                   student: { select: { name: true } },
+                  doctor: { select: { name: true } },
+                  customer: { select: { contactPerson: true, entityName: true } },
                 },
               },
             },
@@ -140,6 +142,9 @@ const getAllAssignments = async (req, res, next) => {
       if (a.order?.items?.length) {
         a.order.items = await enrichOrderItems(a.order.items);
       }
+      const user = a.order?.user || {};
+      a.customerName = user.student?.name || user.doctor?.name || user.customer?.contactPerson || user.customer?.entityName || user.phone || null;
+      a.deliveryAddress = a.order?.address || null;
     }
 
     const pagination = buildPagination(page, limit, total);
@@ -167,6 +172,8 @@ const getAssignmentById = async (req, res, next) => {
                 phone: true,
                 email: true,
                 student: { select: { name: true } },
+                doctor: { select: { name: true } },
+                customer: { select: { contactPerson: true, entityName: true } },
               },
             },
           },
@@ -188,6 +195,10 @@ const getAssignmentById = async (req, res, next) => {
     if (!assignment) {
       throw new NotFoundError('Assignment not found');
     }
+
+    const user = assignment.order?.user || {};
+    assignment.customerName = user.student?.name || user.doctor?.name || user.customer?.contactPerson || user.customer?.entityName || user.phone || null;
+    assignment.deliveryAddress = assignment.order?.address || null;
 
     // Print center can only view their own
     if (req.userType === 'PRINT_CENTER' && assignment.printCenterId !== req.printCenterId) {
@@ -350,7 +361,16 @@ const getAssignmentByOrderId = async (req, res, next) => {
         order: {
           include: {
             items: true,
-            user: { select: { id: true, phone: true } },
+            user: {
+              select: {
+                id: true,
+                phone: true,
+                email: true,
+                student: { select: { name: true } },
+                doctor: { select: { name: true } },
+                customer: { select: { contactPerson: true, entityName: true } },
+              },
+            },
           },
         },
         printCenter: {
@@ -364,6 +384,10 @@ const getAssignmentByOrderId = async (req, res, next) => {
     if (!assignment) {
       throw new NotFoundError('No print assignment found for this order');
     }
+
+    const user = assignment.order?.user || {};
+    assignment.customerName = user.student?.name || user.doctor?.name || user.customer?.contactPerson || user.customer?.entityName || user.phone || null;
+    assignment.deliveryAddress = assignment.order?.address || null;
 
     const isOrderOwner = req.userId === assignment.order.userId;
     const isPrintCenter = req.printCenterId === assignment.printCenterId;

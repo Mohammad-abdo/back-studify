@@ -9,10 +9,12 @@ const { HTTP_STATUS } = require('../utils/constants');
 
 /**
  * General API rate limiter
+ * Skip /auth so login & profile don't consume the global limit (they use authLimiter)
  */
 const apiLimiter = rateLimit({
   windowMs: config.rateLimitWindowMs,
   max: config.rateLimitMax,
+  skip: (req) => req.path.startsWith('/auth'),
   message: {
     success: false,
     error: {
@@ -25,12 +27,12 @@ const apiLimiter = rateLimit({
 });
 
 /**
- * Rate limiter for authentication endpoints (login/register)
- * Higher limit to avoid 429 when dashboard retries or multiple tabs
+ * Rate limiter for authentication endpoints (login, profile, register)
+ * Generous limit so 429 does not happen for normal use (tabs, Strict Mode, retries)
  */
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '200', 10), // 200 login attempts per 15 min per IP (retries + multiple tabs)
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '500', 10), // 500 auth requests per 15 min per IP
   message: {
     success: false,
     error: {
