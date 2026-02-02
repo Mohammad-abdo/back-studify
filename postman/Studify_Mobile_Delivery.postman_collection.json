@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Studify - Mobile Delivery API",
-    "description": "Complete API collection for Delivery mobile app\n\nAll endpoints require authentication with Bearer token.\nSet the 'token' variable after login.\n\nNote: Login and Profile endpoints now return 'username' field extracted from user profile (Student.name, Doctor.name, etc.).",
+    "description": "Complete API collection for Delivery mobile app.\n\nAll endpoints require authentication with Bearer token. Set the 'token' variable after login.\n\nAssignments: List and detail responses include latitude, longitude (delivery destination from order) for map display.\n\nReal-time tracking (Socket.IO): Emit 'update_location' with deliveryId, latitude, longitude, orderId (optional). Join 'order_<orderId>' via 'track_order' to receive 'location_updated' for live map.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "studify-mobile-delivery",
     "version": "1.1.0"
@@ -265,7 +265,8 @@
                   "disabled": true
                 }
               ]
-            }
+            },
+            "description": "List assignments for the logged-in delivery. Each item includes latitude, longitude (delivery destination from order), customerName, deliveryAddress for map and navigation."
           }
         },
         {
@@ -288,7 +289,8 @@
                   "value": "assignment-uuid-here"
                 }
               ]
-            }
+            },
+            "description": "Assignment detail. Response includes latitude, longitude (delivery destination), customerName, deliveryAddress for map/navigation."
           }
         },
         {

@@ -584,7 +584,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"accessType\": \"READ\"\n}",
+              "raw": "{\n  \"accessType\": \"READ\",\n  \"address\": \"12 Nile Corniche, Maadi, Cairo\",\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -610,7 +610,7 @@
                 }
               ]
             },
-            "description": "Create a content order for a book with accessType READ, BUY, or PRINT. Uses BookPricing for the given accessType and creates a CONTENT order."
+            "description": "Create a CONTENT order for a book. Optional: address, latitude, longitude (customer delivery location for map/tracking)."
           }
         }
       ]
@@ -1368,7 +1368,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"accessType\": \"READ\"\n}",
+              "raw": "{\n  \"accessType\": \"READ\",\n  \"address\": \"45 El-Nasr Rd, Nasr City, Cairo\",\n  \"latitude\": 30.0626,\n  \"longitude\": 31.2497\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1394,7 +1394,7 @@
                 }
               ]
             },
-            "description": "Create a content order for a material with accessType READ, BUY, or PRINT. Uses MaterialPricing for the given accessType and creates a CONTENT order."
+            "description": "Create a CONTENT order for a material. Optional: address, latitude, longitude (customer delivery location for map/tracking)."
           }
         }
       ]
@@ -1486,7 +1486,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"items\": [\n    {\n      \"referenceType\": \"PRODUCT\",\n      \"referenceId\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"quantity\": 2,\n      \"price\": 25.0\n    },\n    {\n      \"referenceType\": \"PRODUCT\",\n      \"referenceId\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"quantity\": 1,\n      \"price\": 30.0\n    }\n  ]\n}",
+              "raw": "{\n  \"items\": [\n    {\n      \"referenceType\": \"PRODUCT\",\n      \"referenceId\": \"550e8400-e29b-41d4-a716-446655440000\",\n      \"quantity\": 2,\n      \"price\": 25.0\n    },\n    {\n      \"referenceType\": \"PRODUCT\",\n      \"referenceId\": \"660e8400-e29b-41d4-a716-446655440001\",\n      \"quantity\": 1,\n      \"price\": 30.0\n    }\n  ],\n  \"address\": \"123 University St, Cairo\",\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1504,7 +1504,7 @@
                 "orders"
               ]
             },
-            "description": "Create a PRODUCT order (for items from cart). Order type is automatically set to 'PRODUCT'.\n\nNote: For BOOK/MATERIAL orders, use:\n- POST /mobile/student/books/:bookId/access (for books)\n- POST /mobile/student/materials/:materialId/access (for materials)\n\nThese will create CONTENT orders automatically."
+            "description": "Create a PRODUCT order (cart). Optional: address, latitude, longitude (delivery location for map/tracking). For BOOK/MATERIAL use books/:bookId/access or materials/:materialId/access."
           }
         },
         {

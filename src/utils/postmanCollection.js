@@ -1045,6 +1045,7 @@ const generatePostmanCollection = () => {
               { key: 'limit', value: '10' },
             ],
           },
+          description: 'List assignments. Each item includes latitude, longitude (delivery destination), customerName, deliveryAddress for map.',
         },
       },
       {

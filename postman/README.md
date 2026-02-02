@@ -36,11 +36,13 @@ Complete API collection for **Delivery** mobile app.
 **Includes:**
 - Profile Management (Get, Update)
 - Status Management (Update delivery status)
-- Assignments (Get assignments, View details)
+- Assignments (Get assignments, View details — each item includes **latitude**, **longitude** for delivery destination/map)
 - Order Management (Mark picked up, Mark delivered)
 - Location Tracking (Update location, View history)
 - Wallet (View balance, View transactions)
 - Notifications (Get, Mark as Read)
+
+**Real-time tracking (Socket.IO):** Emit `update_location` with `deliveryId`, `latitude`, `longitude`, `orderId`. Clients join room `order_<orderId>` via `track_order` to receive `location_updated` for live map.
 
 ## How to Import
 
@@ -99,6 +101,7 @@ http://localhost:3001/api
 - Pagination is supported on list endpoints (default: page=1, limit=10)
 - All date fields are in ISO 8601 format
 - UUIDs are used for all IDs
+- **Orders & location:** When creating orders (student: books/materials/orders), optional `address`, `latitude`, `longitude` set the delivery destination; assignments and tracking use these for map display
 
 ## Testing Workflow
 
