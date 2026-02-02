@@ -1,13 +1,17 @@
 /**
  * Delivery Socket Handler
- * Handles real-time tracking of delivery personnel
+ * Real-time tracking of delivery personnel for map display.
+ * - Mobile delivery app: emit 'update_location' with deliveryId, latitude, longitude, orderId.
+ * - Customer/admin: join room 'order_<orderId>' (track_order) to receive 'location_updated'.
+ * - Admin: join 'admin_room' (join_admin_tracking) to receive 'delivery_moved' for all deliveries.
  */
 
 const prisma = require('../config/database');
 
 module.exports = (io, socket) => {
   /**
-   * Update delivery location
+   * Update delivery location (from delivery app GPS).
+   * Saves to DB and broadcasts to order room + admin room for map tracking.
    * @param {Object} data - { deliveryId, latitude, longitude, address, orderId (optional) }
    */
   socket.on('update_location', async (data) => {

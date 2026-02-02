@@ -2256,6 +2256,8 @@ async function seedOrdersForUser() {
         status: 'CREATED',
         orderType: 'PRODUCT',
         address: '123 University St, Cairo',
+        latitude: 30.0444,
+        longitude: 31.2357,
         items: {
           create: [
             {
@@ -2288,6 +2290,8 @@ async function seedOrdersForUser() {
         status: 'PAID',
         orderType: 'PRODUCT',
         address: '45 El-Nasr Rd, Nasr City, Cairo',
+        latitude: 30.0626,
+        longitude: 31.2497,
         items: {
             create: [
               {
@@ -2315,6 +2319,8 @@ async function seedOrdersForUser() {
           status: 'PROCESSING',
           orderType: 'PRODUCT',
           address: '78 El-Bahr St, Giza',
+          latitude: 29.9792,
+          longitude: 31.1342,
           items: {
             create: [
               {
@@ -2342,6 +2348,8 @@ async function seedOrdersForUser() {
         status: 'DELIVERED',
         orderType: 'PRODUCT',
         address: '12 Nile Corniche, Maadi, Cairo',
+        latitude: 30.0444,
+        longitude: 31.2357,
         items: {
             create: [
               {
@@ -2372,6 +2380,8 @@ async function seedOrdersForUser() {
           status: 'PAID',
           orderType: 'CONTENT',
           address: '55 Tahrir Square, Downtown, Cairo',
+          latitude: 30.0444,
+          longitude: 31.2357,
           items: {
             create: [
               {
@@ -2400,6 +2410,8 @@ async function seedOrdersForUser() {
             status: 'CREATED',
             orderType: 'CONTENT',
             address: '101 Ring Road, New Cairo',
+            latitude: 30.0876,
+            longitude: 31.3125,
             items: {
               create: [
                 {
@@ -2429,6 +2441,8 @@ async function seedOrdersForUser() {
             status: 'PROCESSING',
             orderType: 'CONTENT',
             address: '22 Shooting Club St, Dokki, Giza',
+            latitude: 30.0427,
+            longitude: 31.2107,
             items: {
               create: [
                 {
@@ -2460,6 +2474,8 @@ async function seedOrdersForUser() {
           status: 'PAID',
           orderType: 'CONTENT',
           address: '123 University St, Cairo',
+          latitude: 30.0444,
+          longitude: 31.2357,
           items: {
             create: [
               {
@@ -2488,6 +2504,8 @@ const order9 = await prisma.order.create({
           status: 'DELIVERED',
           orderType: 'CONTENT',
           address: '45 El-Nasr Rd, Nasr City, Cairo',
+          latitude: 30.0626,
+          longitude: 31.2497,
           items: {
             create: [
               {
@@ -2517,6 +2535,8 @@ const order9 = await prisma.order.create({
             status: 'CREATED',
             orderType: 'CONTENT',
             address: '88 Abbas El-Akkad St, Heliopolis, Cairo',
+            latitude: 30.0711,
+            longitude: 31.2859,
             items: {
               create: [
                 {
@@ -2557,6 +2577,27 @@ const order9 = await prisma.order.create({
       });
     }
     console.log(`✅ Backfilled address for ${ordersWithoutAddress.length} order(s)`);
+  }
+
+  // Backfill: ensure all orders have latitude/longitude (for delivery map & assignments)
+  const ordersWithoutCoords = await prisma.order.findMany({
+    where: {
+      OR: [
+        { latitude: null },
+        { longitude: null },
+      ],
+    },
+    select: { id: true, address: true },
+  });
+  if (ordersWithoutCoords.length > 0) {
+    const defaultCoords = { latitude: 30.0444, longitude: 31.2357 };
+    for (const o of ordersWithoutCoords) {
+      await prisma.order.update({
+        where: { id: o.id },
+        data: defaultCoords,
+      });
+    }
+    console.log(`✅ Backfilled latitude/longitude for ${ordersWithoutCoords.length} order(s)`);
   }
 
   console.log('\n✨ Orders seeded successfully for user!');

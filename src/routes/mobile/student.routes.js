@@ -145,10 +145,12 @@ router.get('/departments', validateQuery(paginationSchema.extend({
 // ============================================
 // CONTENT ORDERS (BOOKS & MATERIALS READ / BUY / PRINT)
 // ============================================
-// Book content order: READ, BUY, PRINT
+// Book content order: READ, BUY, PRINT (latitude/longitude = customer delivery location for map)
 router.post('/books/:bookId/access', validateBody(z.object({
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
   address: z.string().max(2000).optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 })), async (req, res, next) => {
   try {
     const userId = req.userId;
@@ -176,8 +178,10 @@ router.post('/books/:bookId/access', validateBody(z.object({
       return next(new NotFoundError(`No pricing found for access type ${accessType}`));
     }
 
-    // Create a CONTENT order (address from body or default)
+    // Create a CONTENT order (address + lat/long from client = delivery location for map)
     const address = (req.body?.address && String(req.body.address).trim()) ? String(req.body.address).trim() : 'Address not provided';
+    const latitude = req.body.latitude != null ? Number(req.body.latitude) : null;
+    const longitude = req.body.longitude != null ? Number(req.body.longitude) : null;
     const order = await prisma.order.create({
       data: {
         userId,
@@ -185,6 +189,8 @@ router.post('/books/:bookId/access', validateBody(z.object({
         status: 'CREATED',
         orderType: 'CONTENT',
         address,
+        latitude,
+        longitude,
         items: {
           create: [
             {
@@ -207,10 +213,12 @@ router.post('/books/:bookId/access', validateBody(z.object({
   }
 });
 
-// Material content order: READ, BUY, PRINT
+// Material content order: READ, BUY, PRINT (latitude/longitude = customer delivery location for map)
 router.post('/materials/:materialId/access', validateBody(z.object({
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
   address: z.string().max(2000).optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 })), async (req, res, next) => {
   try {
     const userId = req.userId;
@@ -238,8 +246,10 @@ router.post('/materials/:materialId/access', validateBody(z.object({
       return next(new NotFoundError(`No pricing found for access type ${accessType}`));
     }
 
-    // Create a CONTENT order (address from body or default)
+    // Create a CONTENT order (address + lat/long from client = delivery location for map)
     const address = (req.body?.address && String(req.body.address).trim()) ? String(req.body.address).trim() : 'Address not provided';
+    const latitude = req.body.latitude != null ? Number(req.body.latitude) : null;
+    const longitude = req.body.longitude != null ? Number(req.body.longitude) : null;
     const order = await prisma.order.create({
       data: {
         userId,
@@ -247,6 +257,8 @@ router.post('/materials/:materialId/access', validateBody(z.object({
         status: 'CREATED',
         orderType: 'CONTENT',
         address,
+        latitude,
+        longitude,
         items: {
           create: [
             {
