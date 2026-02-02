@@ -166,10 +166,14 @@ const getAssignments = async (req, res, next) => {
         user.phone ||
         null;
       const deliveryAddress = order.address || null;
+      const latitude = order.latitude ?? null;
+      const longitude = order.longitude ?? null;
       return {
         ...a,
         customerName,
         deliveryAddress,
+        latitude,
+        longitude,
       };
     });
 

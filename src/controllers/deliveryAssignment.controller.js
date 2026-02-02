@@ -117,11 +117,15 @@ const getDeliveryAssignmentById = async (req, res, next) => {
       user.phone ||
       null;
     const deliveryAddress = order.address || null;
+    const latitude = order.latitude ?? null;
+    const longitude = order.longitude ?? null;
 
     const response = {
       ...assignment,
       customerName,
       deliveryAddress,
+      latitude,
+      longitude,
     };
 
     sendSuccess(res, response, 'Delivery assignment retrieved successfully');
