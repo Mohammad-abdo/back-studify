@@ -74,13 +74,30 @@ const getDeliveryAssignmentById = async (req, res, next) => {
       include: {
         order: {
           include: {
-            user: true,
+            user: {
+              select: {
+                id: true,
+                phone: true,
+                email: true,
+                avatarUrl: true,
+                student: { select: { name: true } },
+                doctor: { select: { name: true } },
+                customer: { select: { contactPerson: true, entityName: true } },
+              },
+            },
             items: true,
           },
         },
         delivery: {
           include: {
-            user: true,
+            user: {
+              select: {
+                id: true,
+                phone: true,
+                email: true,
+                avatarUrl: true,
+              },
+            },
           },
         },
       },
@@ -90,7 +107,24 @@ const getDeliveryAssignmentById = async (req, res, next) => {
       throw new NotFoundError('Delivery assignment not found');
     }
 
-    sendSuccess(res, assignment, 'Delivery assignment retrieved successfully');
+    const order = assignment.order || {};
+    const user = order.user || {};
+    const customerName =
+      user.student?.name ||
+      user.doctor?.name ||
+      user.customer?.contactPerson ||
+      user.customer?.entityName ||
+      user.phone ||
+      null;
+    const deliveryAddress = order.address || null;
+
+    const response = {
+      ...assignment,
+      customerName,
+      deliveryAddress,
+    };
+
+    sendSuccess(res, response, 'Delivery assignment retrieved successfully');
   } catch (error) {
     next(error);
   }

@@ -119,7 +119,7 @@ const createPrintCenter = async (req, res, next) => {
 };
 
 /**
- * Get print center by ID
+ * Get print center by ID (with full detail: assignments, stats)
  */
 const getPrintCenterById = async (req, res, next) => {
   try {
@@ -137,6 +137,27 @@ const getPrintCenterById = async (req, res, next) => {
             isActive: true,
           },
         },
+        printAssignments: {
+          include: {
+            order: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    phone: true,
+                    email: true,
+                    student: { select: { name: true } },
+                    doctor: { select: { name: true } },
+                    customer: { select: { contactPerson: true, entityName: true } },
+                  },
+                },
+                items: true,
+              },
+            },
+          },
+          orderBy: { assignedAt: 'desc' },
+          take: 100,
+        },
       },
     });
 
@@ -144,7 +165,28 @@ const getPrintCenterById = async (req, res, next) => {
       throw new NotFoundError('Print center not found');
     }
 
-    sendSuccess(res, center, 'Print center retrieved successfully');
+    const stats = await prisma.printOrderAssignment.aggregate({
+      where: { printCenterId: id },
+      _count: { id: true },
+    });
+    const byStatus = await prisma.printOrderAssignment.groupBy({
+      by: ['status'],
+      where: { printCenterId: id },
+      _count: { id: true },
+    });
+
+    const response = {
+      ...center,
+      stats: {
+        totalAssignments: stats._count.id,
+        byStatus: byStatus.reduce((acc, row) => {
+          acc[row.status] = row._count.id;
+          return acc;
+        }, {}),
+      },
+    };
+
+    sendSuccess(res, response, 'Print center retrieved successfully');
   } catch (error) {
     next(error);
   }

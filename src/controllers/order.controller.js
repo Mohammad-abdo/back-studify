@@ -285,6 +285,14 @@ const getOrderById = async (req, res, next) => {
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
         items: true,
         assignment: {
           include: {

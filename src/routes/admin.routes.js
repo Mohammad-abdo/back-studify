@@ -53,6 +53,7 @@ router.get('/reviews', validateQuery(paginationSchema.extend({
 // Orders for admin (recent / paginated)
 router.get('/orders', validateQuery(paginationSchema.extend({
   status: z.enum(['CREATED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
+  orderType: z.enum(['PRODUCT', 'CONTENT', 'PRINT']).optional(),
 })), adminController.getRecentOrders);
 
 module.exports = router;

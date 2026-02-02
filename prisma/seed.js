@@ -1188,6 +1188,7 @@ async function main() {
           total: orderTotal,
           status: 'PROCESSING',
           orderType: 'PRODUCT',
+          address: addresses[Math.floor(Math.random() * addresses.length)],
           items: {
             create: cart.items.map((item) => ({
               referenceType: item.referenceType,
@@ -1241,7 +1242,7 @@ async function main() {
               total: readPricing.price,
               status: 'PAID',
               orderType: 'CONTENT',
-              address: 'Online Content Access',
+              address: addresses[Math.floor(Math.random() * addresses.length)],
               items: {
                 create: [
                   {
@@ -1298,6 +1299,7 @@ async function main() {
               total: buyPricing.price,
               status: 'PAID',
               orderType: 'CONTENT',
+              address: addresses[Math.floor(Math.random() * addresses.length)],
               items: {
                 create: [
                   {
@@ -2117,7 +2119,7 @@ async function seedOrdersForUser() {
           isActive: true,
           student: {
             create: {
-              name: '', // Empty name as per login response
+              name: 'عميل تجريبي',
               collegeId: null,
               departmentId: null,
             },
@@ -2153,6 +2155,15 @@ async function seedOrdersForUser() {
     }
   } else {
     console.log(`✅ Found user: ${user.phone} (${user.email})`);
+  }
+
+  // Ensure student has a name for orders display
+  if (user.student && (!user.student.name || user.student.name.trim() === '')) {
+    await prisma.student.update({
+      where: { userId: user.id },
+      data: { name: 'عميل تجريبي' },
+    });
+    user.student = { ...user.student, name: 'عميل تجريبي' };
   }
 
   const actualUserId = user.id;
@@ -2261,6 +2272,7 @@ async function seedOrdersForUser() {
           total: price4 * 1,
           status: 'PROCESSING',
           orderType: 'PRODUCT',
+          address: '78 El-Bahr St, Giza',
           items: {
             create: [
               {
@@ -2317,6 +2329,7 @@ async function seedOrdersForUser() {
           total: readPricing.price,
           status: 'PAID',
           orderType: 'CONTENT',
+          address: '55 Tahrir Square, Downtown, Cairo',
           items: {
             create: [
               {
@@ -2344,6 +2357,7 @@ async function seedOrdersForUser() {
             total: buyPricing.price,
             status: 'CREATED',
             orderType: 'CONTENT',
+            address: '101 Ring Road, New Cairo',
             items: {
               create: [
                 {
@@ -2372,6 +2386,7 @@ async function seedOrdersForUser() {
             total: printPricing.price,
             status: 'PROCESSING',
             orderType: 'CONTENT',
+            address: '22 Shooting Club St, Dokki, Giza',
             items: {
               create: [
                 {
@@ -2402,6 +2417,7 @@ async function seedOrdersForUser() {
           total: readPricing.price,
           status: 'PAID',
           orderType: 'CONTENT',
+          address: '123 University St, Cairo',
           items: {
             create: [
               {
@@ -2423,24 +2439,25 @@ async function seedOrdersForUser() {
       const buyPricing = material2.pricing.find(p => p.accessType === 'BUY');
 
       if (buyPricing) {
-        const order9 = await prisma.order.create({
-          data: {
-            userId: actualUserId,
-            total: buyPricing.price,
-            status: 'DELIVERED',
-            orderType: 'CONTENT',
-            items: {
-              create: [
-                {
-                  referenceType: 'MATERIAL',
-                  referenceId: material2.id,
-                  quantity: 1,
-                  price: buyPricing.price,
-                },
-              ],
-            },
+const order9 = await prisma.order.create({
+        data: {
+          userId: actualUserId,
+          total: buyPricing.price,
+          status: 'DELIVERED',
+          orderType: 'CONTENT',
+          address: '45 El-Nasr Rd, Nasr City, Cairo',
+          items: {
+            create: [
+              {
+                referenceType: 'MATERIAL',
+                referenceId: material2.id,
+                quantity: 1,
+                price: buyPricing.price,
+              },
+            ],
           },
-        });
+        },
+      });
         console.log(`✅ Created CONTENT order (MATERIAL BUY): ${order9.id} - Total: ${order9.total}`);
       }
     }
@@ -2457,6 +2474,7 @@ async function seedOrdersForUser() {
             total: printPricing.price,
             status: 'CREATED',
             orderType: 'CONTENT',
+            address: '88 Abbas El-Akkad St, Heliopolis, Cairo',
             items: {
               create: [
                 {

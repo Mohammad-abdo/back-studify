@@ -137,6 +137,11 @@ const getAssignments = async (req, res, next) => {
                 select: {
                   id: true,
                   phone: true,
+                  email: true,
+                  avatarUrl: true,
+                  student: { select: { name: true } },
+                  doctor: { select: { name: true } },
+                  customer: { select: { contactPerson: true, entityName: true } },
                 },
               },
               items: true,
@@ -150,7 +155,25 @@ const getAssignments = async (req, res, next) => {
 
     const pagination = buildPagination(page, limit, total);
 
-    sendPaginated(res, assignments, pagination, 'Assignments retrieved successfully');
+    const assignmentsWithCustomer = assignments.map((a) => {
+      const order = a.order || {};
+      const user = order.user || {};
+      const customerName =
+        user.student?.name ||
+        user.doctor?.name ||
+        user.customer?.contactPerson ||
+        user.customer?.entityName ||
+        user.phone ||
+        null;
+      const deliveryAddress = order.address || null;
+      return {
+        ...a,
+        customerName,
+        deliveryAddress,
+      };
+    });
+
+    sendPaginated(res, assignmentsWithCustomer, pagination, 'Assignments retrieved successfully');
   } catch (error) {
     next(error);
   }

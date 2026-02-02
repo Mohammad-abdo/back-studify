@@ -772,10 +772,11 @@ const getReviews = async (req, res, next) => {
 const getRecentOrders = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { status } = req.query;
+    const { status, orderType } = req.query;
 
     const where = {
       ...(status && { status }),
+      ...(orderType && { orderType }),
     };
 
     const [orders, total] = await Promise.all([
@@ -789,6 +790,9 @@ const getRecentOrders = async (req, res, next) => {
               id: true,
               phone: true,
               email: true,
+              student: { select: { name: true } },
+              doctor: { select: { name: true } },
+              customer: { select: { contactPerson: true, entityName: true } },
             },
           },
           items: true,
@@ -799,7 +803,25 @@ const getRecentOrders = async (req, res, next) => {
     ]);
 
     const pagination = buildPagination(page, limit, total);
-    sendPaginated(res, orders, pagination, 'Orders retrieved successfully');
+
+    const ordersWithCustomer = orders.map((order) => {
+      const user = order.user || {};
+      const customerName =
+        user.student?.name ||
+        user.doctor?.name ||
+        user.customer?.contactPerson ||
+        user.customer?.entityName ||
+        user.phone ||
+        null;
+      const deliveryAddress = order.address || null;
+      return {
+        ...order,
+        customerName,
+        deliveryAddress,
+      };
+    });
+
+    sendPaginated(res, ordersWithCustomer, pagination, 'Orders retrieved successfully');
   } catch (error) {
     next(error);
   }
