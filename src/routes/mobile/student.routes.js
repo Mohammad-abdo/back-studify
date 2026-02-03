@@ -325,13 +325,13 @@ router.get('/print-options/:id/quote', printOptionController.getPrintQuote);
 // Create print order from print option
 router.post('/print-options/:id/order', printOptionController.createPrintOrder);
 
-// Print Center - Upload file and create print option
+// Print Center - Upload file and create print option (form-data sends strings; coerce to number/boolean)
 router.post('/print-center/upload', singleUpload('file'), validateBody(z.object({
   colorType: z.enum(['COLOR', 'BLACK_WHITE']),
-  copies: z.number().int().positive(),
+  copies: z.coerce.number().int().positive(),
   paperType: z.enum(['A4', 'A3', 'LETTER']),
-  doubleSide: z.boolean(),
-  totalPages: z.number().int().positive().optional(),
+  doubleSide: z.coerce.boolean(),
+  totalPages: z.coerce.number().int().positive().optional(),
 })), printOptionController.createPrintOptionWithUpload);
 
 // Print Center - Create print option for book
