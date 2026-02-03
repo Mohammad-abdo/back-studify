@@ -161,8 +161,12 @@ const createPrintOption = async (req, res, next) => {
   }
 };
 
+/** Default price per sheet for uploaded-file print (when no book/material pricing). */
+const DEFAULT_UPLOAD_PRINT_PRICE_PER_SHEET = Number(process.env.PRINT_UPLOAD_PRICE_PER_SHEET) || 0.5;
+
 /**
  * Create print option with file upload
+ * Returns price (calculated when totalPages provided) and paymentStatus for checkout.
  */
 const createPrintOptionWithUpload = async (req, res, next) => {
   try {
@@ -188,10 +192,25 @@ const createPrintOptionWithUpload = async (req, res, next) => {
       },
     });
 
+    // Calculate price for checkout when totalPages is provided (uploaded file)
+    let price = null;
+    const pagesNum = totalPages != null ? Number(totalPages) : null;
+    if (pagesNum != null && pagesNum > 0) {
+      const pagesPerSheet = printOption.doubleSide ? 2 : 1;
+      const sheetsPerCopy = Math.ceil(pagesNum / pagesPerSheet);
+      const totalSheets = sheetsPerCopy * printOption.copies;
+      price = parseFloat((totalSheets * DEFAULT_UPLOAD_PRINT_PRICE_PER_SHEET).toFixed(2));
+    }
+
+    // Payment is done later at checkout; option is created unpaid
+    const paymentStatus = 'PENDING';
+
     sendSuccess(res, {
       ...printOption,
       uploadedFileUrl,
       totalPages: totalPages || null,
+      price,
+      paymentStatus,
     }, 'Print option created successfully with uploaded file', 201);
   } catch (error) {
     next(error);
