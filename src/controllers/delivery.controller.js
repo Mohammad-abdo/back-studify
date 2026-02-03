@@ -7,6 +7,7 @@ const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, AuthorizationError } = require('../utils/errors');
 const { DELIVERY_STATUS, ORDER_STATUS } = require('../utils/constants');
+const { calculateDistanceKm } = require('../utils/helpers');
 
 /**
  * Get delivery profile
@@ -381,6 +382,233 @@ const markDelivered = async (req, res, next) => {
   }
 };
 
+/**
+ * Get active order – current order the delivery is working on (PROCESSING or SHIPPED)
+ */
+const getActiveOrder = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+
+    const delivery = await prisma.delivery.findUnique({
+      where: { userId },
+    });
+
+    if (!delivery) {
+      throw new NotFoundError('Delivery profile not found');
+    }
+
+    const assignment = await prisma.deliveryAssignment.findFirst({
+      where: {
+        deliveryId: delivery.id,
+        status: { in: [ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED] },
+      },
+      include: {
+        order: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                phone: true,
+                email: true,
+                avatarUrl: true,
+                student: { select: { name: true } },
+                doctor: { select: { name: true } },
+                customer: { select: { contactPerson: true, entityName: true } },
+              },
+            },
+            items: true,
+          },
+        },
+      },
+    });
+
+    if (!assignment) {
+      throw new NotFoundError('No active order');
+    }
+
+    const order = assignment.order || {};
+    const user = order.user || {};
+    const customerName =
+      user.student?.name ||
+      user.doctor?.name ||
+      user.customer?.contactPerson ||
+      user.customer?.entityName ||
+      user.phone ||
+      null;
+
+    const data = {
+      ...assignment,
+      customerName,
+      deliveryAddress: order.address || null,
+      latitude: order.latitude ?? null,
+      longitude: order.longitude ?? null,
+    };
+
+    sendSuccess(res, data, 'Active order retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Polylines – destination, distance, current delivery lat/lng (with computed distance and ETA)
+ * Uses latest delivery location + active order destination; returns computed distance (km) and estimated minutes.
+ */
+const getPolylines = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+
+    const delivery = await prisma.delivery.findUnique({
+      where: { userId },
+    });
+
+    if (!delivery) {
+      throw new NotFoundError('Delivery profile not found');
+    }
+
+    const [latestLocation, activeAssignment] = await Promise.all([
+      prisma.deliveryLocation.findFirst({
+        where: { deliveryId: delivery.id },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.deliveryAssignment.findFirst({
+        where: {
+          deliveryId: delivery.id,
+          status: { in: [ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED] },
+        },
+        include: {
+          order: {
+            select: {
+              id: true,
+              address: true,
+              latitude: true,
+              longitude: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    if (!activeAssignment?.order) {
+      throw new NotFoundError('No active order');
+    }
+
+    const destLat = activeAssignment.order.latitude;
+    const destLng = activeAssignment.order.longitude;
+    const currentLat = latestLocation?.latitude ?? null;
+    const currentLng = latestLocation?.longitude ?? null;
+
+    let distanceKm = null;
+    let estimatedMinutes = null;
+
+    if (
+      destLat != null &&
+      destLng != null &&
+      currentLat != null &&
+      currentLng != null
+    ) {
+      distanceKm = Math.round(calculateDistanceKm(currentLat, currentLng, destLat, destLng) * 1000) / 1000;
+      // ~3 min per km in city (adjust as needed)
+      estimatedMinutes = Math.max(1, Math.round(distanceKm * 3));
+    }
+
+    const data = {
+      destination: {
+        latitude: destLat,
+        longitude: destLng,
+        address: activeAssignment.order.address || null,
+      },
+      currentLocation: {
+        latitude: currentLat,
+        longitude: currentLng,
+      },
+      distanceKm,
+      estimatedMinutes,
+    };
+
+    sendSuccess(res, data, 'Polylines retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Shipping history – orders the delivery has delivered, cancelled, or not yet delivered (paginated)
+ */
+const getShippingHistory = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+    const { status } = req.query;
+
+    const delivery = await prisma.delivery.findUnique({
+      where: { userId },
+    });
+
+    if (!delivery) {
+      throw new NotFoundError('Delivery profile not found');
+    }
+
+    const where = {
+      deliveryId: delivery.id,
+      ...(status && { status }),
+    };
+
+    const [assignments, total] = await Promise.all([
+      prisma.deliveryAssignment.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          order: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  phone: true,
+                  email: true,
+                  avatarUrl: true,
+                  student: { select: { name: true } },
+                  doctor: { select: { name: true } },
+                  customer: { select: { contactPerson: true, entityName: true } },
+                },
+              },
+              items: true,
+            },
+          },
+        },
+        orderBy: { assignedAt: 'desc' },
+      }),
+      prisma.deliveryAssignment.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+
+    const list = assignments.map((a) => {
+      const order = a.order || {};
+      const user = order.user || {};
+      const customerName =
+        user.student?.name ||
+        user.doctor?.name ||
+        user.customer?.contactPerson ||
+        user.customer?.entityName ||
+        user.phone ||
+        null;
+      return {
+        ...a,
+        customerName,
+        deliveryAddress: order.address || null,
+        latitude: order.latitude ?? null,
+        longitude: order.longitude ?? null,
+      };
+    });
+
+    sendPaginated(res, list, pagination, 'Shipping history retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getProfile,
   updateProfile,
@@ -390,5 +618,8 @@ module.exports = {
   getWallet,
   markPickedUp,
   markDelivered,
+  getActiveOrder,
+  getPolylines,
+  getShippingHistory,
 };
 

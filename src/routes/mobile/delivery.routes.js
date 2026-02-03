@@ -53,6 +53,17 @@ router.get('/assignments', validateQuery(paginationSchema.extend({
 
 router.get('/assignments/:id', deliveryAssignmentController.getDeliveryAssignmentById);
 
+/** GET /active-order – current order the delivery is working on (PROCESSING or SHIPPED) */
+router.get('/active-order', deliveryController.getActiveOrder);
+
+/** GET /polylines – destination, distance, current delivery lat/lng (computed distance km + estimated minutes) */
+router.get('/polylines', deliveryController.getPolylines);
+
+/** GET /shipping-history – orders delivered, cancelled, or not yet delivered (paginated) */
+router.get('/shipping-history', validateQuery(paginationSchema.extend({
+  status: z.enum(['CREATED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
+})), deliveryController.getShippingHistory);
+
 router.post('/orders/:orderId/pickup', deliveryController.markPickedUp);
 router.post('/orders/:orderId/deliver', deliveryController.markDelivered);
 

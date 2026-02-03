@@ -270,6 +270,76 @@
           }
         },
         {
+          "name": "Get Active Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/delivery/active-order",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "delivery", "active-order"]
+            }
+          },
+          "description": "Current order the delivery is working on (status PROCESSING or SHIPPED). Returns assignment with order, customer, address, latitude, longitude."
+        },
+        {
+          "name": "Get Polylines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/delivery/polylines",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "delivery", "polylines"]
+            }
+          },
+          "description": "Returns destination (lat, lng, address), current delivery location (latitude, longitude), computed distanceKm (Haversine), and estimatedMinutes. Uses latest delivery location + active order destination."
+        },
+        {
+          "name": "Get Shipping History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/mobile/delivery/shipping-history?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["mobile", "delivery", "shipping-history"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "disabled": true,
+                  "description": "CREATED, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED"
+                }
+              ]
+            }
+          },
+          "description": "Orders the delivery has delivered, cancelled, or not yet delivered. Paginated list with customerName, deliveryAddress, latitude, longitude per item."
+        },
+        {
           "name": "Get Assignment by ID",
           "request": {
             "method": "GET",
