@@ -15,6 +15,22 @@ const { z } = require('zod');
 // All routes require authentication
 router.use(authenticate);
 
+// —— Static paths first (before /:id) so /upload is not matched as id ——
+// POST /api/print-options/upload — form-data: file + colorType, copies, paperType, doubleSide, totalPages (optional)
+router.post(
+  '/upload',
+  requireUserType('DOCTOR', 'ADMIN'),
+  singleUpload('file'),
+  validateBody(z.object({
+    colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+    copies: z.coerce.number().int().positive(),
+    paperType: z.enum(['A4', 'A3', 'LETTER']),
+    doubleSide: z.coerce.boolean(),
+    totalPages: z.coerce.number().int().positive().optional(),
+  })),
+  printOptionController.createPrintOptionWithUpload
+);
+
 router.get('/', validateQuery(paginationSchema.extend({
   bookId: uuidSchema.optional(),
   materialId: uuidSchema.optional(),
@@ -49,21 +65,6 @@ const updatePrintOptionSchema = z.object({
   paperType: z.enum(['A4', 'A3', 'LETTER']).optional(),
   doubleSide: z.boolean().optional(),
 });
-
-// Create print option with file upload support (DOCTOR or ADMIN)
-router.post(
-  '/upload',
-  requireUserType('DOCTOR', 'ADMIN'),
-  singleUpload('file'),
-  validateBody(z.object({
-    colorType: z.enum(['COLOR', 'BLACK_WHITE']),
-    copies: z.number().int().positive(),
-    paperType: z.enum(['A4', 'A3', 'LETTER']),
-    doubleSide: z.boolean(),
-    totalPages: z.number().int().positive().optional(), // Optional for uploaded files
-  })),
-  printOptionController.createPrintOptionWithUpload
-);
 
 router.post(
   '/',
