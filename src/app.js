@@ -99,6 +99,12 @@ const customerRoutes = require('./routes/customer.routes');
 const bookPricingRoutes = require('./routes/bookPricing.routes');
 const printOptionRoutes = require('./routes/printOption.routes');
 const productPricingRoutes = require('./routes/productPricing.routes');
+const authenticate = require('./middleware/auth.middleware');
+const { requireUserType } = require('./middleware/role.middleware');
+const { validateBody } = require('./middleware/validation.middleware');
+const { singleUpload } = require('./services/fileUpload.service');
+const printOptionController = require('./controllers/printOption.controller');
+const { z } = require('zod');
 const printCenterRoutes = require('./routes/printCenter.routes');
 const printOrderAssignmentRoutes = require('./routes/printOrderAssignment.routes');
 const financialTransactionRoutes = require('./routes/financialTransaction.routes');
@@ -138,6 +144,21 @@ app.use('/api/students', studentRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/book-pricing', bookPricingRoutes);
+// Explicit route so POST /api/print-options/upload is always reachable (avoids 404)
+app.post(
+  '/api/print-options/upload',
+  authenticate,
+  requireUserType('DOCTOR', 'ADMIN'),
+  singleUpload('file'),
+  validateBody(z.object({
+    colorType: z.enum(['COLOR', 'BLACK_WHITE']),
+    copies: z.coerce.number().int().positive(),
+    paperType: z.enum(['A4', 'A3', 'LETTER']),
+    doubleSide: z.coerce.boolean(),
+    totalPages: z.coerce.number().int().positive().optional(),
+  })),
+  printOptionController.createPrintOptionWithUpload
+);
 app.use('/api/print-options', printOptionRoutes);
 app.use('/api/product-pricing', productPricingRoutes);
 app.use('/api/print-centers', printCenterRoutes);

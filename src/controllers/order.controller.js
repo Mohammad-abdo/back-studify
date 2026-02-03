@@ -496,6 +496,67 @@ const updateOrderStatus = async (req, res, next) => {
 };
 
 /**
+ * Confirm payment for an order (CASH or CREDIT).
+ * Updates status to PAID and records paymentMethod. Later: PAYMENT_LINK for web/gateway.
+ */
+const confirmPayment = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const { paymentMethod } = req.body;
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { id },
+    });
+
+    if (!existingOrder) {
+      throw new NotFoundError('Order not found');
+    }
+
+    if (existingOrder.userId !== userId && req.userType !== 'ADMIN') {
+      throw new NotFoundError('Order not found');
+    }
+
+    if (existingOrder.status !== ORDER_STATUS.CREATED) {
+      throw new ValidationError('Only orders with status CREATED can be confirmed for payment');
+    }
+
+    const order = await prisma.order.update({
+      where: { id },
+      data: {
+        status: ORDER_STATUS.PAID,
+        paymentMethod: paymentMethod || null,
+        paidAt: new Date(),
+      },
+      include: {
+        items: true,
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('order_updated', order);
+      }
+      await assignOrderToNearestPrintCenter(id, req.app.get('io') || null);
+    } catch (assignErr) {
+      console.error('Print assignment failed:', assignErr.message);
+    }
+
+    sendSuccess(res, order, 'Payment confirmed successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Cancel order
  */
 const cancelOrder = async (req, res, next) => {
@@ -542,5 +603,6 @@ module.exports = {
   getOrderById,
   createOrder,
   updateOrderStatus,
+  confirmPayment,
   cancelOrder,
 };

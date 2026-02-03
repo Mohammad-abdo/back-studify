@@ -335,6 +335,10 @@ router.get('/orders', validateQuery(paginationSchema.extend({
 router.get('/orders/active', validateQuery(paginationSchema), orderController.getActiveOrders);
 router.get('/orders/:id', orderController.getOrderById);
 router.post('/orders', validateBody(createOrderSchema), orderController.createOrder);
+// Confirm payment: CASH | CREDIT (لاحقاً PAYMENT_LINK للويب/بوابات الدفع)
+router.post('/orders/:id/confirm-payment', validateBody(z.object({
+  paymentMethod: z.enum(['CASH', 'CREDIT', 'PAYMENT_LINK']),
+})), orderController.confirmPayment);
 router.post('/orders/:id/cancel', orderController.cancelOrder);
 
 // ============================================

@@ -44,6 +44,13 @@ enum OrderStatus {
   CANCELLED
 }
 
+// كيفيّة الدفع: نقداً / بطاقة — لاحقاً: رابط دفع (بوابات دفع)
+enum PaymentMethod {
+  CASH
+  CREDIT
+  PAYMENT_LINK  // للويب عند ربط بوابات الدفع لاحقاً
+}
+
 // Distinguish between different order domains
 enum OrderType {
   PRODUCT  // Cart / physical products
@@ -648,15 +655,17 @@ model CartItem {
 // ============================================
 
 model Order {
-  id        String      @id @default(uuid())
-  userId    String
-  total     Float
-  status    OrderStatus @default(CREATED)
-  orderType OrderType   @default(PRODUCT)
-  address   String?     @db.Text
-  latitude  Float?
-  longitude Float?
-  createdAt DateTime    @default(now())
+  id             String         @id @default(uuid())
+  userId         String
+  total          Float
+  status         OrderStatus    @default(CREATED)
+  orderType      OrderType      @default(PRODUCT)
+  paymentMethod  PaymentMethod? // CASH | CREDIT | PAYMENT_LINK (عند التأكيد)
+  address        String?        @db.Text
+  latitude       Float?
+  longitude      Float?
+  paidAt         DateTime?     // وقت تأكيد الدفع
+  createdAt      DateTime      @default(now())
 
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           OrderItem[]
