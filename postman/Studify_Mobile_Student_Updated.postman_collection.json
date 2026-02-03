@@ -1248,13 +1248,12 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-center/upload",
+              "raw": "{{base_url}}/mobile/print-center/upload",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "mobile",
-                "student",
                 "print-center",
                 "upload"
               ]
@@ -1286,13 +1285,12 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-center/book/:bookId",
+              "raw": "{{base_url}}/mobile/print-center/book/:bookId",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "mobile",
-                "student",
                 "print-center",
                 "book",
                 ":bookId"
@@ -1331,13 +1329,12 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-center/material/:materialId",
+              "raw": "{{base_url}}/mobile/print-center/material/:materialId",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "mobile",
-                "student",
                 "print-center",
                 "material",
                 ":materialId"

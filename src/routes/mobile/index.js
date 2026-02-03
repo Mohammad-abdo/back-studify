@@ -10,11 +10,13 @@ const studentRoutes = require('./student.routes');
 const doctorRoutes = require('./doctor.routes');
 const customerRoutes = require('./customer.routes');
 const deliveryRoutes = require('./delivery.routes');
+const printCenterRoutes = require('./printCenter.routes');
 const sliderController = require('../../controllers/slider.controller');
 
 // Public routes (no authentication required)
 router.get('/sliders', sliderController.getSliders);
 
+router.use('/print-center', printCenterRoutes);
 router.use('/student', studentRoutes);
 router.use('/doctor', doctorRoutes);
 router.use('/customer', customerRoutes);

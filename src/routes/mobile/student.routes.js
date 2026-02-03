@@ -325,45 +325,6 @@ router.get('/print-options/:id/quote', printOptionController.getPrintQuote);
 // Create print order from print option
 router.post('/print-options/:id/order', printOptionController.createPrintOrder);
 
-// Print Center - Upload file and create print option (form-data sends strings; coerce to number/boolean)
-router.post('/print-center/upload', singleUpload('file'), validateBody(z.object({
-  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
-  copies: z.coerce.number().int().positive(),
-  paperType: z.enum(['A4', 'A3', 'LETTER']),
-  doubleSide: z.coerce.boolean(),
-  totalPages: z.coerce.number().int().positive().optional(),
-})), printOptionController.createPrintOptionWithUpload);
-
-// Print Center - Create print option for book
-router.post('/print-center/book/:bookId', validateBody(z.object({
-  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
-  copies: z.number().int().positive(),
-  paperType: z.enum(['A4', 'A3', 'LETTER']),
-  doubleSide: z.boolean(),
-})), async (req, res, next) => {
-  try {
-    req.body.bookId = req.params.bookId;
-    return printOptionController.createPrintOption(req, res, next);
-  } catch (error) {
-    next(error);
-  }
-});
-
-// Print Center - Create print option for material
-router.post('/print-center/material/:materialId', validateBody(z.object({
-  colorType: z.enum(['COLOR', 'BLACK_WHITE']),
-  copies: z.number().int().positive(),
-  paperType: z.enum(['A4', 'A3', 'LETTER']),
-  doubleSide: z.boolean(),
-})), async (req, res, next) => {
-  try {
-    req.body.materialId = req.params.materialId;
-    return printOptionController.createPrintOption(req, res, next);
-  } catch (error) {
-    next(error);
-  }
-});
-
 // ============================================
 // ORDERS
 // ============================================
