@@ -492,6 +492,7 @@ const postPolylines = async (req, res, next) => {
     const destLng = activeAssignment.order.longitude;
 
     let distanceKm = null;
+    let distanceMeters = null;
     let estimatedMinutes = null;
 
     if (
@@ -501,21 +502,32 @@ const postPolylines = async (req, res, next) => {
       currentLng != null
     ) {
       distanceKm = Math.round(calculateDistanceKm(currentLat, currentLng, destLat, destLng) * 1000) / 1000;
+      distanceMeters = Math.round(distanceKm * 1000);
       estimatedMinutes = Math.max(1, Math.round(distanceKm * 3));
     }
 
+    // استجابة واضحة: إحداثيات وجهة الطلب + موقع الدليفري + المسافة والوقت المحسوبان
     const data = {
-      destination: {
+      // مكان وصول الطلب (اللوكيشن اللي الدليفري هيوصل له — order destination)
+      orderDestination: {
+        lat: destLat,
+        lng: destLng,
         latitude: destLat,
         longitude: destLng,
         address: activeAssignment.order.address || null,
       },
+      // موقع الدليفري الحالي (اللي أرسله في الـ body)
       currentLocation: {
+        lat: currentLat,
+        lng: currentLng,
         latitude: currentLat,
         longitude: currentLng,
       },
+      // نتيجة العملية الحسابية: المسافة والوقت
       distanceKm,
+      distanceMeters,
       estimatedMinutes,
+      estimatedTimeMinutes: estimatedMinutes,
     };
 
     sendSuccess(res, data, 'Polylines computed successfully');

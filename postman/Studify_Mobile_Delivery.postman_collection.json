@@ -311,7 +311,7 @@
               "path": ["mobile", "delivery", "polylines"]
             }
           },
-          "description": "الدليفري يرسل موقعه الحالي (latitude, longitude) في الـ body. الباكند يحسب المسافة بينه وبين وجهة الطلب النشط ويرجع: destination (lat, lng, address), currentLocation, distanceKm, estimatedMinutes."
+          "description": "Body: latitude, longitude (موقع الدليفري الحالي). Response: orderDestination (lat, lng, latitude, longitude, address — مكان وصول الطلب)، currentLocation (موقع الدليفري)، distanceKm، distanceMeters، estimatedMinutes / estimatedTimeMinutes (نتيجة العملية الحسابية للمسافة والوقت)."
         },
         {
           "name": "Get Shipping History",
