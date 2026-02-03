@@ -451,12 +451,13 @@ const getActiveOrder = async (req, res, next) => {
 };
 
 /**
- * Polylines – destination, distance, current delivery lat/lng (with computed distance and ETA)
- * Uses latest delivery location + active order destination; returns computed distance (km) and estimated minutes.
+ * Polylines – الدليفري يرسل موقعه الحالي (latitude, longitude) في الـ body،
+ * الباكند يحسب المسافة بينه وبين وجهة الطلب النشط ويرجع destination + distance + currentLocation.
  */
-const getPolylines = async (req, res, next) => {
+const postPolylines = async (req, res, next) => {
   try {
     const userId = req.userId;
+    const { latitude: currentLat, longitude: currentLng } = req.body;
 
     const delivery = await prisma.delivery.findUnique({
       where: { userId },
@@ -466,28 +467,22 @@ const getPolylines = async (req, res, next) => {
       throw new NotFoundError('Delivery profile not found');
     }
 
-    const [latestLocation, activeAssignment] = await Promise.all([
-      prisma.deliveryLocation.findFirst({
-        where: { deliveryId: delivery.id },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.deliveryAssignment.findFirst({
-        where: {
-          deliveryId: delivery.id,
-          status: { in: [ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED] },
-        },
-        include: {
-          order: {
-            select: {
-              id: true,
-              address: true,
-              latitude: true,
-              longitude: true,
-            },
+    const activeAssignment = await prisma.deliveryAssignment.findFirst({
+      where: {
+        deliveryId: delivery.id,
+        status: { in: [ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED] },
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            address: true,
+            latitude: true,
+            longitude: true,
           },
         },
-      }),
-    ]);
+      },
+    });
 
     if (!activeAssignment?.order) {
       throw new NotFoundError('No active order');
@@ -495,8 +490,6 @@ const getPolylines = async (req, res, next) => {
 
     const destLat = activeAssignment.order.latitude;
     const destLng = activeAssignment.order.longitude;
-    const currentLat = latestLocation?.latitude ?? null;
-    const currentLng = latestLocation?.longitude ?? null;
 
     let distanceKm = null;
     let estimatedMinutes = null;
@@ -508,7 +501,6 @@ const getPolylines = async (req, res, next) => {
       currentLng != null
     ) {
       distanceKm = Math.round(calculateDistanceKm(currentLat, currentLng, destLat, destLng) * 1000) / 1000;
-      // ~3 min per km in city (adjust as needed)
       estimatedMinutes = Math.max(1, Math.round(distanceKm * 3));
     }
 
@@ -526,7 +518,7 @@ const getPolylines = async (req, res, next) => {
       estimatedMinutes,
     };
 
-    sendSuccess(res, data, 'Polylines retrieved successfully');
+    sendSuccess(res, data, 'Polylines computed successfully');
   } catch (error) {
     next(error);
   }
@@ -619,7 +611,7 @@ module.exports = {
   markPickedUp,
   markDelivered,
   getActiveOrder,
-  getPolylines,
+  postPolylines,
   getShippingHistory,
 };
 

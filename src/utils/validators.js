@@ -26,6 +26,7 @@ const paginationSchema = z.object({
 const loginSchema = z.object({
   phone: phoneSchema,
   password: z.string().min(1),
+  clientType: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'PRINT_CENTER', 'ADMIN']).optional(),
 });
 
 const registerSchema = z.object({

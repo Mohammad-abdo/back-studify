@@ -56,8 +56,11 @@ router.get('/assignments/:id', deliveryAssignmentController.getDeliveryAssignmen
 /** GET /active-order – current order the delivery is working on (PROCESSING or SHIPPED) */
 router.get('/active-order', deliveryController.getActiveOrder);
 
-/** GET /polylines – destination, distance, current delivery lat/lng (computed distance km + estimated minutes) */
-router.get('/polylines', deliveryController.getPolylines);
+/** POST /polylines – الدليفري يرسل موقعه (latitude, longitude) في الـ body، الباكند يحسب المسافة للطلب النشط ويرجع destination + distanceKm + estimatedMinutes */
+router.post('/polylines', validateBody(z.object({
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+})), deliveryController.postPolylines);
 
 /** GET /shipping-history – orders delivered, cancelled, or not yet delivered (paginated) */
 router.get('/shipping-history', validateQuery(paginationSchema.extend({

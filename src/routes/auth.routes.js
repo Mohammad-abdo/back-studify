@@ -63,6 +63,7 @@ router.post('/register', authLimiter, validateBody(registerSchema), authControll
  *   post:
  *     summary: Login to obtain access token
  *     tags: [Auth]
+ *     description: For mobile apps send clientType (STUDENT, DOCTOR, DELIVERY, CUSTOMER, PRINT_CENTER, ADMIN). Only users of that type get a token; others get 403. Omit clientType for admin panel.
  *     requestBody:
  *       required: true
  *       content:
@@ -73,6 +74,7 @@ router.post('/register', authLimiter, validateBody(registerSchema), authControll
  *             properties:
  *               phone: { type: string, example: "+201234567890" }
  *               password: { type: string, example: "Password123!" }
+ *               clientType: { type: string, enum: [STUDENT, DOCTOR, DELIVERY, CUSTOMER, PRINT_CENTER, ADMIN], description: "Required for mobile: only this user type gets token" }
  *     responses:
  *       200:
  *         description: Login successful
@@ -87,6 +89,8 @@ router.post('/register', authLimiter, validateBody(registerSchema), authControll
  *                   properties:
  *                     token: { type: string, example: "eyJhbG..." }
  *                     user: { $ref: '#/components/schemas/User' }
+ *       403:
+ *         description: User type does not match clientType (e.g. student credentials on delivery app)
  */
 router.post('/login', authLimiter, validateBody(loginSchema), authController.login);
 

@@ -30,9 +30,9 @@ const register = async (req, res, next) => {
  */
 const login = async (req, res, next) => {
   try {
-    const { phone, password } = req.body;
+    const { phone, password, clientType } = req.body;
 
-    const result = await authService.login(phone, password);
+    const result = await authService.login(phone, password, clientType);
 
     sendSuccess(res, result, 'Login successful');
   } catch (error) {

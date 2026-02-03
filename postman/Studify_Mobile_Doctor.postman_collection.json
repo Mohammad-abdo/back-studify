@@ -43,7 +43,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\"\n}"
+              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"clientType\": \"DOCTOR\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",

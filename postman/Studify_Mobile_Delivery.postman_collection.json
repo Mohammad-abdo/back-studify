@@ -43,7 +43,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\"\n}"
+              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"clientType\": \"DELIVERY\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -288,22 +288,30 @@
           "description": "Current order the delivery is working on (status PROCESSING or SHIPPED). Returns assignment with order, customer, address, latitude, longitude."
         },
         {
-          "name": "Get Polylines",
+          "name": "Post Polylines",
           "request": {
-            "method": "GET",
+            "method": "POST",
             "header": [
               {
                 "key": "Authorization",
                 "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
             ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357\n}"
+            },
             "url": {
               "raw": "{{base_url}}/mobile/delivery/polylines",
               "host": ["{{base_url}}"],
               "path": ["mobile", "delivery", "polylines"]
             }
           },
-          "description": "Returns destination (lat, lng, address), current delivery location (latitude, longitude), computed distanceKm (Haversine), and estimatedMinutes. Uses latest delivery location + active order destination."
+          "description": "الدليفري يرسل موقعه الحالي (latitude, longitude) في الـ body. الباكند يحسب المسافة بينه وبين وجهة الطلب النشط ويرجع: destination (lat, lng, address), currentLocation, distanceKm, estimatedMinutes."
         },
         {
           "name": "Get Shipping History",

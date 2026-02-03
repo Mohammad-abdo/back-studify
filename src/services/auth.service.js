@@ -8,23 +8,27 @@ const { hashPassword, comparePassword, generateOTP, formatPhoneNumber } = requir
 const { generateToken, generateRefreshToken, generateTokenPayload } = require('../utils/jwt');
 const { sendOTPSMS } = require('./sms.service');
 const { sendOTPEmail } = require('./email.service');
-const { ConflictError, NotFoundError, InvalidCredentialsError, OTPExpiredError, OTPInvalidError } = require('../utils/errors');
+const { ConflictError, NotFoundError, InvalidCredentialsError, OTPExpiredError, OTPInvalidError, AuthorizationError } = require('../utils/errors');
 const { APPROVAL_STATUS } = require('../utils/constants');
 const config = require('../config/env');
 
 /**
  * Register new user
  */
+/**
+ * Register: phone is unique globally (one phone = one user = one type). Same phone cannot be used for another type.
+ */
 const register = async (phone, password, type, email = null, name = null, collegeId = null, departmentId = null) => {
   const formattedPhone = formatPhoneNumber(phone);
 
-  // Check if user already exists
   const existingUser = await prisma.user.findUnique({
     where: { phone: formattedPhone },
   });
 
   if (existingUser) {
-    throw new ConflictError('Phone number already registered');
+    throw new ConflictError(
+      'This phone number is already registered. Use the correct app to sign in (student, doctor, delivery, etc.). Phone is unique per account.'
+    );
   }
 
   // Check email if provided
@@ -143,9 +147,12 @@ const register = async (phone, password, type, email = null, name = null, colleg
 };
 
 /**
- * Login user
+ * Login user. Phone is unique: one phone + password = one user = one type. clientType ensures the app matches that type.
+ * @param {string} phone - Unique per account (لا يتكرر)
+ * @param {string} password
+ * @param {string} [clientType] - If provided, only users of this type get a token (phone + password linked to type).
  */
-const login = async (phone, password) => {
+const login = async (phone, password, clientType = null) => {
   const formattedPhone = formatPhoneNumber(phone);
 
   const user = await prisma.user.findUnique({
@@ -194,6 +201,13 @@ const login = async (phone, password) => {
 
   if (!isPasswordValid) {
     throw new InvalidCredentialsError('Invalid phone number or password');
+  }
+
+  // حماية: رقم الهاتف والباسورد مرتبطان بنوع المستخدم — phone لا يتكرر (واحد = يوزر واحد = نوع واحد)
+  if (clientType && user.type !== clientType) {
+    throw new AuthorizationError(
+      `This phone and password are registered as ${user.type}. Use the ${user.type} app. Phone and account type are linked.`
+    );
   }
 
   // Generate tokens
