@@ -22,7 +22,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"type\": \"DELIVERY\",\n  \"email\": \"delivery@example.com\",\n  \"name\": \"Delivery Name\"\n}"
+              "raw": "{\n  \"phone\": \"+203333333331\",\n  \"password\": \"Password123!\",\n  \"type\": \"DELIVERY\",\n  \"email\": \"delivery@example.com\",\n  \"name\": \"Delivery Name\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
@@ -43,7 +43,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\",\n  \"password\": \"Password123!\",\n  \"clientType\": \"DELIVERY\"\n}"
+              "raw": "{\n  \"phone\": \"+203333333331\",\n  \"password\": \"Password123!\",\n  \"clientType\": \"DELIVERY\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
@@ -123,7 +123,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"phone\": \"+1234567890\"\n}"
+              "raw": "{\n  \"phone\": \"+203333333331\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/auth/forgot-password",
