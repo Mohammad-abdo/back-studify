@@ -1376,62 +1376,89 @@ async function main() {
     });
 
     if (ordersToAssign.length > 0) {
-      // Assign first order to first delivery (PROCESSING -> picked up, not delivered yet)
-      // Use upsert to avoid unique constraint errors
+      // أول دليفري: طلبين تم توصيلهما (DELIVERED) — لاستخدام shipping-history
       const assignment1 = await prisma.deliveryAssignment.upsert({
         where: { orderId: ordersToAssign[0].id },
         update: {
-          status: 'PROCESSING',
-          pickedUpAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
+          status: 'DELIVERED',
+          pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          deliveredAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
         },
         create: {
           orderId: ordersToAssign[0].id,
           deliveryId: createdDeliveries[0].delivery.id,
-          status: 'PROCESSING',
-          assignedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          pickedUpAt: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+          status: 'DELIVERED',
+          assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+          pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          deliveredAt: new Date(Date.now() - 1 * 60 * 60 * 1000),
         },
       });
-      console.log(`✅ Delivery assignment created/updated: ${assignment1.id} (PROCESSING)`);
+      console.log(`✅ Delivery assignment created/updated: ${assignment1.id} (DELIVERED)`);
 
-      // Update the order status to match
       await prisma.order.update({
         where: { id: ordersToAssign[0].id },
-        data: { status: 'PROCESSING' },
+        data: { status: 'DELIVERED' },
       });
 
-      // Add delivery location for this delivery
+      // طلب ثاني مُوصّل لنفس الدليفري الأول
+      if (ordersToAssign.length > 1) {
+        const assignment1b = await prisma.deliveryAssignment.upsert({
+          where: { orderId: ordersToAssign[1].id },
+          update: {
+            deliveryId: createdDeliveries[0].delivery.id,
+            status: 'DELIVERED',
+            pickedUpAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+            deliveredAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          },
+          create: {
+            orderId: ordersToAssign[1].id,
+            deliveryId: createdDeliveries[0].delivery.id,
+            status: 'DELIVERED',
+            assignedAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
+            deliveredAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
+          },
+        });
+        console.log(`✅ Delivery assignment (2nd DELIVERED for same delivery): ${assignment1b.id}`);
+
+        await prisma.order.update({
+          where: { id: ordersToAssign[1].id },
+          data: { status: 'DELIVERED' },
+        });
+      }
+
       await prisma.deliveryLocation.create({
         data: {
           deliveryId: createdDeliveries[0].delivery.id,
           latitude: 30.0444,
           longitude: 31.2357,
           address: 'Cairo, Egypt',
-          createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+          createdAt: new Date(Date.now() - 30 * 60 * 1000),
         },
       });
       console.log(`  ✅ Delivery location added`);
 
-      if (ordersToAssign.length > 1) {
-        // Assign second order to second delivery (SHIPPED -> picked up, in transit)
+      if (ordersToAssign.length > 2) {
+        // Second delivery: SHIPPED (in transit)
         const assignment2 = await prisma.deliveryAssignment.upsert({
-          where: { orderId: ordersToAssign[1].id },
+          where: { orderId: ordersToAssign[2].id },
           update: {
+            deliveryId: createdDeliveries[1].delivery.id,
             status: 'SHIPPED',
             pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
           },
           create: {
-            orderId: ordersToAssign[1].id,
+            orderId: ordersToAssign[2].id,
             deliveryId: createdDeliveries[1].delivery.id,
             status: 'SHIPPED',
-            assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000), // 3 hours ago
-            pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            assignedAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
           },
         });
         console.log(`✅ Delivery assignment created/updated: ${assignment2.id} (SHIPPED)`);
 
         await prisma.order.update({
-          where: { id: ordersToAssign[1].id },
+          where: { id: ordersToAssign[2].id },
           data: { status: 'SHIPPED' },
         });
 
@@ -1470,28 +1497,29 @@ async function main() {
         console.log(`  ✅ Multiple delivery locations added (tracking movement)`);
       }
 
-      if (ordersToAssign.length > 2) {
-        // Assign third order to third delivery (DELIVERED -> completed)
+      if (ordersToAssign.length > 3) {
+        // Third delivery: DELIVERED (completed)
         const assignment3 = await prisma.deliveryAssignment.upsert({
-          where: { orderId: ordersToAssign[2].id },
+          where: { orderId: ordersToAssign[3].id },
           update: {
+            deliveryId: createdDeliveries[2].delivery.id,
             status: 'DELIVERED',
             pickedUpAt: new Date(Date.now() - 23 * 60 * 60 * 1000),
             deliveredAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
           },
           create: {
-            orderId: ordersToAssign[2].id,
+            orderId: ordersToAssign[3].id,
             deliveryId: createdDeliveries[2].delivery.id,
             status: 'DELIVERED',
-            assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-            pickedUpAt: new Date(Date.now() - 23 * 60 * 60 * 1000), // 23 hours ago
-            deliveredAt: new Date(Date.now() - 20 * 60 * 60 * 1000), // 20 hours ago
+            assignedAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+            pickedUpAt: new Date(Date.now() - 23 * 60 * 60 * 1000),
+            deliveredAt: new Date(Date.now() - 20 * 60 * 60 * 1000),
           },
         });
         console.log(`✅ Delivery assignment created/updated: ${assignment3.id} (DELIVERED)`);
 
         await prisma.order.update({
-          where: { id: ordersToAssign[2].id },
+          where: { id: ordersToAssign[3].id },
           data: { status: 'DELIVERED' },
         });
 
@@ -1509,10 +1537,10 @@ async function main() {
       }
 
       // Add more assignments for the new delivery personnel
-      if (ordersToAssign.length > 3 && createdDeliveries.length > 3) {
+      if (ordersToAssign.length > 4 && createdDeliveries.length > 3) {
         // Assign 4th order to 4th delivery (PROCESSING)
         const assignment4 = await prisma.deliveryAssignment.upsert({
-          where: { orderId: ordersToAssign[3].id },
+          where: { orderId: ordersToAssign[4].id },
           update: {
             deliveryId: createdDeliveries[3].delivery.id,
             status: 'PROCESSING',
@@ -1520,7 +1548,7 @@ async function main() {
             pickedUpAt: new Date(Date.now() - 3 * 60 * 60 * 1000),
           },
           create: {
-            orderId: ordersToAssign[3].id,
+            orderId: ordersToAssign[4].id,
             deliveryId: createdDeliveries[3].delivery.id,
             status: 'PROCESSING',
             assignedAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
@@ -1530,15 +1558,15 @@ async function main() {
         console.log(`✅ Delivery assignment created/updated: ${assignment4.id} (PROCESSING)`);
 
         await prisma.order.update({
-          where: { id: ordersToAssign[3].id },
+          where: { id: ordersToAssign[4].id },
           data: { status: 'PROCESSING' },
         });
       }
 
-      if (ordersToAssign.length > 4 && createdDeliveries.length > 4) {
+      if (ordersToAssign.length > 5 && createdDeliveries.length > 4) {
         // Assign 5th order to 5th delivery (SHIPPED)
         const assignment5 = await prisma.deliveryAssignment.upsert({
-          where: { orderId: ordersToAssign[4].id },
+          where: { orderId: ordersToAssign[5].id },
           update: {
             deliveryId: createdDeliveries[4].delivery.id,
             status: 'SHIPPED',
@@ -1546,7 +1574,7 @@ async function main() {
             pickedUpAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
           },
           create: {
-            orderId: ordersToAssign[4].id,
+            orderId: ordersToAssign[5].id,
             deliveryId: createdDeliveries[4].delivery.id,
             status: 'SHIPPED',
             assignedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
@@ -1556,7 +1584,7 @@ async function main() {
         console.log(`✅ Delivery assignment created/updated: ${assignment5.id} (SHIPPED)`);
 
         await prisma.order.update({
-          where: { id: ordersToAssign[4].id },
+          where: { id: ordersToAssign[5].id },
           data: { status: 'SHIPPED' },
         });
 

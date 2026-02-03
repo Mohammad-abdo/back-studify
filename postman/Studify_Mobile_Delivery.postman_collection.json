@@ -303,7 +303,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"latitude\": 30.0444,\n  \"longitude\": 31.2357\n}"
+              "raw": "{\n  \"points\": [\n    { \"lat\": 31.963158, \"lng\": 35.930359 },\n    { \"lat\": 31.965200, \"lng\": 35.932100 },\n    { \"lat\": 31.967500, \"lng\": 35.931800 },\n    { \"lat\": 31.969200, \"lng\": 35.934500 }\n  ]\n}"
             },
             "url": {
               "raw": "{{base_url}}/mobile/delivery/polylines",
@@ -311,7 +311,7 @@
               "path": ["mobile", "delivery", "polylines"]
             }
           },
-          "description": "Body: latitude, longitude (موقع الدليفري الحالي). Response: orderDestination (lat, lng, latitude, longitude, address — مكان وصول الطلب)، currentLocation (موقع الدليفري)، distanceKm، distanceMeters، estimatedMinutes / estimatedTimeMinutes (نتيجة العملية الحسابية للمسافة والوقت)."
+          "description": "Body: إما { latitude, longitude } (موقع الدليفري فقط + الطلب النشط من DB) أو { points: [{ lat, lng }, ...] } — أول نقطة = الدليفري، آخر نقطة = وجهة الطلب. الحساب عبر OpenStreetMap (OSRM): distanceKm، distanceMeters، estimatedMinutes، estimatedTimeSeconds، eta (وقت الوصول)، source: openstreetmap أو haversine."
         },
         {
           "name": "Get Shipping History",
@@ -345,7 +345,7 @@
               ]
             }
           },
-          "description": "Orders the delivery has delivered, cancelled, or not yet delivered. Paginated list with customerName, deliveryAddress, latitude, longitude per item."
+          "description": "فقط الطلبات اللي تم توصيلها (DELIVERED) لنفس الدليفري. لاستعراض غيره مرّر ?status=PROCESSING أو SHIPPED. Paginated."
         },
         {
           "name": "Get Assignment by ID",

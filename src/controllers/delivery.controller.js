@@ -8,6 +8,7 @@ const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = req
 const { NotFoundError, AuthorizationError } = require('../utils/errors');
 const { DELIVERY_STATUS, ORDER_STATUS } = require('../utils/constants');
 const { calculateDistanceKm } = require('../utils/helpers');
+const osrmService = require('../services/osrm.service');
 
 /**
  * Get delivery profile
@@ -451,13 +452,14 @@ const getActiveOrder = async (req, res, next) => {
 };
 
 /**
- * Polylines – الدليفري يرسل موقعه الحالي (latitude, longitude) في الـ body،
- * الباكند يحسب المسافة بينه وبين وجهة الطلب النشط ويرجع destination + distance + currentLocation.
+ * Polylines – تتبع الدليفري والطلب باستخدام OpenStreetMap (OSRM).
+ * Body: إما { latitude, longitude } (موقع الدليفري فقط) أو { points: [{ lat, lng }, ...] } (مسار: أول نقطة = الدليفري، آخر نقطة = وجهة الطلب).
+ * يحسب المسافة على الطريق والوقت التقديري للوصول.
  */
 const postPolylines = async (req, res, next) => {
   try {
     const userId = req.userId;
-    const { latitude: currentLat, longitude: currentLng } = req.body;
+    const { latitude: bodyLat, longitude: bodyLng, points: bodyPoints } = req.body;
 
     const delivery = await prisma.delivery.findUnique({
       where: { userId },
@@ -467,67 +469,99 @@ const postPolylines = async (req, res, next) => {
       throw new NotFoundError('Delivery profile not found');
     }
 
-    const activeAssignment = await prisma.deliveryAssignment.findFirst({
-      where: {
-        deliveryId: delivery.id,
-        status: { in: [ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED] },
-      },
-      include: {
-        order: {
-          select: {
-            id: true,
-            address: true,
-            latitude: true,
-            longitude: true,
+    let currentLat, currentLng, destLat, destLng, orderAddress;
+
+    if (Array.isArray(bodyPoints) && bodyPoints.length >= 2) {
+      // وضع النقاط: أول نقطة = موقع الدليفري، آخر نقطة = وجهة الطلب
+      const first = bodyPoints[0];
+      const last = bodyPoints[bodyPoints.length - 1];
+      currentLat = Number(first.lat);
+      currentLng = Number(first.lng);
+      destLat = Number(last.lat);
+      destLng = Number(last.lng);
+      orderAddress = null;
+    } else if (bodyLat != null && bodyLng != null) {
+      currentLat = Number(bodyLat);
+      currentLng = Number(bodyLng);
+      const activeAssignment = await prisma.deliveryAssignment.findFirst({
+        where: {
+          deliveryId: delivery.id,
+          status: { in: [ORDER_STATUS.PROCESSING, ORDER_STATUS.SHIPPED] },
+        },
+        include: {
+          order: {
+            select: {
+              id: true,
+              address: true,
+              latitude: true,
+              longitude: true,
+            },
           },
         },
-      },
-    });
-
-    if (!activeAssignment?.order) {
-      throw new NotFoundError('No active order');
+      });
+      if (!activeAssignment?.order) {
+        throw new NotFoundError('No active order');
+      }
+      destLat = activeAssignment.order.latitude;
+      destLng = activeAssignment.order.longitude;
+      orderAddress = activeAssignment.order.address || null;
+    } else {
+      throw new NotFoundError('Send latitude & longitude or points array');
     }
 
-    const destLat = activeAssignment.order.latitude;
-    const destLng = activeAssignment.order.longitude;
+    if (destLat == null || destLng == null || currentLat == null || currentLng == null) {
+      throw new NotFoundError('Missing coordinates');
+    }
 
-    let distanceKm = null;
+    // استخدام OSRM (OpenStreetMap) لحساب المسافة على الطريق والوقت
+    const pointsForOsrm = Array.isArray(bodyPoints) && bodyPoints.length >= 2
+      ? bodyPoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+      : [{ lat: currentLat, lng: currentLng }, { lat: destLat, lng: destLng }];
+
+    const osrmResult = await osrmService.getRouteDistanceAndDuration(pointsForOsrm);
+
     let distanceMeters = null;
+    let distanceKm = null;
     let estimatedMinutes = null;
+    let estimatedTimeSeconds = null;
+    let eta = null;
 
-    if (
-      destLat != null &&
-      destLng != null &&
-      currentLat != null &&
-      currentLng != null
-    ) {
+    if (osrmResult) {
+      distanceMeters = osrmResult.distanceMeters;
+      distanceKm = Math.round((osrmResult.distanceMeters / 1000) * 1000) / 1000;
+      estimatedTimeSeconds = osrmResult.durationSeconds;
+      estimatedMinutes = Math.max(1, Math.round(osrmResult.durationSeconds / 60));
+      const etaDate = new Date(Date.now() + osrmResult.durationSeconds * 1000);
+      eta = etaDate.toISOString();
+    } else {
+      // Fallback: Haversine (خط مستقيم)
       distanceKm = Math.round(calculateDistanceKm(currentLat, currentLng, destLat, destLng) * 1000) / 1000;
       distanceMeters = Math.round(distanceKm * 1000);
       estimatedMinutes = Math.max(1, Math.round(distanceKm * 3));
+      estimatedTimeSeconds = estimatedMinutes * 60;
     }
 
-    // استجابة واضحة: إحداثيات وجهة الطلب + موقع الدليفري + المسافة والوقت المحسوبان
     const data = {
-      // مكان وصول الطلب (اللوكيشن اللي الدليفري هيوصل له — order destination)
       orderDestination: {
         lat: destLat,
         lng: destLng,
         latitude: destLat,
         longitude: destLng,
-        address: activeAssignment.order.address || null,
+        address: orderAddress ?? null,
       },
-      // موقع الدليفري الحالي (اللي أرسله في الـ body)
       currentLocation: {
         lat: currentLat,
         lng: currentLng,
         latitude: currentLat,
         longitude: currentLng,
       },
-      // نتيجة العملية الحسابية: المسافة والوقت
       distanceKm,
       distanceMeters,
       estimatedMinutes,
       estimatedTimeMinutes: estimatedMinutes,
+      estimatedTimeSeconds,
+      eta,
+      source: osrmResult ? 'openstreetmap' : 'haversine',
     };
 
     sendSuccess(res, data, 'Polylines computed successfully');
@@ -537,7 +571,7 @@ const postPolylines = async (req, res, next) => {
 };
 
 /**
- * Shipping history – orders the delivery has delivered, cancelled, or not yet delivered (paginated)
+ * Shipping history – فقط الطلبات اللي تم توصيلها (DELIVERED) لنفس الدليفري. يمكن تمرير status لعرض غيره.
  */
 const getShippingHistory = async (req, res, next) => {
   try {
@@ -553,9 +587,10 @@ const getShippingHistory = async (req, res, next) => {
       throw new NotFoundError('Delivery profile not found');
     }
 
+    // افتراضياً: فقط الطلبات المُوصّلة (DELIVERED). لاستعراض غيره مرّر ?status=PROCESSING مثلاً
     const where = {
       deliveryId: delivery.id,
-      ...(status && { status }),
+      status: status || 'DELIVERED',
     };
 
     const [assignments, total] = await Promise.all([
