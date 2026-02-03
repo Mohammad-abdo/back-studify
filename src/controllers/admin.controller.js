@@ -545,6 +545,13 @@ const getDashboardStats = async (req, res, next) => {
       totalProductOrders,
       totalContentOrders,
       totalPrintOrders,
+      // Orders by status (for dashboard: pending payment vs paid)
+      ordersCreated,
+      ordersPaid,
+      ordersProcessing,
+      ordersShipped,
+      ordersDelivered,
+      ordersCancelled,
       // Revenue calculations
       totalRevenue,
       totalProductRevenue,
@@ -581,6 +588,13 @@ const getDashboardStats = async (req, res, next) => {
       prisma.order.count({ where: { orderType: 'PRODUCT' } }),
       prisma.order.count({ where: { orderType: 'CONTENT' } }),
       prisma.order.count({ where: { orderType: 'PRINT' } }),
+      // Orders by status
+      prisma.order.count({ where: { status: 'CREATED' } }),
+      prisma.order.count({ where: { status: 'PAID' } }),
+      prisma.order.count({ where: { status: 'PROCESSING' } }),
+      prisma.order.count({ where: { status: 'SHIPPED' } }),
+      prisma.order.count({ where: { status: 'DELIVERED' } }),
+      prisma.order.count({ where: { status: 'CANCELLED' } }),
       // Calculate total revenue from completed orders (all types)
       prisma.order.aggregate({
         where: {
@@ -672,10 +686,19 @@ const getDashboardStats = async (req, res, next) => {
       orders: {
         total: totalOrders,
         wholesale: totalWholesaleOrders,
+        pendingPayment: ordersCreated,
         byType: {
           product: totalProductOrders,
           content: totalContentOrders,
           print: totalPrintOrders,
+        },
+        byStatus: {
+          created: ordersCreated,
+          paid: ordersPaid,
+          processing: ordersProcessing,
+          shipped: ordersShipped,
+          delivered: ordersDelivered,
+          cancelled: ordersCancelled,
         },
       },
       approvals: {
