@@ -541,6 +541,14 @@ const postPolylines = async (req, res, next) => {
       estimatedTimeSeconds = estimatedMinutes * 60;
     }
 
+    // مصفوفة النقاط للمسار (نفس اللي يُرسل أو [الدليفري → الوجهة])
+    const polylines = Array.isArray(bodyPoints) && bodyPoints.length >= 2
+      ? bodyPoints.map((p) => ({ lat: Number(p.lat), lng: Number(p.lng) }))
+      : [
+          { lat: currentLat, lng: currentLng },
+          { lat: destLat, lng: destLng },
+        ];
+
     const data = {
       orderDestination: {
         lat: destLat,
@@ -562,6 +570,7 @@ const postPolylines = async (req, res, next) => {
       estimatedTimeSeconds,
       eta,
       source: osrmResult ? 'openstreetmap' : 'haversine',
+      polylines,
     };
 
     sendSuccess(res, data, 'Polylines computed successfully');
