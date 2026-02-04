@@ -178,11 +178,88 @@ const deleteDoctor = async (req, res, next) => {
   }
 };
 
+/**
+ * Get doctor statistics (for authenticated doctor — mobile dashboard)
+ * totalMaterials, totalDownloads, totalStudents (unique buyers/downloaders), averageRating
+ */
+const getDoctorStats = async (req, res, next) => {
+  try {
+    const doctorId = req.user?.doctor?.id || req.params?.id;
+    if (!doctorId) {
+      throw new NotFoundError('Doctor not found');
+    }
+
+    const doctor = await prisma.doctor.findUnique({
+      where: { id: doctorId },
+      select: { id: true },
+    });
+    if (!doctor) {
+      throw new NotFoundError('Doctor not found');
+    }
+
+    const [materialCount, materialAgg, bookIds, materialIds] = await Promise.all([
+      prisma.material.count({ where: { doctorId } }),
+      prisma.material.aggregate({
+        where: { doctorId },
+        _sum: { downloads: true },
+        _avg: { rating: true },
+      }),
+      prisma.book.findMany({ where: { doctorId }, select: { id: true } }).then((b) => b.map((x) => x.id)),
+      prisma.material.findMany({ where: { doctorId }, select: { id: true } }).then((m) => m.map((x) => x.id)),
+    ]);
+
+    const refIds = [...bookIds, ...materialIds];
+    const [orderItemsForStudents, reviewAgg] = await Promise.all([
+      refIds.length === 0
+        ? []
+        : prisma.orderItem
+            .findMany({
+              where: {
+                referenceType: { in: ['BOOK', 'MATERIAL'] },
+                referenceId: { in: refIds },
+              },
+              select: { order: { select: { userId: true } } },
+            })
+            .then((items) => items.map((i) => i.order.userId).filter(Boolean)),
+      bookIds.length === 0
+        ? { _avg: { rating: null }, _count: { id: 0 } }
+        : prisma.review.aggregate({
+            where: { targetType: 'BOOK', targetId: { in: bookIds } },
+            _avg: { rating: true },
+            _count: { id: true },
+          }),
+    ]);
+
+    const totalStudents = [...new Set(orderItemsForStudents)].length;
+    const reviewAvg = reviewAgg._count.id > 0 ? reviewAgg._avg.rating : null;
+
+    const totalDownloads = materialAgg._sum?.downloads ?? 0;
+    const materialRatingAvg = materialAgg._avg?.rating ?? null;
+    const averageRating =
+      materialRatingAvg !== null && reviewAvg !== null
+        ? (materialRatingAvg + reviewAvg) / 2
+        : materialRatingAvg ?? reviewAvg ?? 0;
+
+    const stats = {
+      totalMaterials: materialCount,
+      totalDownloads: Number(totalDownloads),
+      totalStudents,
+      averageRating: Math.round(Number(averageRating) * 10) / 10,
+      totalBooks: await prisma.book.count({ where: { doctorId } }),
+    };
+
+    sendSuccess(res, stats, 'Doctor statistics retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDoctors,
   getDoctorById,
   updateDoctor,
   deleteDoctor,
+  getDoctorStats,
 };
 
 

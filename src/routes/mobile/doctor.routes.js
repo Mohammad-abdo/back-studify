@@ -13,6 +13,7 @@ const materialController = require('../../controllers/material.controller');
 const productController = require('../../controllers/product.controller');
 const orderController = require('../../controllers/order.controller');
 const reviewController = require('../../controllers/review.controller');
+const doctorController = require('../../controllers/doctor.controller');
 const notificationService = require('../../services/notification.service');
 const prisma = require('../../config/database');
 const { NotFoundError } = require('../../utils/errors');
@@ -57,6 +58,11 @@ router.post('/change-password', validateBody(z.object({
 
 // Delete account
 router.delete('/profile', userController.deleteAccount);
+
+// ============================================
+// STATISTICS (dashboard)
+// ============================================
+router.get('/stats', doctorController.getDoctorStats);
 
 // ============================================
 // MY BOOKS
