@@ -11,8 +11,6 @@ const orderController = require('../../controllers/order.controller');
 const reviewController = require('../../controllers/review.controller');
 const bookController = require('../../controllers/book.controller');
 const productController = require('../../controllers/product.controller');
-const categoryController = require('../../controllers/category.controller');
-const collegeController = require('../../controllers/college.controller');
 const printOptionController = require('../../controllers/printOption.controller');
 const notificationService = require('../../services/notification.service');
 const prisma = require('../../config/database');
@@ -78,69 +76,6 @@ router.get('/products', validateQuery(paginationSchema.extend({
 })), productController.getProducts);
 
 router.get('/products/:id', productController.getProductById);
-
-// ============================================
-// CATEGORIES (for filtering)
-// ============================================
-router.get('/categories/books', categoryController.getBookCategories);
-router.get('/categories/products', validateQuery(paginationSchema.extend({
-  collegeId: uuidSchema.optional(),
-})), categoryController.getProductCategories);
-router.get('/categories/materials', validateQuery(paginationSchema.extend({
-  collegeId: uuidSchema.optional(),
-})), categoryController.getMaterialCategories);
-
-// ============================================
-// COLLEGES (for filtering)
-// ============================================
-router.get('/colleges', validateQuery(paginationSchema.extend({
-  search: z.string().optional(),
-})), collegeController.getColleges);
-
-router.get('/colleges/:id', collegeController.getCollegeById);
-
-// ============================================
-// DEPARTMENTS (for filtering)
-// ============================================
-router.get('/departments', validateQuery(paginationSchema.extend({
-  collegeId: uuidSchema.optional(),
-  search: z.string().optional(),
-})), async (req, res, next) => {
-  try {
-    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { collegeId, search } = req.query;
-
-    const where = {
-      ...(collegeId && { collegeId }),
-      ...(search && {
-        name: { contains: search, mode: 'insensitive' },
-      }),
-    };
-
-    const [departments, total] = await Promise.all([
-      prisma.department.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        include: {
-          college: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-        },
-        orderBy: { name: 'asc' },
-      }),
-      prisma.department.count({ where }),
-    ]);
-
-    const pagination = buildPagination(page, limit, total);
-    sendPaginated(res, departments, pagination, 'Departments retrieved successfully');
-  } catch (error) {
-    next(error);
-  }
-});
 
 // ============================================
 // CONTENT ORDERS (BOOKS & MATERIALS READ / BUY / PRINT)
@@ -352,12 +287,6 @@ router.get('/reviews', validateQuery(paginationSchema.extend({
 router.post('/reviews', validateBody(createReviewSchema), reviewController.createReview);
 router.put('/reviews/:id', validateBody(createReviewSchema.partial()), reviewController.updateReview);
 router.delete('/reviews/:id', reviewController.deleteReview);
-
-// ============================================
-// CART
-// ============================================
-const cartRoutes = require('../cart.routes');
-router.use('/cart', cartRoutes);
 
 // ============================================
 // NOTIFICATIONS

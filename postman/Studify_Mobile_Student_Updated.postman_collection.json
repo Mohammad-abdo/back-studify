@@ -815,7 +815,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/categories/books",
+              "raw": "{{base_url}}/mobile/categories/books",
               "host": [
                 "{{base_url}}"
               ],
@@ -839,7 +839,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/categories/products",
+              "raw": "{{base_url}}/mobile/categories/products",
               "host": [
                 "{{base_url}}"
               ],
@@ -868,7 +868,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/colleges?page=1&limit=10",
+              "raw": "{{base_url}}/mobile/colleges?page=1&limit=10",
               "host": [
                 "{{base_url}}"
               ],
@@ -906,7 +906,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/colleges/:id",
+              "raw": "{{base_url}}/mobile/colleges/:id",
               "host": [
                 "{{base_url}}"
               ],
@@ -936,7 +936,7 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/departments?page=1&limit=10",
+              "raw": "{{base_url}}/mobile/departments?page=1&limit=10",
               "host": [
                 "{{base_url}}"
               ],
@@ -1505,6 +1505,51 @@
           }
         },
         {
+          "name": "Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CASH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/mobile/student/orders/:id/confirm-payment",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "mobile",
+                "student",
+                "orders",
+                ":id",
+                "confirm-payment"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "order-uuid-here"
+                }
+              ]
+            },
+            "description": "Confirm payment for an order (status CREATED → PAID). paymentMethod: CASH | CREDIT | PAYMENT_LINK (for web/gateway later). Sets paidAt and may trigger print center assignment."
+          }
+        },
+        {
           "name": "Cancel Order",
           "request": {
             "method": "POST",
@@ -1698,9 +1743,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/cart",
+              "raw": "{{base_url}}/mobile/cart",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "student", "cart"]
+              "path": ["mobile", "cart"]
             }
           }
         },
@@ -1723,9 +1768,9 @@
               "raw": "{\n  \"referenceType\": \"BOOK\",\n  \"referenceId\": \"book-uuid-here\",\n  \"quantity\": 1\n}"
             },
             "url": {
-              "raw": "{{base_url}}/mobile/student/cart/items",
+              "raw": "{{base_url}}/mobile/cart/items",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "student", "cart", "items"]
+              "path": ["mobile", "cart", "items"]
             }
           }
         },
@@ -1748,9 +1793,9 @@
               "raw": "{\n  \"quantity\": 2\n}"
             },
             "url": {
-              "raw": "{{base_url}}/mobile/student/cart/items/:id",
+              "raw": "{{base_url}}/mobile/cart/items/:id",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "student", "cart", "items", ":id"],
+              "path": ["mobile", "cart", "items", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1771,9 +1816,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/cart/items/:id",
+              "raw": "{{base_url}}/mobile/cart/items/:id",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "student", "cart", "items", ":id"],
+              "path": ["mobile", "cart", "items", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -1794,9 +1839,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/cart",
+              "raw": "{{base_url}}/mobile/cart",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "student", "cart"]
+              "path": ["mobile", "cart"]
             }
           }
         }

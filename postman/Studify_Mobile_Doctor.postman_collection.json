@@ -928,6 +928,43 @@
               ]
             }
           }
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"paymentMethod\": \"CASH\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/:id/confirm-payment",
+              "host": ["{{base_url}}"],
+              "path": ["orders", ":id", "confirm-payment"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "order-uuid-here"
+                }
+              ]
+            },
+            "description": "Confirm payment for an order (CREATED → PAID). Use order ID from your orders. paymentMethod: CASH | CREDIT | PAYMENT_LINK."
+          }
         }
       ]
     },

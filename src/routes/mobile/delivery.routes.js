@@ -166,12 +166,6 @@ router.get('/wallet/transactions', validateQuery(paginationSchema.extend({
 });
 
 // ============================================
-// CART
-// ============================================
-const cartRoutes = require('../cart.routes');
-router.use('/cart', cartRoutes);
-
-// ============================================
 // NOTIFICATIONS
 // ============================================
 router.get('/notifications', validateQuery(paginationSchema.extend({

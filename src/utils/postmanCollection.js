@@ -439,6 +439,37 @@ const generatePostmanCollection = () => {
         },
       },
       {
+        name: 'Confirm Payment',
+        request: {
+          method: 'POST',
+          header: [
+            {
+              key: 'Authorization',
+              value: 'Bearer {{token}}',
+            },
+            {
+              key: 'Content-Type',
+              value: 'application/json',
+            },
+          ],
+          body: {
+            mode: 'raw',
+            raw: JSON.stringify({ paymentMethod: 'CASH' }, null, 2),
+          },
+          url: {
+            raw: '{{base_url}}/mobile/student/orders/:id/confirm-payment',
+            host: ['{{base_url}}'],
+            path: ['mobile', 'student', 'orders', ':id', 'confirm-payment'],
+            variable: [
+              {
+                key: 'id',
+                value: 'order-uuid-here',
+              },
+            ],
+          },
+        },
+      },
+      {
         name: 'Cancel Order',
         request: {
           method: 'POST',
@@ -1356,6 +1387,37 @@ const generatePostmanCollection = () => {
             raw: '{{base_url}}/orders',
             host: ['{{base_url}}'],
             path: ['orders'],
+          },
+        },
+      },
+      {
+        name: 'Confirm Payment',
+        request: {
+          method: 'POST',
+          header: [
+            {
+              key: 'Authorization',
+              value: 'Bearer {{token}}',
+            },
+            {
+              key: 'Content-Type',
+              value: 'application/json',
+            },
+          ],
+          body: {
+            mode: 'raw',
+            raw: JSON.stringify({ paymentMethod: 'CASH' }, null, 2),
+          },
+          url: {
+            raw: '{{base_url}}/orders/:id/confirm-payment',
+            host: ['{{base_url}}'],
+            path: ['orders', ':id', 'confirm-payment'],
+            variable: [
+              {
+                key: 'id',
+                value: 'order-uuid-here',
+              },
+            ],
           },
         },
       },

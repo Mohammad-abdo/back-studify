@@ -10,7 +10,6 @@ const authController = require('../../controllers/auth.controller');
 const customerController = require('../../controllers/customer.controller');
 const wholesaleController = require('../../controllers/wholesale.controller');
 const productController = require('../../controllers/product.controller');
-const categoryController = require('../../controllers/category.controller');
 const notificationService = require('../../services/notification.service');
 const prisma = require('../../config/database');
 const { NotFoundError, ValidationError, AuthorizationError } = require('../../utils/errors');
@@ -209,17 +208,6 @@ router.post('/orders/:id/cancel', async (req, res, next) => {
     next(error);
   }
 });
-
-// ============================================
-// CATEGORIES (for filtering products)
-// ============================================
-router.get('/categories/products', categoryController.getProductCategories);
-
-// ============================================
-// CART
-// ============================================
-const cartRoutes = require('../cart.routes');
-router.use('/cart', cartRoutes);
 
 // ============================================
 // NOTIFICATIONS
