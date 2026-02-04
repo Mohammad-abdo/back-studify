@@ -1750,7 +1750,7 @@
           }
         },
         {
-          "name": "Add Item to Cart",
+          "name": "Add to Cart",
           "request": {
             "method": "POST",
             "header": [
@@ -1806,7 +1806,7 @@
           }
         },
         {
-          "name": "Remove Item from Cart",
+          "name": "Remove from Cart",
           "request": {
             "method": "DELETE",
             "header": [

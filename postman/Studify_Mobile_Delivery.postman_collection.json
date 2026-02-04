@@ -631,14 +631,14 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/delivery/cart",
+              "raw": "{{base_url}}/mobile/cart",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "delivery", "cart"]
+              "path": ["mobile", "cart"]
             }
           }
         },
         {
-          "name": "Add Item to Cart",
+          "name": "Add to Cart",
           "request": {
             "method": "POST",
             "header": [
@@ -656,9 +656,9 @@
               "raw": "{\n  \"referenceType\": \"BOOK\",\n  \"referenceId\": \"book-uuid-here\",\n  \"quantity\": 1\n}"
             },
             "url": {
-              "raw": "{{base_url}}/mobile/delivery/cart/items",
+              "raw": "{{base_url}}/mobile/cart/items",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "delivery", "cart", "items"]
+              "path": ["mobile", "cart", "items"]
             }
           }
         },
@@ -681,9 +681,9 @@
               "raw": "{\n  \"quantity\": 2\n}"
             },
             "url": {
-              "raw": "{{base_url}}/mobile/delivery/cart/items/:id",
+              "raw": "{{base_url}}/mobile/cart/items/:id",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "delivery", "cart", "items", ":id"],
+              "path": ["mobile", "cart", "items", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -694,7 +694,7 @@
           }
         },
         {
-          "name": "Remove Item from Cart",
+          "name": "Remove from Cart",
           "request": {
             "method": "DELETE",
             "header": [
@@ -704,9 +704,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/delivery/cart/items/:id",
+              "raw": "{{base_url}}/mobile/cart/items/:id",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "delivery", "cart", "items", ":id"],
+              "path": ["mobile", "cart", "items", ":id"],
               "variable": [
                 {
                   "key": "id",
@@ -727,9 +727,9 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/delivery/cart",
+              "raw": "{{base_url}}/mobile/cart",
               "host": ["{{base_url}}"],
-              "path": ["mobile", "delivery", "cart"]
+              "path": ["mobile", "cart"]
             }
           }
         }
