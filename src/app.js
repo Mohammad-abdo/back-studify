@@ -116,6 +116,7 @@ const deliveryLocationRoutes = require('./routes/deliveryLocation.routes');
 const dashboardMetricRoutes = require('./routes/dashboardMetric.routes');
 const settingsRoutes = require('./routes/settings.routes');
 const mobileRoutes = require('./routes/mobile');
+const publicRoutes = require('./routes/public.routes');
 const sliderRoutes = require('./routes/slider.routes');
 
 const initSocket = require('./socket');
@@ -174,6 +175,9 @@ app.use('/api/settings', settingsRoutes);
 
 // Mobile routes
 app.use('/api/mobile', mobileRoutes);
+
+// Public routes — college & department (no auth)
+app.use('/api/public', publicRoutes);
 
 // Slider routes
 app.use('/api/sliders', sliderRoutes);
