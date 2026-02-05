@@ -447,7 +447,8 @@ router.get('/products', validateQuery(paginationSchema.extend({
 router.get('/products/:id', productController.getProductById);
 
 // ============================================
-// MATERIALS
+// MATERIALS — doctor fetches materials (his own if profile exists, else all for browsing)
+// GET {{base_url}}/api/mobile/doctor/materials?page=1&limit=10
 // ============================================
 router.get('/materials', validateQuery(paginationSchema.extend({
   categoryId: uuidSchema.optional(),
@@ -458,14 +459,11 @@ router.get('/materials', validateQuery(paginationSchema.extend({
   approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
 })), async (req, res, next) => {
   try {
-    // Get materials created by this doctor
+    // Filter by this doctor's materials if profile exists; otherwise return all (e.g. before onboarding)
     const doctorId = req.user.doctor?.id;
-    if (!doctorId) {
-      return res.status(404).json({ success: false, error: { message: 'Doctor profile not found' } });
+    if (doctorId) {
+      req.query.doctorId = doctorId;
     }
-    
-    // Use material controller but filter by doctor
-    req.query.doctorId = doctorId;
     return materialController.getMaterials(req, res, next);
   } catch (error) {
     next(error);
