@@ -118,6 +118,9 @@ const settingsRoutes = require('./routes/settings.routes');
 const mobileRoutes = require('./routes/mobile');
 const publicRoutes = require('./routes/public.routes');
 const sliderRoutes = require('./routes/slider.routes');
+const { validateQuery } = require('./middleware/validation.middleware');
+const { paginationSchema } = require('./utils/validators');
+const { transformImageUrlsMiddleware } = require('./middleware/imageUrl.middleware');
 
 const initSocket = require('./socket');
 
@@ -172,6 +175,16 @@ app.use('/api/delivery-wallets', deliveryWalletRoutes);
 app.use('/api/delivery-locations', deliveryLocationRoutes);
 app.use('/api/dashboard-metrics', dashboardMetricRoutes);
 app.use('/api/settings', settingsRoutes);
+
+// Explicit global print-options by content ID (avoids 404 when base_url or route order differs)
+// GET /api/mobile/:id/print-options — :id = bookId OR materialId
+app.get(
+  '/api/mobile/:id/print-options',
+  authenticate,
+  transformImageUrlsMiddleware,
+  validateQuery(paginationSchema),
+  printOptionController.getPrintOptionsByContentId
+);
 
 // Mobile routes
 app.use('/api/mobile', mobileRoutes);
