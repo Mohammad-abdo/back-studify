@@ -57,6 +57,66 @@ const getPrintOptions = async (req, res, next) => {
 };
 
 /**
+ * Get print options by content ID (book or material) — unified global endpoint
+ * GET /api/mobile/:id/print-options — :id = bookId OR materialId (فلتر صارم: إما كتاب معيّن أو مادة معيّنة فقط)
+ */
+const getPrintOptionsByContentId = async (req, res, next) => {
+  try {
+    const contentId = req.params.id;
+    if (!contentId || typeof contentId !== 'string' || !contentId.trim()) {
+      throw new BadRequestError('Content ID (book or material) is required in the path');
+    }
+
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+
+    const [book, material] = await Promise.all([
+      prisma.book.findUnique({ where: { id: contentId }, select: { id: true } }),
+      prisma.material.findUnique({ where: { id: contentId }, select: { id: true } }),
+    ]);
+
+    let whereClause;
+    if (book) {
+      whereClause = { bookId: contentId };
+    } else if (material) {
+      whereClause = { materialId: contentId };
+    } else {
+      throw new NotFoundError('Book or material not found');
+    }
+
+    const [printOptions, total] = await Promise.all([
+      prisma.printOption.findMany({
+        where: whereClause,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          book: {
+            select: {
+              id: true,
+              title: true,
+              totalPages: true,
+            },
+          },
+          material: {
+            select: {
+              id: true,
+              title: true,
+              totalPages: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.printOption.count({ where: whereClause }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, printOptions, pagination, 'Print options retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get print option by ID
  */
 const getPrintOptionById = async (req, res, next) => {
@@ -100,7 +160,7 @@ const getPrintOptionById = async (req, res, next) => {
  */
 const createPrintOption = async (req, res, next) => {
   try {
-    const { bookId, materialId, uploadedFileUrl, colorType, copies, paperType, doubleSide } = req.body;
+    const { bookId, materialId, uploadedFileUrl, colorType, copies, paperType, doubleSide, enabled } = req.body;
 
     // Validate that at least one source is provided
     if (!bookId && !materialId && !uploadedFileUrl) {
@@ -136,6 +196,7 @@ const createPrintOption = async (req, res, next) => {
         copies,
         paperType,
         doubleSide,
+        enabled: enabled !== false,
       },
       include: {
         book: {
@@ -189,6 +250,7 @@ const createPrintOptionWithUpload = async (req, res, next) => {
         copies,
         paperType,
         doubleSide,
+        enabled: true,
       },
     });
 
@@ -223,7 +285,7 @@ const createPrintOptionWithUpload = async (req, res, next) => {
 const updatePrintOption = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { bookId, materialId, uploadedFileUrl, colorType, copies, paperType, doubleSide } = req.body;
+    const { bookId, materialId, uploadedFileUrl, colorType, copies, paperType, doubleSide, enabled } = req.body;
 
     const existingPrintOption = await prisma.printOption.findUnique({
       where: { id },
@@ -261,6 +323,7 @@ const updatePrintOption = async (req, res, next) => {
     if (copies !== undefined) updateData.copies = copies;
     if (paperType !== undefined) updateData.paperType = paperType;
     if (doubleSide !== undefined) updateData.doubleSide = doubleSide;
+    if (enabled !== undefined) updateData.enabled = Boolean(enabled);
 
     const printOption = await prisma.printOption.update({
       where: { id },
@@ -572,6 +635,7 @@ const createPrintOrder = async (req, res, next) => {
 
 module.exports = {
   getPrintOptions,
+  getPrintOptionsByContentId,
   getPrintOptionById,
   createPrintOption,
   createPrintOptionWithUpload,

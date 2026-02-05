@@ -234,16 +234,7 @@ router.post('/materials/:id/download', materialController.incrementDownloads);
 // ============================================
 // PRINT OPTIONS & PRINT CENTER
 // ============================================
-// Get print options for a book
-router.get('/books/:bookId/print-options', validateQuery(paginationSchema.extend({
-  bookId: uuidSchema.optional(),
-})), printOptionController.getPrintOptions);
-
-// Get print options for a material
-router.get('/materials/:materialId/print-options', validateQuery(paginationSchema.extend({
-  materialId: uuidSchema.optional(),
-})), printOptionController.getPrintOptions);
-
+// Use global GET /api/mobile/:id/print-options (id = bookId or materialId)
 // Get all print options (filtered by bookId or materialId)
 router.get('/print-options', validateQuery(paginationSchema.extend({
   bookId: uuidSchema.optional(),

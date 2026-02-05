@@ -82,6 +82,7 @@ const getMaterials = async (req, res, next) => {
       return {
         ...material,
         imageUrls: parsedImageUrls,
+        type: 'MATERIAL',
       };
     });
 
@@ -177,7 +178,7 @@ const getMaterialById = async (req, res, next) => {
       ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
       : 0;
 
-    sendSuccess(res, { ...parsedMaterial, reviews, avgRating }, 'Material retrieved successfully');
+    sendSuccess(res, { ...parsedMaterial, type: 'MATERIAL', reviews, avgRating }, 'Material retrieved successfully');
   } catch (error) {
     next(error);
   }

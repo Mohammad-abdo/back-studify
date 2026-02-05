@@ -810,23 +810,16 @@ async function main() {
 
   const createdPrintOptions = [];
 
-  // Create print options for first few books
+  // Create print options for books (multiple options per book, with enabled flag)
   if (createdBooks.length > 0) {
     const bookPrintConfigs = [
-      {
-        bookId: createdBooks[0].id,
-        colorType: 'COLOR',
-        copies: 1,
-        paperType: 'A4',
-        doubleSide: true,
-      },
-      createdBooks[1] && {
-        bookId: createdBooks[1].id,
-        colorType: 'BLACK_WHITE',
-        copies: 2,
-        paperType: 'A4',
-        doubleSide: false,
-      },
+      { bookId: createdBooks[0].id, colorType: 'COLOR', copies: 1, paperType: 'A4', doubleSide: true, enabled: true },
+      { bookId: createdBooks[0].id, colorType: 'BLACK_WHITE', copies: 1, paperType: 'A4', doubleSide: false, enabled: true },
+      { bookId: createdBooks[0].id, colorType: 'COLOR', copies: 2, paperType: 'A3', doubleSide: true, enabled: true },
+      createdBooks[1] && { bookId: createdBooks[1].id, colorType: 'BLACK_WHITE', copies: 2, paperType: 'A4', doubleSide: false, enabled: true },
+      createdBooks[1] && { bookId: createdBooks[1].id, colorType: 'COLOR', copies: 1, paperType: 'A4', doubleSide: true, enabled: true },
+      createdBooks[2] && { bookId: createdBooks[2].id, colorType: 'COLOR', copies: 1, paperType: 'A4', doubleSide: true, enabled: true },
+      createdBooks[2] && { bookId: createdBooks[2].id, colorType: 'BLACK_WHITE', copies: 1, paperType: 'LETTER', doubleSide: false, enabled: false },
     ].filter(Boolean);
 
     for (const cfg of bookPrintConfigs) {
@@ -839,30 +832,24 @@ async function main() {
           copies: cfg.copies,
           paperType: cfg.paperType,
           doubleSide: cfg.doubleSide,
+          enabled: cfg.enabled !== false,
         },
       });
       createdPrintOptions.push(option);
-      console.log(`✅ Print option created for book: ${option.bookId} (${option.colorType} / ${option.paperType})`);
+      console.log(`✅ Print option created for book: ${option.bookId} (${option.colorType} / ${option.paperType} / enabled: ${option.enabled})`);
     }
   }
 
-  // Create print options for first few materials
+  // Create print options for materials (multiple options per material, with enabled flag)
   if (createdMaterials.length > 0) {
     const materialPrintConfigs = [
-      {
-        materialId: createdMaterials[0].id,
-        colorType: 'BLACK_WHITE',
-        copies: 1,
-        paperType: 'A4',
-        doubleSide: true,
-      },
-      createdMaterials[1] && {
-        materialId: createdMaterials[1].id,
-        colorType: 'COLOR',
-        copies: 1,
-        paperType: 'A3',
-        doubleSide: false,
-      },
+      { materialId: createdMaterials[0].id, colorType: 'BLACK_WHITE', copies: 1, paperType: 'A4', doubleSide: true, enabled: true },
+      { materialId: createdMaterials[0].id, colorType: 'COLOR', copies: 1, paperType: 'A4', doubleSide: false, enabled: true },
+      { materialId: createdMaterials[0].id, colorType: 'COLOR', copies: 2, paperType: 'A3', doubleSide: true, enabled: true },
+      createdMaterials[1] && { materialId: createdMaterials[1].id, colorType: 'COLOR', copies: 1, paperType: 'A3', doubleSide: false, enabled: true },
+      createdMaterials[1] && { materialId: createdMaterials[1].id, colorType: 'BLACK_WHITE', copies: 1, paperType: 'A4', doubleSide: true, enabled: true },
+      createdMaterials[2] && { materialId: createdMaterials[2].id, colorType: 'COLOR', copies: 1, paperType: 'A4', doubleSide: true, enabled: true },
+      createdMaterials[2] && { materialId: createdMaterials[2].id, colorType: 'BLACK_WHITE', copies: 2, paperType: 'A4', doubleSide: false, enabled: false },
     ].filter(Boolean);
 
     for (const cfg of materialPrintConfigs) {
@@ -875,10 +862,11 @@ async function main() {
           copies: cfg.copies,
           paperType: cfg.paperType,
           doubleSide: cfg.doubleSide,
+          enabled: cfg.enabled !== false,
         },
       });
       createdPrintOptions.push(option);
-      console.log(`✅ Print option created for material: ${option.materialId} (${option.colorType} / ${option.paperType})`);
+      console.log(`✅ Print option created for material: ${option.materialId} (${option.colorType} / ${option.paperType} / enabled: ${option.enabled})`);
     }
   }
 

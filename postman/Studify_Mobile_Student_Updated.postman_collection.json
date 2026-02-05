@@ -974,7 +974,7 @@
       "name": "Print Center",
       "item": [
         {
-          "name": "Get Print Options for Book",
+          "name": "Get Print Options for Book (Global)",
           "request": {
             "method": "GET",
             "header": [
@@ -984,14 +984,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/books/:bookId/print-options?page=1&limit=10",
+              "raw": "{{base_url}}/api/mobile/:bookId/print-options?page=1&limit=10",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
-                "student",
-                "books",
                 ":bookId",
                 "print-options"
               ],
@@ -1012,11 +1011,11 @@
                 }
               ]
             },
-            "description": "Get all print options available for a specific book."
+            "description": "Global endpoint: get all enabled print options for a book. :bookId = book UUID."
           }
         },
         {
-          "name": "Get Print Options for Material",
+          "name": "Get Print Options for Material (Global)",
           "request": {
             "method": "GET",
             "header": [
@@ -1026,14 +1025,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/materials/:materialId/print-options?page=1&limit=10",
+              "raw": "{{base_url}}/api/mobile/:materialId/print-options?page=1&limit=10",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
-                "student",
-                "materials",
                 ":materialId",
                 "print-options"
               ],
@@ -1054,11 +1052,11 @@
                 }
               ]
             },
-            "description": "Get all print options available for a specific material."
+            "description": "Global endpoint: get all enabled print options for a material. :materialId = material UUID."
           }
         },
         {
-          "name": "Get All Print Options",
+          "name": "Get All Print Options (Student list)",
           "request": {
             "method": "GET",
             "header": [
@@ -1068,11 +1066,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-options?page=1&limit=10",
+              "raw": "{{base_url}}/api/mobile/student/print-options?page=1&limit=10",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "student",
                 "print-options"
@@ -1118,11 +1117,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-options/:id",
+              "raw": "{{base_url}}/api/mobile/student/print-options/:id",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "student",
                 "print-options",
@@ -1148,11 +1148,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-options/:id/quote",
+              "raw": "{{base_url}}/api/mobile/student/print-options/:id/quote",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "student",
                 "print-options",
@@ -1180,11 +1181,12 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/mobile/student/print-options/:id/order",
+              "raw": "{{base_url}}/api/mobile/student/print-options/:id/order",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "student",
                 "print-options",
@@ -1248,11 +1250,12 @@
               ]
             },
             "url": {
-              "raw": "{{base_url}}/mobile/print-center/upload",
+              "raw": "{{base_url}}/api/mobile/print-center/upload",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "print-center",
                 "upload"
@@ -1285,11 +1288,12 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/mobile/print-center/book/:bookId",
+              "raw": "{{base_url}}/api/mobile/print-center/book/:bookId",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "print-center",
                 "book",
@@ -1329,11 +1333,12 @@
               }
             },
             "url": {
-              "raw": "{{base_url}}/mobile/print-center/material/:materialId",
+              "raw": "{{base_url}}/api/mobile/print-center/material/:materialId",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
+                "api",
                 "mobile",
                 "print-center",
                 "material",

@@ -10,10 +10,13 @@ const { requireUserType } = require('../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../utils/validators');
 const { singleUpload } = require('../services/fileUpload.service');
+const { transformImageUrlsMiddleware } = require('../middleware/imageUrl.middleware');
 const { z } = require('zod');
 
 // All routes require authentication
 router.use(authenticate);
+// Normalize file URLs (localhost → backend URL) in responses
+router.use(transformImageUrlsMiddleware);
 
 // —— Static paths first (before /:id) so /upload is not matched as id ——
 // POST /api/print-options/upload — form-data: file + colorType, copies, paperType, doubleSide, totalPages (optional)
@@ -43,11 +46,11 @@ const createPrintOptionSchema = z.object({
   bookId: uuidSchema.optional().nullable(),
   materialId: uuidSchema.optional().nullable(),
   uploadedFileUrl: z.string().url().optional().nullable(),
-  // COLOR or BLACK_WHITE
   colorType: z.enum(['COLOR', 'BLACK_WHITE']),
   copies: z.number().int().positive(),
   paperType: z.enum(['A4', 'A3', 'LETTER']),
   doubleSide: z.boolean(),
+  enabled: z.boolean().optional(),
 }).refine(
   (data) => data.bookId || data.materialId || data.uploadedFileUrl,
   {
@@ -64,6 +67,7 @@ const updatePrintOptionSchema = z.object({
   copies: z.number().int().positive().optional(),
   paperType: z.enum(['A4', 'A3', 'LETTER']).optional(),
   doubleSide: z.boolean().optional(),
+  enabled: z.boolean().optional(),
 });
 
 router.post(

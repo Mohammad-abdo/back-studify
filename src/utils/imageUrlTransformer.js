@@ -36,6 +36,14 @@ const transformImageUrls = (data) => {
       transformed.imageUrls = getFullImageUrls(transformed.imageUrls);
     }
 
+    // Transform file URLs (normalize localhost to backend URL)
+    if (transformed.uploadedFileUrl) {
+      transformed.uploadedFileUrl = getFullImageUrl(transformed.uploadedFileUrl);
+    }
+    if (transformed.fileUrl) {
+      transformed.fileUrl = getFullImageUrl(transformed.fileUrl);
+    }
+
     // Recursively transform nested objects
     for (const key in transformed) {
       if (transformed[key] && typeof transformed[key] === 'object') {

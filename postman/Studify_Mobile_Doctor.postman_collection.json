@@ -739,7 +739,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"bookId\": \"book-uuid-here\",\n  \"materialId\": null,\n  \"uploadedFileUrl\": null,\n  \"colorType\": \"COLOR\",\n  \"copies\": 1,\n  \"paperType\": \"A4\",\n  \"doubleSide\": false\n}",
+              "raw": "{\n  \"bookId\": \"book-uuid-here\",\n  \"materialId\": null,\n  \"uploadedFileUrl\": null,\n  \"colorType\": \"COLOR\",\n  \"copies\": 1,\n  \"paperType\": \"A4\",\n  \"doubleSide\": false,\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -824,7 +824,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"colorType\": \"BLACK_WHITE\",\n  \"copies\": 2,\n  \"paperType\": \"A3\",\n  \"doubleSide\": true\n}",
+              "raw": "{\n  \"colorType\": \"BLACK_WHITE\",\n  \"copies\": 2,\n  \"paperType\": \"A3\",\n  \"doubleSide\": true,\n  \"enabled\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"

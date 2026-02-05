@@ -480,6 +480,7 @@ model PrintOption {
   copies         Int
   paperType      PaperType
   doubleSide     Boolean
+  enabled        Boolean    @default(true)
   createdAt      DateTime?  @default(now())
   updatedAt      DateTime?  @updatedAt
 

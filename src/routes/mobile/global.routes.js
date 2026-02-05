@@ -9,6 +9,7 @@ const router = express.Router();
 const categoryController = require('../../controllers/category.controller');
 const collegeController = require('../../controllers/college.controller');
 const productController = require('../../controllers/product.controller');
+const printOptionController = require('../../controllers/printOption.controller');
 const cartRoutes = require('../cart.routes');
 const prisma = require('../../config/database');
 const authenticate = require('../../middleware/auth.middleware');
@@ -109,6 +110,12 @@ router.get('/products', validateQuery(paginationSchema.extend({
   search: z.string().optional(),
 })), productController.getProducts);
 router.get('/products/:id', productController.getProductById);
+
+// ============================================
+// PRINT OPTIONS (Global — book or material by ID)
+// GET /api/mobile/:id/print-options — :id = bookId OR materialId (فلتر صارم)
+// ============================================
+router.get('/:id/print-options', validateQuery(paginationSchema), printOptionController.getPrintOptionsByContentId);
 
 // ============================================
 // CART (Global — one per user)

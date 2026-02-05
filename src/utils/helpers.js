@@ -139,23 +139,33 @@ const sleep = (ms) => {
 };
 
 /**
- * Convert relative image URL to full URL
+ * Convert relative image URL to full URL and normalize localhost to backend URL.
  * Handles:
  * - Relative paths like "/uploads/file.jpg" or "uploads/file.jpg"
- * - Already full URLs (returns as-is)
+ * - Full URLs: if host is localhost/127.0.0.1, replace origin with config.backendUrl (for server deployment)
  * - Null/undefined values (returns null)
  */
 const getFullImageUrl = (imageUrl) => {
   if (!imageUrl) return null;
 
-  // If already a full URL (starts with http:// or https://), return as-is
   if (typeof imageUrl === 'string' && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
-    return imageUrl;
+    try {
+      const u = new URL(imageUrl);
+      if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+        const base = new URL(config.backendUrl);
+        u.protocol = base.protocol;
+        u.hostname = base.hostname;
+        u.port = base.port;
+        return u.toString();
+      }
+      return imageUrl;
+    } catch {
+      return imageUrl;
+    }
   }
 
-  // If it's a relative path, convert to full URL
+  // Relative path: convert to full URL
   if (typeof imageUrl === 'string') {
-    // Remove leading slash if present
     const cleanPath = imageUrl.startsWith('/') ? imageUrl.substring(1) : imageUrl;
     return `${config.backendUrl}/${cleanPath}`;
   }

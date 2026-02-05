@@ -79,6 +79,7 @@ const getBooks = async (req, res, next) => {
       return {
         ...book,
         imageUrls: parsedImageUrls,
+        type: 'BOOK',
       };
     });
 
@@ -144,6 +145,7 @@ const getBookById = async (req, res, next) => {
     const parsedBook = {
       ...book,
       imageUrls: parsedImageUrls,
+      type: 'BOOK',
     };
 
     sendSuccess(res, parsedBook, 'Book retrieved successfully');
