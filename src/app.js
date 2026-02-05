@@ -176,18 +176,19 @@ app.use('/api/delivery-locations', deliveryLocationRoutes);
 app.use('/api/dashboard-metrics', dashboardMetricRoutes);
 app.use('/api/settings', settingsRoutes);
 
-// Explicit global print-options by content ID (avoids 404 when base_url or route order differs)
-// GET /api/mobile/:id/print-options — :id = bookId OR materialId
+// Mobile routes (must be before /api/mobile/:id/print-options so that
+// /api/mobile/student/print-options is handled by student router, not as content id "student")
+app.use('/api/mobile', mobileRoutes);
+
+// Explicit global print-options by content ID — :id = bookId OR materialId (UUID)
+// Only matches when mobile router did not match (e.g. direct use of this path with a UUID).
 app.get(
-  '/api/mobile/:id/print-options',
+  '/api/mobile/print-options',
   authenticate,
   transformImageUrlsMiddleware,
   validateQuery(paginationSchema),
   printOptionController.getPrintOptionsByContentId
 );
-
-// Mobile routes
-app.use('/api/mobile', mobileRoutes);
 
 // Public routes — college & department (no auth)
 app.use('/api/public', publicRoutes);

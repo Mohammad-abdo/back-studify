@@ -112,9 +112,16 @@ router.get('/products', validateQuery(paginationSchema.extend({
 router.get('/products/:id', productController.getProductById);
 
 // ============================================
-// PRINT OPTIONS (Global — book or material by ID)
-// GET /api/mobile/:id/print-options — :id = bookId OR materialId (فلتر صارم)
+// PRINT OPTIONS (Global — all, or filter by book/material in query)
+// GET /api/mobile/print-options?page=1&limit=10 — returns all print options (optional: bookId, materialId, hasUploadedFile)
+// GET /api/mobile/:id/print-options — :id = bookId OR materialId (filter by content)
 // ============================================
+router.get('/print-options', validateQuery(paginationSchema.extend({
+  bookId: uuidSchema.optional(),
+  materialId: uuidSchema.optional(),
+  hasUploadedFile: z.enum(['true', 'false']).optional(),
+})), printOptionController.getPrintOptions);
+router.get('/print-options/:id/quote', printOptionController.getPrintQuote);
 router.get('/:id/print-options', validateQuery(paginationSchema), printOptionController.getPrintOptionsByContentId);
 
 // ============================================
