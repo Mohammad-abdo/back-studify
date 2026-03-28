@@ -17,7 +17,7 @@ const sliderController = require('../../controllers/slider.controller');
 // Public routes (no authentication required)
 router.get('/sliders', sliderController.getSliders);
 
-// Global: categories, colleges (faculties), departments, cart, supplies (products) — any authenticated user
+// Global: public catalog (products, colleges list, product categories); other paths need auth
 router.use('/', globalRoutes);
 
 router.use('/print-center', printCenterRoutes);

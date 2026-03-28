@@ -1,7 +1,8 @@
 /**
  * Mobile Global Routes
  * Categories, Faculties (Colleges), Departments, Cart, Supplies (Products)
- * Available to any authenticated user — not tied to student or any role.
+ * Catalog: GET /products (list + :id), /colleges, /categories/products are public.
+ * Remaining routes require authentication.
  */
 
 const express = require('express');
@@ -20,16 +21,30 @@ const { NotFoundError } = require('../../utils/errors');
 const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
 const { z } = require('zod');
 
-router.use(authenticate);
 router.use(transformImageUrlsMiddleware);
+
+// ============================================
+// PUBLIC — catalog (no auth)
+// ============================================
+router.get('/categories/products', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+})), categoryController.getProductCategories);
+router.get('/colleges', validateQuery(paginationSchema.extend({
+  search: z.string().optional(),
+})), collegeController.getColleges);
+router.get('/products', validateQuery(paginationSchema.extend({
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  search: z.string().optional(),
+})), productController.getProducts);
+router.get('/products/:id', productController.getProductById);
+
+router.use(authenticate);
 
 // ============================================
 // CATEGORIES (Global)
 // ============================================
 router.get('/categories/books', categoryController.getBookCategories);
-router.get('/categories/products', validateQuery(paginationSchema.extend({
-  collegeId: uuidSchema.optional(),
-})), categoryController.getProductCategories);
 router.get('/categories/materials', validateQuery(paginationSchema.extend({
   collegeId: uuidSchema.optional(),
 })), categoryController.getMaterialCategories);
@@ -37,9 +52,6 @@ router.get('/categories/materials', validateQuery(paginationSchema.extend({
 // ============================================
 // COLLEGES / FACULTIES (Global)
 // ============================================
-router.get('/colleges', validateQuery(paginationSchema.extend({
-  search: z.string().optional(),
-})), collegeController.getColleges);
 router.get('/colleges/:id', collegeController.getCollegeById);
 
 // ============================================
@@ -100,16 +112,6 @@ router.get('/departments/:id', async (req, res, next) => {
     next(error);
   }
 });
-
-// ============================================
-// SUPPLIES / PRODUCTS (Global)
-// ============================================
-router.get('/products', validateQuery(paginationSchema.extend({
-  categoryId: uuidSchema.optional(),
-  collegeId: uuidSchema.optional(),
-  search: z.string().optional(),
-})), productController.getProducts);
-router.get('/products/:id', productController.getProductById);
 
 // ============================================
 // PRINT OPTIONS (Global — all, or filter by book/material in query)
