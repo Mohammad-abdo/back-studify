@@ -1,0 +1,503 @@
+paths:
+  /categories/books:
+    get:
+      summary: List book categories
+      tags: [System]
+      responses:
+        '200':
+          description: Book categories retrieved
+    post:
+      summary: Create book category
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Book category created
+
+  /categories/books/{id}:
+    put:
+      summary: Update book category
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Book category updated
+    delete:
+      summary: Delete book category
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Book category deleted
+
+  /categories/products:
+    get:
+      summary: List product categories
+      tags: [System]
+      responses:
+        '200':
+          description: Product categories retrieved
+    post:
+      summary: Create product category
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Product category created
+
+  /categories/products/{id}:
+    put:
+      summary: Update product category
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Product category updated
+    delete:
+      summary: Delete product category
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Product category deleted
+
+  /colleges:
+    get:
+      summary: List colleges
+      tags: [System]
+      responses:
+        '200':
+          description: Colleges retrieved
+    post:
+      summary: Create college
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: College created
+
+  /colleges/{id}:
+    get:
+      summary: Get college by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: College retrieved
+    put:
+      summary: Update college by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: College updated
+    delete:
+      summary: Delete college by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: College deleted
+
+  /departments:
+    get:
+      summary: List departments
+      tags: [System]
+      responses:
+        '200':
+          description: Departments retrieved
+    post:
+      summary: Create department
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Department created
+
+  /departments/{id}:
+    get:
+      summary: Get department by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Department retrieved
+    put:
+      summary: Update department by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Department updated
+    delete:
+      summary: Delete department by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Department deleted
+
+  /onboarding:
+    get:
+      summary: List onboarding items
+      tags: [System]
+      responses:
+        '200':
+          description: Onboarding items retrieved
+    post:
+      summary: Create onboarding item
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Onboarding item created
+
+  /onboarding/{id}:
+    get:
+      summary: Get onboarding item by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Onboarding item retrieved
+    put:
+      summary: Update onboarding item by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Onboarding item updated
+    delete:
+      summary: Delete onboarding item by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Onboarding item deleted
+
+  /static-pages:
+    get:
+      summary: List static pages
+      tags: [System]
+      responses:
+        '200':
+          description: Static pages retrieved
+    post:
+      summary: Create static page
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Static page created
+
+  /static-pages/slug/{slug}:
+    get:
+      summary: Get static page by slug
+      tags: [System]
+      parameters:
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Static page retrieved
+
+  /static-pages/{id}:
+    get:
+      summary: Get static page by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Static page retrieved
+    put:
+      summary: Update static page by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Static page updated
+    delete:
+      summary: Delete static page by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Static page deleted
+
+  /sliders/active:
+    get:
+      summary: List active sliders
+      tags: [System]
+      responses:
+        '200':
+          description: Active sliders retrieved
+
+  /sliders:
+    get:
+      summary: List all sliders
+      tags: [System]
+      responses:
+        '200':
+          description: Sliders retrieved
+    post:
+      summary: Create slider
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Slider created
+
+  /sliders/{id}:
+    get:
+      summary: Get slider by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Slider retrieved
+    put:
+      summary: Update slider by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Slider updated
+    delete:
+      summary: Delete slider by ID
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Slider deleted
+
+  /dashboard-metrics:
+    get:
+      summary: List dashboard metrics
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard metrics retrieved
+    post:
+      summary: Create dashboard metric
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Dashboard metric created
+
+  /dashboard-metrics/{key}:
+    get:
+      summary: Get dashboard metric by key
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Dashboard metric retrieved
+    put:
+      summary: Update dashboard metric by key
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Dashboard metric updated
+    delete:
+      summary: Delete dashboard metric by key
+      tags: [System]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema: { type: string }
+      responses:
+        '204':
+          description: Dashboard metric deleted
+
+  /settings/financial:
+    get:
+      summary: Get financial settings
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Financial settings retrieved
+    put:
+      summary: Update financial settings
+      tags: [System]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Financial settings updated
+
+  /public/colleges:
+    get:
+      summary: Public colleges list
+      tags: [System]
+      responses:
+        '200':
+          description: Public colleges retrieved
+
+  /public/colleges/{id}:
+    get:
+      summary: Public college by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Public college retrieved
+
+  /public/departments:
+    get:
+      summary: Public departments list
+      tags: [System]
+      responses:
+        '200':
+          description: Public departments retrieved
+
+  /public/departments/{id}:
+    get:
+      summary: Public department by ID
+      tags: [System]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Public department retrieved

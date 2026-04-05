@@ -107,3 +107,226 @@ paths:
       responses:
         '204':
           description: Node deleted
+
+  /print-options:
+    get:
+      summary: List print options
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Print options retrieved
+    post:
+      summary: Create a print option
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Print option created
+
+  /print-options/upload:
+    post:
+      summary: Create a print option from uploaded file
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Print option created from uploaded file
+
+  /print-options/{id}:
+    get:
+      summary: Get print option by ID
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print option retrieved
+    put:
+      summary: Update print option by ID
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print option updated
+    delete:
+      summary: Delete print option by ID
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Print option deleted
+
+  /print-options/{id}/quote:
+    get:
+      summary: Get print quote for a print option
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print quote retrieved
+
+  /print-options/{id}/order:
+    post:
+      summary: Create print order from a print option
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Print order created
+
+  /print-order-assignments/track/{orderId}:
+    get:
+      summary: Public print order tracking
+      tags:
+        - Print Center
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Print assignment tracking retrieved
+
+  /print-order-assignments:
+    get:
+      summary: List print order assignments
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Print order assignments retrieved
+
+  /print-order-assignments/order/{orderId}:
+    get:
+      summary: Get print assignment by order ID
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: orderId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Print assignment retrieved
+
+  /print-order-assignments/{id}:
+    get:
+      summary: Get print assignment by ID
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print assignment retrieved
+
+  /print-order-assignments/{id}/delivery-tracking:
+    get:
+      summary: Get delivery tracking for a print assignment
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery tracking retrieved
+
+  /print-order-assignments/{id}/status:
+    patch:
+      summary: Update print assignment status
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print assignment updated

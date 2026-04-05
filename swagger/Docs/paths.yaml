@@ -1,0 +1,32 @@
+paths:
+  /docs/swagger:
+    get:
+      summary: Swagger UI
+      tags: [Docs]
+      responses:
+        '200':
+          description: Swagger UI served
+
+  /docs/swagger.json:
+    get:
+      summary: OpenAPI JSON document
+      tags: [Docs]
+      responses:
+        '200':
+          description: Swagger JSON served
+
+  /docs/postman-collection.json:
+    get:
+      summary: Postman collection JSON
+      tags: [Docs]
+      responses:
+        '200':
+          description: Postman collection served
+
+  /docs:
+    get:
+      summary: Documentation index endpoint
+      tags: [Docs]
+      responses:
+        '200':
+          description: Documentation index served

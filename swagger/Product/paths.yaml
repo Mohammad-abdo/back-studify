@@ -125,3 +125,73 @@ paths:
       responses:
         '200':
           description: Pricing tier added
+
+  /product-pricing:
+    get:
+      summary: List product pricing rows
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Product pricing rows retrieved
+    post:
+      summary: Create a product pricing row
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Product pricing row created
+
+  /product-pricing/{id}:
+    get:
+      summary: Get product pricing by ID
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product pricing retrieved
+    put:
+      summary: Update product pricing by ID
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Product pricing updated
+    delete:
+      summary: Delete product pricing by ID
+      tags:
+        - Products
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Product pricing deleted

@@ -1,0 +1,170 @@
+paths:
+  /permissions:
+    get:
+      summary: List permissions
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Permissions retrieved
+    post:
+      summary: Create a permission
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Permission created
+
+  /permissions/{id}:
+    get:
+      summary: Get permission by ID
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Permission retrieved
+    put:
+      summary: Update permission by ID
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Permission updated
+    delete:
+      summary: Delete permission by ID
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Permission deleted
+
+  /roles:
+    get:
+      summary: List roles
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Roles retrieved
+    post:
+      summary: Create a role
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Role created
+
+  /roles/{id}:
+    get:
+      summary: Get role by ID
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Role retrieved
+    put:
+      summary: Update role by ID
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Role updated
+    delete:
+      summary: Delete role by ID
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Role deleted
+
+  /user-roles:
+    get:
+      summary: List user role assignments
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User role assignments retrieved
+    post:
+      summary: Assign a role to a user
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Role assigned
+
+  /user-roles/user/{userId}:
+    get:
+      summary: Get roles assigned to a user
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: User roles retrieved
+
+  /user-roles/{userId}/{roleId}:
+    delete:
+      summary: Remove a role from a user
+      tags: [Access Control]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string, format: uuid }
+        - in: path
+          name: roleId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Role removed

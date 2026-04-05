@@ -1,0 +1,476 @@
+paths:
+  /mobile/sliders:
+    get:
+      summary: Mobile sliders feed
+      tags: [Mobile]
+      responses:
+        '200':
+          description: Mobile sliders retrieved
+
+  /mobile/categories/products:
+    get:
+      summary: Mobile product categories
+      tags: [Mobile]
+      responses:
+        '200':
+          description: Mobile product categories retrieved
+
+  /mobile/categories/books:
+    get:
+      summary: Mobile book categories
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Mobile book categories retrieved
+
+  /mobile/categories/materials:
+    get:
+      summary: Mobile material categories
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Mobile material categories retrieved
+
+  /mobile/colleges:
+    get:
+      summary: Mobile colleges list
+      tags: [Mobile]
+      responses:
+        '200':
+          description: Mobile colleges retrieved
+
+  /mobile/colleges/{id}:
+    get:
+      summary: Mobile college by ID
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile college retrieved
+
+  /mobile/departments:
+    get:
+      summary: Mobile departments list
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Mobile departments retrieved
+
+  /mobile/departments/{id}:
+    get:
+      summary: Mobile department by ID
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile department retrieved
+
+  /mobile/products:
+    get:
+      summary: Mobile products list
+      tags: [Mobile]
+      responses:
+        '200':
+          description: Mobile products retrieved
+
+  /mobile/products/{id}:
+    get:
+      summary: Mobile product details
+      tags: [Mobile]
+      responses:
+        '200':
+          description: Mobile product retrieved
+
+  /mobile/print-options:
+    get:
+      summary: Mobile print options list
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Mobile print options retrieved
+
+  /mobile/print-options/{id}:
+    get:
+      summary: Mobile print option by ID
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile print option retrieved
+
+  /mobile/print-options/{id}/quote:
+    get:
+      summary: Mobile print quote
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile print quote retrieved
+
+  /mobile/print-options/{id}/order:
+    post:
+      summary: Mobile create print order from print option
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Mobile print order created
+
+  /mobile/{id}/print-options:
+    get:
+      summary: Mobile print options by content ID
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile content print options retrieved
+
+  /mobile/cart:
+    get:
+      summary: Mobile cart
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Mobile cart retrieved
+    delete:
+      summary: Clear mobile cart
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Mobile cart cleared
+
+  /mobile/cart/items:
+    post:
+      summary: Add item to mobile cart
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Mobile cart item added
+
+  /mobile/cart/items/{id}:
+    put:
+      summary: Update mobile cart item
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile cart item updated
+    delete:
+      summary: Remove mobile cart item
+      tags: [Mobile]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Mobile cart item removed
+
+  /mobile/student/profile:
+    get: { summary: Student mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile retrieved } } }
+    put: { summary: Update student mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile updated } } }
+    delete: { summary: Delete student mobile account, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Account deleted } } }
+
+  /mobile/student/profile/student:
+    put: { summary: Update student-specific mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Student profile updated } } }
+
+  /mobile/student/profile/avatar:
+    post: { summary: Upload student avatar, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Avatar uploaded } } }
+
+  /mobile/student/change-password:
+    post: { summary: Student change password, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Password changed } } }
+
+  /mobile/student/books:
+    get: { summary: Student books list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Books retrieved } } }
+
+  /mobile/student/books/{id}:
+    get: { summary: Student book details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book retrieved } } }
+
+  /mobile/student/books/{bookId}/access:
+    post: { summary: Student create book access order, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: bookId, required: true, schema: { type: string, format: uuid } } ], responses: { '201': { description: Access order created } } }
+
+  /mobile/student/materials:
+    get: { summary: Student materials list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Materials retrieved } } }
+
+  /mobile/student/materials/{id}:
+    get: { summary: Student material details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Material retrieved } } }
+
+  /mobile/student/materials/{id}/download:
+    post: { summary: Student material download, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Material download recorded } } }
+
+  /mobile/student/materials/{materialId}/access:
+    post: { summary: Student create material access order, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: materialId, required: true, schema: { type: string, format: uuid } } ], responses: { '201': { description: Access order created } } }
+
+  /mobile/student/orders:
+    get: { summary: Student orders list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Orders retrieved } } }
+    post: { summary: Student create order, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Order created } } }
+
+  /mobile/student/orders/active:
+    get: { summary: Student active orders, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Active orders retrieved } } }
+
+  /mobile/student/orders/{id}:
+    get: { summary: Student order details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Order retrieved } } }
+
+  /mobile/student/orders/{id}/confirm-payment:
+    post: { summary: Student confirm order payment, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Payment confirmed } } }
+
+  /mobile/student/orders/{id}/cancel:
+    post: { summary: Student cancel order, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Order cancelled } } }
+
+  /mobile/student/reviews:
+    get: { summary: Student reviews list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Reviews retrieved } } }
+    post: { summary: Student create review, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Review created } } }
+
+  /mobile/student/reviews/{id}:
+    put: { summary: Student update review, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Review updated } } }
+    delete: { summary: Student delete review, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Review deleted } } }
+
+  /mobile/student/notifications:
+    get: { summary: Student notifications, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications retrieved } } }
+
+  /mobile/student/notifications/unread-count:
+    get: { summary: Student unread notification count, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Count retrieved } } }
+
+  /mobile/student/notifications/{id}/read:
+    put: { summary: Mark student notification read, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Notification updated } } }
+
+  /mobile/student/notifications/read-all:
+    put: { summary: Mark all student notifications read, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications updated } } }
+
+  /mobile/doctor/profile:
+    get: { summary: Doctor mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile retrieved } } }
+    put: { summary: Update doctor mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile updated } } }
+    delete: { summary: Delete doctor mobile account, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Account deleted } } }
+
+  /mobile/doctor/profile/doctor:
+    put: { summary: Update doctor-specific mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Doctor profile updated } } }
+
+  /mobile/doctor/profile/avatar:
+    post: { summary: Upload doctor avatar, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Avatar uploaded } } }
+
+  /mobile/doctor/change-password:
+    post: { summary: Doctor change password, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Password changed } } }
+
+  /mobile/doctor/stats:
+    get: { summary: Doctor dashboard stats, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Stats retrieved } } }
+
+  /mobile/doctor/books:
+    get: { summary: Doctor books list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Books retrieved } } }
+    post: { summary: Doctor create book, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Book created } } }
+
+  /mobile/doctor/books/{id}:
+    get: { summary: Doctor book details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book retrieved } } }
+    put: { summary: Doctor update book, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book updated } } }
+    delete: { summary: Doctor delete book, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book deleted } } }
+
+  /mobile/doctor/books/{bookId}/pricing:
+    get: { summary: Doctor book pricing list, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: bookId, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book pricing retrieved } } }
+
+  /mobile/doctor/books/{bookId}/pricing/{id}:
+    get: { summary: Doctor book pricing details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: bookId, required: true, schema: { type: string, format: uuid } }, { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book pricing retrieved } } }
+    put: { summary: Doctor update book pricing, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: bookId, required: true, schema: { type: string, format: uuid } }, { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book pricing updated } } }
+    delete: { summary: Doctor delete book pricing, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: bookId, required: true, schema: { type: string, format: uuid } }, { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book pricing deleted } } }
+
+  /mobile/doctor/books/{id}/pricing:
+    post: { summary: Doctor create book pricing, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '201': { description: Book pricing created } } }
+
+  /mobile/doctor/books/{id}/stats:
+    get: { summary: Doctor book statistics, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Book statistics retrieved } } }
+
+  /mobile/doctor/books/{id}/reviews:
+    get: { summary: Doctor book reviews, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Reviews retrieved } } }
+
+  /mobile/doctor/orders:
+    get: { summary: Doctor orders list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Orders retrieved } } }
+
+  /mobile/doctor/products:
+    get: { summary: Doctor products list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Products retrieved } } }
+
+  /mobile/doctor/products/{id}:
+    get: { summary: Doctor product details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Product retrieved } } }
+
+  /mobile/doctor/materials:
+    get: { summary: Doctor materials list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Materials retrieved } } }
+    post: { summary: Doctor create material, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Material created } } }
+
+  /mobile/doctor/materials/{id}:
+    get: { summary: Doctor material details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Material retrieved } } }
+    put: { summary: Doctor update material, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Material updated } } }
+    delete: { summary: Doctor delete material, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Material deleted } } }
+
+  /mobile/doctor/materials/{id}/pricing:
+    post: { summary: Doctor create material pricing, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '201': { description: Material pricing created } } }
+
+  /mobile/doctor/notifications:
+    get: { summary: Doctor notifications, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications retrieved } } }
+
+  /mobile/doctor/notifications/unread-count:
+    get: { summary: Doctor unread notification count, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Count retrieved } } }
+
+  /mobile/doctor/notifications/{id}/read:
+    put: { summary: Mark doctor notification read, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Notification updated } } }
+
+  /mobile/doctor/notifications/read-all:
+    put: { summary: Mark all doctor notifications read, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications updated } } }
+
+  /mobile/customer/profile:
+    get: { summary: Customer mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile retrieved } } }
+    put: { summary: Update customer mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile updated } } }
+
+  /mobile/customer/profile/customer:
+    get: { summary: Customer-specific mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Customer profile retrieved } } }
+    put: { summary: Update customer-specific mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Customer profile updated } } }
+
+  /mobile/customer/profile/avatar:
+    post: { summary: Upload customer avatar, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Avatar uploaded } } }
+
+  /mobile/customer/change-password:
+    post: { summary: Customer change password, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Password changed } } }
+
+  /mobile/customer/products:
+    get: { summary: Customer products list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Products retrieved } } }
+
+  /mobile/customer/products/{id}:
+    get: { summary: Customer product details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Product retrieved } } }
+
+  /mobile/customer/orders:
+    get: { summary: Customer wholesale orders, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Orders retrieved } } }
+    post: { summary: Customer create wholesale order, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Order created } } }
+
+  /mobile/customer/orders/{id}:
+    get: { summary: Customer wholesale order details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Order retrieved } } }
+
+  /mobile/customer/orders/{id}/cancel:
+    post: { summary: Customer cancel wholesale order, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Order cancelled } } }
+
+  /mobile/customer/notifications:
+    get: { summary: Customer notifications, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications retrieved } } }
+
+  /mobile/customer/notifications/unread-count:
+    get: { summary: Customer unread notification count, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Count retrieved } } }
+
+  /mobile/customer/notifications/{id}/read:
+    put: { summary: Mark customer notification read, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Notification updated } } }
+
+  /mobile/customer/notifications/read-all:
+    put: { summary: Mark all customer notifications read, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications updated } } }
+
+  /mobile/delivery/profile:
+    get: { summary: Delivery mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile retrieved } } }
+    put: { summary: Update delivery mobile profile, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Profile updated } } }
+
+  /mobile/delivery/status:
+    put: { summary: Update delivery mobile status, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Status updated } } }
+
+  /mobile/delivery/assignments:
+    get: { summary: Delivery assignments list, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Assignments retrieved } } }
+
+  /mobile/delivery/assignments/{id}:
+    get: { summary: Delivery assignment details, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Assignment retrieved } } }
+
+  /mobile/delivery/active-order:
+    get: { summary: Delivery active order, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Active order retrieved } } }
+
+  /mobile/delivery/polylines:
+    post: { summary: Delivery route polylines and ETA, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Polyline data retrieved } } }
+
+  /mobile/delivery/shipping-history:
+    get: { summary: Delivery shipping history, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Shipping history retrieved } } }
+
+  /mobile/delivery/orders/{orderId}/pickup:
+    post: { summary: Delivery mark order picked up, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: orderId, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Order picked up } } }
+
+  /mobile/delivery/orders/{orderId}/deliver:
+    post: { summary: Delivery mark order delivered, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: orderId, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Order delivered } } }
+
+  /mobile/delivery/location:
+    post: { summary: Delivery location update, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Location recorded } } }
+
+  /mobile/delivery/location/history:
+    get: { summary: Delivery location history, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Location history retrieved } } }
+
+  /mobile/delivery/wallet:
+    get: { summary: Delivery wallet, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Wallet retrieved } } }
+
+  /mobile/delivery/wallet/transactions:
+    get: { summary: Delivery wallet transactions, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Transactions retrieved } } }
+
+  /mobile/delivery/notifications:
+    get: { summary: Delivery notifications, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications retrieved } } }
+
+  /mobile/delivery/notifications/unread-count:
+    get: { summary: Delivery unread notification count, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Count retrieved } } }
+
+  /mobile/delivery/notifications/{id}/read:
+    put: { summary: Mark delivery notification read, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { '200': { description: Notification updated } } }
+
+  /mobile/delivery/notifications/read-all:
+    put: { summary: Mark all delivery notifications read, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '200': { description: Notifications updated } } }
+
+  /mobile/print-center/upload:
+    post: { summary: Create mobile print option from upload, tags: [Mobile], security: [ { bearerAuth: [] } ], responses: { '201': { description: Print option created } } }
+
+  /mobile/print-center/book/{bookId}:
+    post: { summary: Create mobile print option for a book, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: bookId, required: true, schema: { type: string, format: uuid } } ], responses: { '201': { description: Print option created } } }
+
+  /mobile/print-center/material/{materialId}:
+    post: { summary: Create mobile print option for a material, tags: [Mobile], security: [ { bearerAuth: [] } ], parameters: [ { in: path, name: materialId, required: true, schema: { type: string, format: uuid } } ], responses: { '201': { description: Print option created } } }

@@ -125,3 +125,233 @@ paths:
       responses:
         '200':
           description: Wallet data
+
+  /delivery-assignments:
+    get:
+      summary: List delivery assignments
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Delivery assignments retrieved
+    post:
+      summary: Create a delivery assignment
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Delivery assignment created
+
+  /delivery-assignments/{id}:
+    get:
+      summary: Get delivery assignment by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery assignment retrieved
+    put:
+      summary: Update delivery assignment by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery assignment updated
+    delete:
+      summary: Delete delivery assignment by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Delivery assignment deleted
+
+  /delivery-locations:
+    get:
+      summary: List delivery location updates
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Delivery locations retrieved
+
+  /delivery-locations/{id}:
+    get:
+      summary: Get delivery location by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery location retrieved
+    delete:
+      summary: Delete delivery location by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Delivery location deleted
+
+  /delivery-wallets:
+    get:
+      summary: List delivery wallets
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Delivery wallets retrieved
+
+  /delivery-wallets/{id}:
+    get:
+      summary: Get delivery wallet by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery wallet retrieved
+    put:
+      summary: Update delivery wallet by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Delivery wallet updated
+
+  /financial-transactions:
+    get:
+      summary: List financial transactions
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Financial transactions retrieved
+    post:
+      summary: Create a financial transaction
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Financial transaction created
+
+  /financial-transactions/{id}:
+    get:
+      summary: Get financial transaction by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Financial transaction retrieved
+    put:
+      summary: Update financial transaction by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Financial transaction updated
+    delete:
+      summary: Delete financial transaction by ID
+      tags:
+        - Delivery
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Financial transaction deleted

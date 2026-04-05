@@ -1,0 +1,253 @@
+paths:
+  /admin/doctors/{id}/approve:
+    post:
+      summary: Approve a doctor
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Doctor approved
+
+  /admin/doctors/{id}/reject:
+    post:
+      summary: Reject a doctor
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Doctor rejected
+
+  /admin/books/{id}/approve:
+    post:
+      summary: Approve a book
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Book approved
+
+  /admin/books/{id}/reject:
+    post:
+      summary: Reject a book
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Book rejected
+
+  /admin/approvals:
+    get:
+      summary: List pending approvals
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Approvals retrieved
+
+  /admin/logs:
+    get:
+      summary: List admin operation logs
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logs retrieved
+
+  /admin/dashboard/stats:
+    get:
+      summary: Get admin dashboard stats
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard stats retrieved
+
+  /admin/users:
+    get:
+      summary: List system users
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Users retrieved
+
+  /admin/users/{id}:
+    get:
+      summary: Get system user by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: User retrieved
+    put:
+      summary: Update system user by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: User updated
+
+  /admin/reviews:
+    get:
+      summary: List reviews for moderation
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reviews retrieved
+
+  /admin/orders:
+    get:
+      summary: List orders for admin monitoring
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Orders retrieved
+
+  /reports:
+    get:
+      summary: List reports
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Reports retrieved
+    post:
+      summary: Create a report
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Report created
+
+  /reports/{id}:
+    get:
+      summary: Get report by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Report retrieved
+    put:
+      summary: Update report by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Report updated
+    delete:
+      summary: Delete report by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Report deleted
+
+  /import-logs:
+    get:
+      summary: List import logs
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Import logs retrieved
+    post:
+      summary: Create an import log
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Import log created
+
+  /import-logs/{id}:
+    get:
+      summary: Get import log by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Import log retrieved
+    delete:
+      summary: Delete import log by ID
+      tags: [Admin]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204':
+          description: Import log deleted
