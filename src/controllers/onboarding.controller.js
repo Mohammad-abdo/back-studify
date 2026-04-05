@@ -3,39 +3,23 @@
  * Handles onboarding-related HTTP requests (Admin only)
  */
 
-const prisma = require('../config/database');
-const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError } = require('../utils/errors');
+const onboardingService = require('../services/onboardingService');
+const { sendSuccess } = require('../utils/response');
 
-/**
- * Get all onboarding items
- */
 const getOnboardingItems = async (req, res, next) => {
   try {
-    const items = await prisma.onboarding.findMany({
-      orderBy: { order: 'asc' },
-    });
-
+    const items = await onboardingService.getOnboardingItems();
     sendSuccess(res, items, 'Onboarding items retrieved successfully');
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Get onboarding item by ID
- */
 const getOnboardingItemById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const item = await prisma.onboarding.findUnique({
-      where: { id },
+    const item = await onboardingService.getOnboardingItemById({
+      id: req.params.id,
     });
-
-    if (!item) {
-      throw new NotFoundError('Onboarding item not found');
-    }
 
     sendSuccess(res, item, 'Onboarding item retrieved successfully');
   } catch (error) {
@@ -43,53 +27,20 @@ const getOnboardingItemById = async (req, res, next) => {
   }
 };
 
-/**
- * Create onboarding item (Admin only)
- */
 const createOnboardingItem = async (req, res, next) => {
   try {
-    const { imageUrl, title, description, order } = req.body;
-
-    const item = await prisma.onboarding.create({
-      data: {
-        imageUrl,
-        title,
-        description,
-        order: order || 0,
-      },
-    });
-
+    const item = await onboardingService.createOnboardingItem(req.body);
     sendSuccess(res, item, 'Onboarding item created successfully', 201);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update onboarding item (Admin only)
- */
 const updateOnboardingItem = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { imageUrl, title, description, order } = req.body;
-
-    const existingItem = await prisma.onboarding.findUnique({
-      where: { id },
-    });
-
-    if (!existingItem) {
-      throw new NotFoundError('Onboarding item not found');
-    }
-
-    const updateData = {};
-    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
-    if (order !== undefined) updateData.order = order;
-
-    const item = await prisma.onboarding.update({
-      where: { id },
-      data: updateData,
+    const item = await onboardingService.updateOnboardingItem({
+      id: req.params.id,
+      ...req.body,
     });
 
     sendSuccess(res, item, 'Onboarding item updated successfully');
@@ -98,23 +49,10 @@ const updateOnboardingItem = async (req, res, next) => {
   }
 };
 
-/**
- * Delete onboarding item (Admin only)
- */
 const deleteOnboardingItem = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const existingItem = await prisma.onboarding.findUnique({
-      where: { id },
-    });
-
-    if (!existingItem) {
-      throw new NotFoundError('Onboarding item not found');
-    }
-
-    await prisma.onboarding.delete({
-      where: { id },
+    await onboardingService.deleteOnboardingItem({
+      id: req.params.id,
     });
 
     sendSuccess(res, null, 'Onboarding item deleted successfully');
@@ -130,5 +68,3 @@ module.exports = {
   updateOnboardingItem,
   deleteOnboardingItem,
 };
-
-

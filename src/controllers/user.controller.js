@@ -3,167 +3,26 @@
  * Handles user-related HTTP requests
  */
 
-const prisma = require('../config/database');
-const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError, ValidationError } = require('../utils/errors');
-const { getFileUrl } = require('../services/fileUpload.service');
+const userService = require('../services/userService');
+const { sendSuccess } = require('../utils/response');
 
-/**
- * Get user profile
- */
 const getProfile = async (req, res, next) => {
   try {
-    const userId = req.userId;
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        student: {
-          include: {
-            college: true,
-            department: true,
-          },
-        },
-        doctor: true,
-        delivery: {
-          include: {
-            wallet: true,
-          },
-        },
-        customer: true,
-        admin: true,
-        userRoles: {
-          include: {
-            role: {
-              include: {
-                permissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+    const user = await userService.getProfile({
+      userId: req.userId,
     });
 
-    if (!user) {
-      throw new NotFoundError('User not found');
-    }
-
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
-
-    // Ensure profile exists for STUDENT type users
-    if (user.type === 'STUDENT' && !user.student) {
-      // Create student profile if it doesn't exist
-      await prisma.student.create({
-        data: {
-          userId: user.id,
-          name: '', // Default empty name, can be updated later
-        },
-      });
-      // Re-fetch user with student profile
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: user.id },
-        include: {
-          student: {
-            include: {
-              college: true,
-              department: true,
-            },
-          },
-          doctor: true,
-          delivery: {
-            include: {
-              wallet: true,
-            },
-          },
-          customer: true,
-          admin: true,
-          userRoles: {
-            include: {
-              role: {
-                include: {
-                  permissions: {
-                    include: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-      if (updatedUser) {
-        Object.assign(user, updatedUser);
-        Object.assign(userWithoutPassword, { ...updatedUser, password: undefined });
-      }
-    }
-
-    // Extract name and username from related profile
-    let name = null;
-    let username = null;
-    if (user.student) {
-      name = user.student.name || '';
-      username = user.student.name || '';
-    } else if (user.doctor) {
-      name = user.doctor.name || '';
-      username = user.doctor.name || '';
-    } else if (user.delivery) {
-      name = user.delivery.name || '';
-      username = user.delivery.name || '';
-    } else if (user.customer) {
-      name = user.customer.contactPerson || user.customer.entityName || '';
-      username = user.customer.contactPerson || user.customer.entityName || '';
-    }
-
-    // Build response object
-    const responseData = {
-      ...userWithoutPassword,
-      name,
-      username,
-      userRole: user.type, // Add userRole as the user type
-      // Add boolean flags for user types
-      isStudent: user.type === 'STUDENT',
-      isDoctor: user.type === 'DOCTOR',
-      isDelivery: user.type === 'DELIVERY',
-      isCustomer: user.type === 'CUSTOMER',
-      isAdmin: user.type === 'ADMIN',
-    };
-
-    sendSuccess(res, responseData, 'Profile retrieved successfully');
+    sendSuccess(res, user, 'Profile retrieved successfully');
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update user profile
- */
 const updateProfile = async (req, res, next) => {
   try {
-    const userId = req.userId;
-    const { email, avatarUrl } = req.body;
-
-    const updateData = {};
-    if (email !== undefined) updateData.email = email;
-    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
-
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: updateData,
-      select: {
-        id: true,
-        phone: true,
-        email: true,
-        avatarUrl: true,
-        type: true,
-        isActive: true,
-        createdAt: true,
-      },
+    const user = await userService.updateProfile({
+      userId: req.userId,
+      ...req.body,
     });
 
     sendSuccess(res, user, 'Profile updated successfully');
@@ -172,105 +31,24 @@ const updateProfile = async (req, res, next) => {
   }
 };
 
-/**
- * Update student profile
- */
 const updateStudentProfile = async (req, res, next) => {
   try {
-    const userId = req.userId;
-    const { name, collegeId, departmentId } = req.body;
-
-    // Check if user is a student
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { student: true },
+    const student = await userService.updateStudentProfile({
+      userId: req.userId,
+      ...req.body,
     });
 
-    if (!user || user.type !== 'STUDENT') {
-      throw new NotFoundError('Student profile not found');
-    }
-
-    if (!user.student) {
-      throw new NotFoundError('Student profile not found');
-    }
-
-    const student = user.student;
-    const updateData = {};
-    
-    // Always allow name updates
-    if (name !== undefined) updateData.name = name;
-
-    // Check college update limit (max 2 times)
-    if (collegeId !== undefined) {
-      if (collegeId !== student.collegeId) {
-        // Only count if actually changing
-        if (student.collegeUpdateCount >= 2) {
-          throw new ValidationError('College can only be updated 2 times. This limit has been reached.');
-        }
-        updateData.collegeId = collegeId;
-        updateData.collegeUpdateCount = student.collegeUpdateCount + 1;
-      }
-    }
-
-    // Check department update limit (max 2 times)
-    if (departmentId !== undefined) {
-      if (departmentId !== student.departmentId) {
-        // Only count if actually changing
-        if (student.departmentUpdateCount >= 2) {
-          throw new ValidationError('Department can only be updated 2 times. This limit has been reached.');
-        }
-        updateData.departmentId = departmentId;
-        updateData.departmentUpdateCount = student.departmentUpdateCount + 1;
-      }
-    }
-
-    const updatedStudent = await prisma.student.update({
-      where: { userId },
-      data: updateData,
-      include: {
-        college: true,
-        department: true,
-      },
-    });
-
-    sendSuccess(res, updatedStudent, 'Student profile updated successfully');
+    sendSuccess(res, student, 'Student profile updated successfully');
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update doctor profile
- */
 const updateDoctorProfile = async (req, res, next) => {
   try {
-    const userId = req.userId;
-    const { name, specialization, collegeId, departmentId } = req.body;
-
-    // Check if user is a doctor
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { doctor: true },
-    });
-
-    if (!user || user.type !== 'DOCTOR') {
-      throw new NotFoundError('Doctor profile not found');
-    }
-
-    const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (specialization !== undefined) updateData.specialization = specialization;
-    // Doctors can update college/department unlimited times
-    if (collegeId !== undefined) updateData.collegeId = collegeId;
-    if (departmentId !== undefined) updateData.departmentId = departmentId;
-
-    const doctor = await prisma.doctor.update({
-      where: { userId },
-      data: updateData,
-      include: {
-        college: true,
-        department: true,
-      },
+    const doctor = await userService.updateDoctorProfile({
+      userId: req.userId,
+      ...req.body,
     });
 
     sendSuccess(res, doctor, 'Doctor profile updated successfully');
@@ -279,29 +57,11 @@ const updateDoctorProfile = async (req, res, next) => {
   }
 };
 
-/**
- * Upload profile image
- */
 const uploadProfileImage = async (req, res, next) => {
   try {
-    const userId = req.userId;
-
-    if (!req.file) {
-      return sendError(res, 'No file uploaded', 400);
-    }
-
-    const avatarUrl = getFileUrl(req.file.filename);
-
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: { avatarUrl },
-      select: {
-        id: true,
-        phone: true,
-        email: true,
-        avatarUrl: true,
-        type: true,
-      },
+    const user = await userService.uploadProfileImage({
+      userId: req.userId,
+      file: req.file,
     });
 
     sendSuccess(res, user, 'Profile image uploaded successfully');
@@ -310,16 +70,10 @@ const uploadProfileImage = async (req, res, next) => {
   }
 };
 
-/**
- * Delete user account
- */
 const deleteAccount = async (req, res, next) => {
   try {
-    const userId = req.userId;
-
-    // Hard delete user (cascade will remove related data)
-    await prisma.user.delete({
-      where: { id: userId },
+    await userService.deleteAccount({
+      userId: req.userId,
     });
 
     sendSuccess(res, null, 'Account deleted successfully');
@@ -327,7 +81,6 @@ const deleteAccount = async (req, res, next) => {
     next(error);
   }
 };
-
 
 module.exports = {
   getProfile,
@@ -337,5 +90,3 @@ module.exports = {
   uploadProfileImage,
   deleteAccount,
 };
-
-

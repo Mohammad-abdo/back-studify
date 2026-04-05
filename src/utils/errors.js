@@ -16,6 +16,12 @@ class AppError extends Error {
   }
 }
 
+class BadRequestError extends AppError {
+  constructor(message = 'Bad request', details = null) {
+    super(message, HTTP_STATUS.BAD_REQUEST, ERROR_CODES.VALIDATION_ERROR, details);
+  }
+}
+
 class ValidationError extends AppError {
   constructor(message, details = null) {
     super(message, HTTP_STATUS.VALIDATION_ERROR, ERROR_CODES.VALIDATION_ERROR, details);
@@ -84,6 +90,7 @@ class RateLimitError extends AppError {
 
 module.exports = {
   AppError,
+  BadRequestError,
   ValidationError,
   AuthenticationError,
   AuthorizationError,

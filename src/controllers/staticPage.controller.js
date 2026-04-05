@@ -3,39 +3,23 @@
  * Handles static page-related HTTP requests (Admin only for management)
  */
 
-const prisma = require('../config/database');
-const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError } = require('../utils/errors');
+const staticPageService = require('../services/staticPageService');
+const { sendSuccess } = require('../utils/response');
 
-/**
- * Get all static pages (Public)
- */
 const getStaticPages = async (req, res, next) => {
   try {
-    const pages = await prisma.staticPage.findMany({
-      orderBy: { updatedAt: 'desc' },
-    });
-
+    const pages = await staticPageService.getStaticPages();
     sendSuccess(res, pages, 'Static pages retrieved successfully');
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Get static page by slug (Public)
- */
 const getStaticPageBySlug = async (req, res, next) => {
   try {
-    const { slug } = req.params;
-
-    const page = await prisma.staticPage.findUnique({
-      where: { slug },
+    const page = await staticPageService.getStaticPageBySlug({
+      slug: req.params.slug,
     });
-
-    if (!page) {
-      throw new NotFoundError('Static page not found');
-    }
 
     sendSuccess(res, page, 'Static page retrieved successfully');
   } catch (error) {
@@ -43,20 +27,11 @@ const getStaticPageBySlug = async (req, res, next) => {
   }
 };
 
-/**
- * Get static page by ID (Admin)
- */
 const getStaticPageById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const page = await prisma.staticPage.findUnique({
-      where: { id },
+    const page = await staticPageService.getStaticPageById({
+      id: req.params.id,
     });
-
-    if (!page) {
-      throw new NotFoundError('Static page not found');
-    }
 
     sendSuccess(res, page, 'Static page retrieved successfully');
   } catch (error) {
@@ -64,71 +39,20 @@ const getStaticPageById = async (req, res, next) => {
   }
 };
 
-/**
- * Create static page (Admin only)
- */
 const createStaticPage = async (req, res, next) => {
   try {
-    const { slug, title, content } = req.body;
-
-    // Check if slug already exists
-    const existingPage = await prisma.staticPage.findUnique({
-      where: { slug },
-    });
-
-    if (existingPage) {
-      throw new Error('Page with this slug already exists');
-    }
-
-    const page = await prisma.staticPage.create({
-      data: {
-        slug,
-        title,
-        content,
-      },
-    });
-
+    const page = await staticPageService.createStaticPage(req.body);
     sendSuccess(res, page, 'Static page created successfully', 201);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update static page (Admin only)
- */
 const updateStaticPage = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { slug, title, content } = req.body;
-
-    const existingPage = await prisma.staticPage.findUnique({
-      where: { id },
-    });
-
-    if (!existingPage) {
-      throw new NotFoundError('Static page not found');
-    }
-
-    // Check if slug is being changed and if it conflicts with another page
-    if (slug && slug !== existingPage.slug) {
-      const slugConflict = await prisma.staticPage.findUnique({
-        where: { slug },
-      });
-
-      if (slugConflict) {
-        throw new Error('Page with this slug already exists');
-      }
-    }
-
-    const updateData = {};
-    if (slug !== undefined) updateData.slug = slug;
-    if (title !== undefined) updateData.title = title;
-    if (content !== undefined) updateData.content = content;
-
-    const page = await prisma.staticPage.update({
-      where: { id },
-      data: updateData,
+    const page = await staticPageService.updateStaticPage({
+      id: req.params.id,
+      ...req.body,
     });
 
     sendSuccess(res, page, 'Static page updated successfully');
@@ -137,23 +61,10 @@ const updateStaticPage = async (req, res, next) => {
   }
 };
 
-/**
- * Delete static page (Admin only)
- */
 const deleteStaticPage = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const existingPage = await prisma.staticPage.findUnique({
-      where: { id },
-    });
-
-    if (!existingPage) {
-      throw new NotFoundError('Static page not found');
-    }
-
-    await prisma.staticPage.delete({
-      where: { id },
+    await staticPageService.deleteStaticPage({
+      id: req.params.id,
     });
 
     sendSuccess(res, null, 'Static page deleted successfully');
@@ -170,5 +81,3 @@ module.exports = {
   updateStaticPage,
   deleteStaticPage,
 };
-
-

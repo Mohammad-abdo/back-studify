@@ -3,57 +3,23 @@
  * Handles report-related HTTP requests (Admin only)
  */
 
-const prisma = require('../config/database');
-const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError } = require('../utils/errors');
+const reportService = require('../services/reportService');
+const { sendSuccess, sendPaginated } = require('../utils/response');
 
-/**
- * Get all reports
- */
 const getReports = async (req, res, next) => {
   try {
-    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { search } = req.query;
-
-    const where = {
-      ...(search && {
-        OR: [
-          { name: { contains: search } },
-        ],
-      }),
-    };
-
-    const [reports, total] = await Promise.all([
-      prisma.report.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.report.count({ where }),
-    ]);
-
-    const pagination = buildPagination(page, limit, total);
-    sendPaginated(res, reports, pagination, 'Reports retrieved successfully');
+    const result = await reportService.getReports(req.query);
+    sendPaginated(res, result.data, result.pagination, 'Reports retrieved successfully');
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Get report by ID
- */
 const getReportById = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const report = await prisma.report.findUnique({
-      where: { id },
+    const report = await reportService.getReportById({
+      id: req.params.id,
     });
-
-    if (!report) {
-      throw new NotFoundError('Report not found');
-    }
 
     sendSuccess(res, report, 'Report retrieved successfully');
   } catch (error) {
@@ -61,49 +27,20 @@ const getReportById = async (req, res, next) => {
   }
 };
 
-/**
- * Create report (Admin only)
- */
 const createReport = async (req, res, next) => {
   try {
-    const { name, fileUrl } = req.body;
-
-    const report = await prisma.report.create({
-      data: {
-        name,
-        fileUrl,
-      },
-    });
-
+    const report = await reportService.createReport(req.body);
     sendSuccess(res, report, 'Report created successfully', 201);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update report (Admin only)
- */
 const updateReport = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { name, fileUrl } = req.body;
-
-    const existingReport = await prisma.report.findUnique({
-      where: { id },
-    });
-
-    if (!existingReport) {
-      throw new NotFoundError('Report not found');
-    }
-
-    const updateData = {};
-    if (name !== undefined) updateData.name = name;
-    if (fileUrl !== undefined) updateData.fileUrl = fileUrl;
-
-    const report = await prisma.report.update({
-      where: { id },
-      data: updateData,
+    const report = await reportService.updateReport({
+      id: req.params.id,
+      ...req.body,
     });
 
     sendSuccess(res, report, 'Report updated successfully');
@@ -112,23 +49,10 @@ const updateReport = async (req, res, next) => {
   }
 };
 
-/**
- * Delete report (Admin only)
- */
 const deleteReport = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const existingReport = await prisma.report.findUnique({
-      where: { id },
-    });
-
-    if (!existingReport) {
-      throw new NotFoundError('Report not found');
-    }
-
-    await prisma.report.delete({
-      where: { id },
+    await reportService.deleteReport({
+      id: req.params.id,
     });
 
     sendSuccess(res, null, 'Report deleted successfully', 204);
@@ -144,5 +68,3 @@ module.exports = {
   updateReport,
   deleteReport,
 };
-
-
