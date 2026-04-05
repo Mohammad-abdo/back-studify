@@ -3,68 +3,32 @@
  * Handles category-related HTTP requests (Admin only)
  */
 
-const prisma = require('../config/database');
-const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError } = require('../utils/errors');
+const categoryService = require('../services/categoryService');
+const { sendSuccess } = require('../utils/response');
 
-/**
- * Get book categories
- */
 const getBookCategories = async (req, res, next) => {
   try {
-    const categories = await prisma.bookCategory.findMany({
-      include: {
-        _count: {
-          select: {
-            books: true,
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
-    });
-
+    const categories = await categoryService.getBookCategories();
     sendSuccess(res, categories, 'Book categories retrieved successfully');
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Create book category (Admin only)
- */
 const createBookCategory = async (req, res, next) => {
   try {
-    const { name } = req.body;
-
-    const category = await prisma.bookCategory.create({
-      data: { name },
-    });
-
+    const category = await categoryService.createBookCategory(req.body);
     sendSuccess(res, category, 'Book category created successfully', 201);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update book category (Admin only)
- */
 const updateBookCategory = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { name } = req.body;
-
-    const existingCategory = await prisma.bookCategory.findUnique({
-      where: { id },
-    });
-
-    if (!existingCategory) {
-      throw new NotFoundError('Book category not found');
-    }
-
-    const category = await prisma.bookCategory.update({
-      where: { id },
-      data: { name },
+    const category = await categoryService.updateBookCategory({
+      id: req.params.id,
+      name: req.body.name,
     });
 
     sendSuccess(res, category, 'Book category updated successfully');
@@ -73,23 +37,10 @@ const updateBookCategory = async (req, res, next) => {
   }
 };
 
-/**
- * Delete book category (Admin only)
- */
 const deleteBookCategory = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const existingCategory = await prisma.bookCategory.findUnique({
-      where: { id },
-    });
-
-    if (!existingCategory) {
-      throw new NotFoundError('Book category not found');
-    }
-
-    await prisma.bookCategory.delete({
-      where: { id },
+    await categoryService.deleteBookCategory({
+      id: req.params.id,
     });
 
     sendSuccess(res, null, 'Book category deleted successfully');
@@ -98,29 +49,10 @@ const deleteBookCategory = async (req, res, next) => {
   }
 };
 
-/**
- * Get product categories
- */
 const getProductCategories = async (req, res, next) => {
   try {
-    const { collegeId } = req.query;
-    const where = {};
-    
-    if (collegeId) {
-      where.collegeId = collegeId;
-    }
-
-    const categories = await prisma.productCategory.findMany({
-      where,
-      include: {
-        college: true,
-        _count: {
-          select: {
-            products: true,
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
+    const categories = await categoryService.getProductCategories({
+      collegeId: req.query.collegeId,
     });
 
     sendSuccess(res, categories, 'Product categories retrieved successfully');
@@ -129,29 +61,10 @@ const getProductCategories = async (req, res, next) => {
   }
 };
 
-/**
- * Get material categories
- */
 const getMaterialCategories = async (req, res, next) => {
   try {
-    const { collegeId } = req.query;
-    const where = {};
-    
-    if (collegeId) {
-      where.collegeId = collegeId;
-    }
-
-    const categories = await prisma.materialCategory.findMany({
-      where,
-      include: {
-        college: true,
-        _count: {
-          select: {
-            materials: true,
-          },
-        },
-      },
-      orderBy: { name: 'asc' },
+    const categories = await categoryService.getMaterialCategories({
+      collegeId: req.query.collegeId,
     });
 
     sendSuccess(res, categories, 'Material categories retrieved successfully');
@@ -160,42 +73,20 @@ const getMaterialCategories = async (req, res, next) => {
   }
 };
 
-/**
- * Create product category (Admin only)
- */
 const createProductCategory = async (req, res, next) => {
   try {
-    const { name } = req.body;
-
-    const category = await prisma.productCategory.create({
-      data: { name },
-    });
-
+    const category = await categoryService.createProductCategory(req.body);
     sendSuccess(res, category, 'Product category created successfully', 201);
   } catch (error) {
     next(error);
   }
 };
 
-/**
- * Update product category (Admin only)
- */
 const updateProductCategory = async (req, res, next) => {
   try {
-    const { id } = req.params;
-    const { name } = req.body;
-
-    const existingCategory = await prisma.productCategory.findUnique({
-      where: { id },
-    });
-
-    if (!existingCategory) {
-      throw new NotFoundError('Product category not found');
-    }
-
-    const category = await prisma.productCategory.update({
-      where: { id },
-      data: { name },
+    const category = await categoryService.updateProductCategory({
+      id: req.params.id,
+      name: req.body.name,
     });
 
     sendSuccess(res, category, 'Product category updated successfully');
@@ -204,23 +95,10 @@ const updateProductCategory = async (req, res, next) => {
   }
 };
 
-/**
- * Delete product category (Admin only)
- */
 const deleteProductCategory = async (req, res, next) => {
   try {
-    const { id } = req.params;
-
-    const existingCategory = await prisma.productCategory.findUnique({
-      where: { id },
-    });
-
-    if (!existingCategory) {
-      throw new NotFoundError('Product category not found');
-    }
-
-    await prisma.productCategory.delete({
-      where: { id },
+    await categoryService.deleteProductCategory({
+      id: req.params.id,
     });
 
     sendSuccess(res, null, 'Product category deleted successfully');
@@ -240,4 +118,3 @@ module.exports = {
   deleteProductCategory,
   getMaterialCategories,
 };
-
