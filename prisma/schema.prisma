@@ -18,7 +18,7 @@ enum UserType {
   STUDENT
   DOCTOR
   DELIVERY
-  CUSTOMER
+  INSTITUTE
   ADMIN
   PRINT_CENTER
 }
@@ -29,10 +29,41 @@ enum ApprovalStatus {
   REJECTED
 }
 
-enum BookAccessType {
+enum ContentType {
+  BOOK
+  MATERIAL
+}
+
+enum ContentAccessType {
   READ
-  BUY
+  DOWNLOAD
   PRINT
+}
+
+enum CartItemType {
+  CONTENT
+  PRODUCT
+  PRINT_OPTION
+}
+
+enum OrderItemType {
+  CONTENT
+  PRODUCT
+  PRINT_OPTION
+}
+
+enum MessageSender {
+  USER
+  AI
+}
+
+enum MaterialType {
+  LECTURE_NOTE
+  SUMMARY
+  PAST_EXAM
+  ASSIGNMENT
+  SLIDES
+  OTHER
 }
 
 enum OrderStatus {
@@ -54,19 +85,12 @@ enum PaymentMethod {
 // Distinguish between different order domains
 enum OrderType {
   PRODUCT  // Cart / physical products
-  CONTENT  // Books & materials (READ, BUY, PRINT access)
-  PRINT    // Dedicated print-center jobs (optional, currently we use CONTENT + PRINT access)
+  CONTENT  // Books & materials (READ, DOWNLOAD, PRINT access)
 }
 
 enum ReviewTarget {
-  BOOK
+  CONTENT
   PRODUCT
-  MATERIAL
-}
-
-enum ImportType {
-  PRODUCT
-  BOOK
 }
 
 enum DeliveryStatus {
@@ -99,16 +123,6 @@ enum TransactionStatus {
   CANCELLED
 }
 
-enum AdminOperationType {
-  CREATE
-  UPDATE
-  DELETE
-  APPROVE
-  REJECT
-  IMPORT
-  EXPORT
-  SYSTEM
-}
 
 // ============================================
 // DOMAIN 1: AUTH & IDENTITY
@@ -128,7 +142,7 @@ model User {
   student       Student?
   doctor        Doctor?
   delivery      Delivery?
-  customer      Customer?
+  institute     Institute?
   admin         Admin?
   printCenter   PrintCenter?
   otpCodes      OTPVerification[]
@@ -137,27 +151,12 @@ model User {
   reviews       Review[]
   notifications Notification[]
   chatSessions  AIChatSession[]
-  userRoles     UserRole[]
+  contentAccesses UserContentAccess[]
 
   @@index([phone])
   @@index([email])
   @@index([type])
   @@map("users")
-}
-
-model OTPVerification {
-  id        String   @id @default(uuid())
-  userId    String
-  code      String
-  expiresAt DateTime
-  isUsed    Boolean  @default(false)
-  createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([userId, code])
-  @@map("otp_verifications")
 }
 
 model Student {
@@ -194,8 +193,7 @@ model Doctor {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   college    College?    @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   department Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  books      Book[]
-  materials  Material[]
+  contents   Content[]
 
   @@index([userId])
   @@index([collegeId])
@@ -224,6 +222,34 @@ model Delivery {
   @@map("deliveries")
 }
 
+model Admin {
+  id     String @id @default(uuid())
+  userId String @unique
+
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  operations AdminOperationLog[]
+
+  @@index([userId])
+  @@map("admins")
+}
+model PrintCenter {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  name      String
+  location  String?
+  address   String?  @db.Text
+  latitude  Float?
+  longitude Float?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printAssignments  PrintOrderAssignment[]
+
+  @@index([userId])
+  @@index([isActive])
+  @@map("print_centers")
+}
 model DeliveryWallet {
   id         String   @id @default(uuid())
   deliveryId String   @unique
@@ -269,101 +295,34 @@ model DeliveryAssignment {
   @@map("delivery_assignments")
 }
 
-model Customer {
+model Institute {
   id            String   @id @default(uuid())
   userId        String   @unique
-  entityName    String
-  contactPerson String
-  phone         String
+  instituteName String
   createdAt     DateTime @default(now())
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   wholesaleOrders WholesaleOrder[]
 
   @@index([userId])
-  @@map("customers")
+  @@map("institutes")
 }
 
-model Admin {
-  id     String @id @default(uuid())
-  userId String @unique
-
-  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  operations AdminOperationLog[]
-
-  @@index([userId])
-  @@map("admins")
-}
-
-model PrintCenter {
+model OTPVerification {
   id        String   @id @default(uuid())
-  userId    String   @unique
-  name      String
-  location  String?
-  address   String?  @db.Text
-  latitude  Float?
-  longitude Float?
-  isActive  Boolean  @default(true)
+  userId    String
+  code      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  printAssignments  PrintOrderAssignment[]
-
-  @@index([userId])
-  @@index([isActive])
-  @@map("print_centers")
-}
-
-// ============================================
-// DOMAIN 2: ROLES & PERMISSIONS (RBAC)
-// ============================================
-
-model Role {
-  id   String @id @default(uuid())
-  name String @unique
-
-  permissions RolePermission[]
-  userRoles   UserRole[]
-
-  @@map("roles")
-}
-
-model Permission {
-  id  String @id @default(uuid())
-  key String @unique
-
-  rolePermissions RolePermission[]
-
-  @@map("permissions")
-}
-
-model RolePermission {
-  id           String @id @default(uuid())
-  roleId       String
-  permissionId String
-
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-
-  @@unique([roleId, permissionId])
-  @@index([roleId])
-  @@index([permissionId])
-  @@map("role_permissions")
-}
-
-model UserRole {
-  id     String @id @default(uuid())
-  userId String
-  roleId String
-
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, roleId])
   @@index([userId])
-  @@index([roleId])
-  @@map("user_roles")
+  @@index([userId, code])
+  @@map("otp_verifications")
 }
+
 
 // ============================================
 // DOMAIN 3: COLLEGE & DEPARTMENT
@@ -377,10 +336,9 @@ model College {
   departments         Department[]
   students            Student[]
   doctors             Doctor[]
-  books               Book[]
-  materials           Material[]
+  contents            Content[]
   productCategories   ProductCategory[]
-  materialCategories  MaterialCategory[]
+  contentCategories   ContentCategory[]
 
   @@map("colleges")
 }
@@ -394,117 +352,30 @@ model Department {
   college   College    @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   students  Student[]
   doctors   Doctor[]
-  books     Book[]
-  materials Material[]
+  contents  Content[]
 
   @@index([collegeId])
   @@map("departments")
 }
 
 // ============================================
-// DOMAIN 4: BOOKS
+// DOMAIN 4: CONTENT
 // ============================================
 
-model BookCategory {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
-
-  books Book[]
-
-  @@map("book_categories")
-}
-
-model MaterialCategory {
+model ContentCategory {
   id        String   @id @default(uuid())
   name      String
   collegeId String?
   createdAt DateTime @default(now())
 
-  college   College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
-  materials Material[]
+  college  College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  contents Content[]
 
   @@index([collegeId])
-  @@map("material_categories")
+  @@map("content_categories")
 }
 
-model Book {
-  id             String         @id @default(uuid())
-  title          String
-  description    String         @db.Text
-  fileUrl        String
-  imageUrls      String?        @db.Text // JSON array of image URLs
-  totalPages     Int
-  categoryId     String
-  doctorId       String
-  collegeId      String?
-  departmentId   String?
-  approvalStatus ApprovalStatus @default(PENDING)
-  createdAt      DateTime       @default(now())
-
-  category     BookCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  college      College?      @relation(fields: [collegeId], references: [id], onDelete: SetNull)
-  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  pricing      BookPricing[]
-  printOptions PrintOption[]
-
-  @@index([categoryId])
-  @@index([doctorId])
-  @@index([collegeId])
-  @@index([departmentId])
-  @@index([approvalStatus])
-  @@map("books")
-}
-
-model BookPricing {
-  id             String         @id @default(uuid())
-  bookId         String
-  accessType     BookAccessType
-  price          Float
-  approvalStatus ApprovalStatus @default(PENDING)
-
-  book Book @relation(fields: [bookId], references: [id], onDelete: Cascade)
-
-  @@unique([bookId, accessType])
-  @@index([bookId])
-  @@map("book_pricing")
-}
-
-model PrintOption {
-  id             String     @id @default(uuid())
-  bookId         String?
-  materialId     String?
-  uploadedFileUrl String?
-  colorType      ColorType
-  copies         Int
-  paperType      PaperType
-  doubleSide     Boolean
-  enabled        Boolean    @default(true)
-  createdAt      DateTime?  @default(now())
-  updatedAt      DateTime?  @updatedAt
-
-  book     Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  material Material? @relation(fields: [materialId], references: [id], onDelete: Cascade)
-
-  @@index([bookId])
-  @@index([materialId])
-  @@map("print_options")
-}
-enum ColorType {
-  COLOR
-  BLACK_WHITE
-}
-enum PaperType {
-  A4
-  A3
-  LETTER
-}
-// ============================================
-// DOMAIN 4.5: MATERIALS
-// ============================================
-
-model Material {
+model Content {
   id             String         @id @default(uuid())
   title          String
   description    String         @db.Text
@@ -515,40 +386,87 @@ model Material {
   doctorId       String
   collegeId      String?
   departmentId   String?
-  materialType   String         // "LECTURE_NOTE", "SUMMARY", "FINAL_EXAM", etc.
+  type           ContentType
+  materialType   MaterialType?
   downloads      Int            @default(0)
   rating         Float          @default(0)
   approvalStatus ApprovalStatus @default(PENDING)
   createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  category     MaterialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  doctor       Doctor           @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  college      College?         @relation(fields: [collegeId], references: [id], onDelete: SetNull)
-  department   Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
-  pricing      MaterialPricing[]
-  printOptions PrintOption[]
+  category            ContentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  doctor              Doctor          @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  college             College?        @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department          Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  pricing             ContentPricing[]
+  printOptions        PrintOption[]
+  userAccesses        UserContentAccess[]
 
   @@index([categoryId])
   @@index([doctorId])
   @@index([collegeId])
   @@index([departmentId])
+  @@index([type])
   @@index([approvalStatus])
   @@index([materialType])
-  @@map("materials")
+  @@map("contents")
 }
 
-model MaterialPricing {
+model ContentPricing {
   id             String         @id @default(uuid())
-  materialId     String
-  accessType     BookAccessType // READ, BUY, PRINT
+  contentId      String
+  accessType     ContentAccessType
   price          Float
   approvalStatus ApprovalStatus @default(PENDING)
 
-  material Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
 
-  @@unique([materialId, accessType])
-  @@index([materialId])
-  @@map("material_pricing")
+  @@unique([contentId, accessType])
+  @@index([contentId])
+  @@map("content_pricing")
+}
+
+model UserContentAccess {
+  id         String         @id @default(uuid())
+  userId     String
+  contentId  String
+  accessType ContentAccessType
+  grantedAt  DateTime       @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentId, accessType])
+  @@index([userId])
+  @@index([contentId])
+  @@map("user_content_access")
+}
+
+model PrintOption {
+  id              String     @id @default(uuid())
+  contentId       String?
+  uploadedFileUrl String?
+  colorType       ColorType
+  copies          Int
+  paperType       PaperType
+  doubleSide      Boolean
+  enabled         Boolean    @default(true)
+  createdAt       DateTime?  @default(now())
+  updatedAt       DateTime?  @updatedAt
+
+  content Content? @relation(fields: [contentId], references: [id], onDelete: Cascade)
+
+  @@index([contentId])
+  @@map("print_options")
+}
+enum ColorType {
+  COLOR
+  BLACK_WHITE
+}
+enum PaperType {
+  A4
+  A3
+  LETTER
 }
 
 // ============================================
@@ -575,6 +493,7 @@ model Product {
   imageUrls   String?  @db.Text // JSON array of image URLs
   categoryId  String
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   category            ProductCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   pricing             ProductPricing[]
@@ -637,7 +556,7 @@ model Cart {
 model CartItem {
   id            String   @id @default(uuid())
   cartId        String
-  referenceType String   // "BOOK", "PRODUCT", "MATERIAL", "PRINT_OPTION"
+  referenceType CartItemType
   referenceId   String
   quantity      Int      @default(1)
   createdAt     DateTime @default(now())
@@ -672,6 +591,7 @@ model Order {
   items           OrderItem[]
   assignment      DeliveryAssignment?
   printAssignment PrintOrderAssignment?
+  transactions    FinancialTransaction[]
 
   @@index([userId])
   @@index([status])
@@ -703,7 +623,7 @@ model PrintOrderAssignment {
 model OrderItem {
   id            String @id @default(uuid())
   orderId       String
-  referenceType String // "BOOK", "PRODUCT", "PRINT_OPTION", "MATERIAL"
+  referenceType OrderItemType
   referenceId   String
   quantity      Int
   price         Float
@@ -792,7 +712,7 @@ model AIChatSession {
 model AIChatMessage {
   id        String   @id @default(uuid())
   sessionId String
-  sender    String // "USER" or "AI"
+  sender    MessageSender
   message   String   @db.Text
   createdAt DateTime @default(now())
 
@@ -803,20 +723,8 @@ model AIChatMessage {
 }
 
 // ============================================
-// DOMAIN 9: REPORTS & IMPORT
+// DOMAIN 9: REPORTS
 // ============================================
-
-model ImportLog {
-  id        String     @id @default(uuid())
-  type      ImportType
-  fileUrl   String
-  success   Int
-  failed    Int
-  createdAt DateTime   @default(now())
-
-  @@index([type])
-  @@map("import_logs")
-}
 
 model Report {
   id        String   @id @default(uuid())
@@ -833,16 +741,16 @@ model Report {
 
 model WholesaleOrder {
   id         String      @id @default(uuid())
-  customerId String
+  instituteId String
   total      Float
   status     OrderStatus @default(CREATED)
   address    String?     @db.Text
   createdAt  DateTime    @default(now())
 
-  customer Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  items    WholesaleOrderItem[]
+  institute Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
+  items     WholesaleOrderItem[]
 
-  @@index([customerId])
+  @@index([instituteId])
   @@index([status])
   @@index([createdAt])
   @@map("wholesale_orders")
@@ -880,6 +788,7 @@ model FinancialTransaction {
   completedAt DateTime?
 
   delivery Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@index([type])
   @@index([status])
@@ -892,27 +801,6 @@ model FinancialTransaction {
 // ============================================
 // DOMAIN 13: ADMIN OPERATIONS & DASHBOARD
 // ============================================
-
-model AdminOperationLog {
-  id            String             @id @default(uuid())
-  adminId       String
-  operationType AdminOperationType
-  entityType    String
-  entityId      String?
-  description   String?            @db.Text
-  metadata      Json?
-  ipAddress     String?
-  userAgent     String?
-  createdAt     DateTime           @default(now())
-
-  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
-
-  @@index([adminId])
-  @@index([operationType])
-  @@index([entityType, entityId])
-  @@index([createdAt])
-  @@map("admin_operation_logs")
-}
 
 model DashboardMetric {
   id        String   @id @default(uuid())
