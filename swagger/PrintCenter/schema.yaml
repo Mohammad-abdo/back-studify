@@ -1,0 +1,77 @@
+components:
+  schemas:
+    PrintCenter:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        location:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    PrintCenterCreateRequest:
+      type: object
+      required:
+        - phone
+        - password
+        - name
+      properties:
+        phone:
+          type: string
+        password:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        name:
+          type: string
+        location:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+
+    PrintCenterUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        location:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          nullable: true
+        longitude:
+          type: number
+          nullable: true
+        isActive:
+          type: boolean

@@ -8,17 +8,36 @@ const helmet = require('helmet');
 const path = require('path');
 const config = require('./config/env');
 const errorHandler = require('./middleware/error.middleware');
-const { apiLimiter } = require('./middleware/rateLimit.middleware');
+// const { apiLimiter } = require('./middleware/rateLimit.middleware');
 const { sendError } = require('./utils/response');
 const { HTTP_STATUS } = require('./utils/constants');
 
 // Initialize Express app
 const app = express();
 
+const LOCAL_DEV_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/i;
+const configuredCorsOrigins = Array.isArray(config.corsOrigin) ? new Set(config.corsOrigin) : null;
+
+const corsOriginResolver = (origin, callback) => {
+  if (!origin || config.corsOrigin === '*') {
+    return callback(null, true);
+  }
+
+  if (config.nodeEnv === 'development' && LOCAL_DEV_ORIGIN_PATTERN.test(origin)) {
+    return callback(null, true);
+  }
+
+  if (configuredCorsOrigins?.has(origin)) {
+    return callback(null, true);
+  }
+
+  return callback(null, false);
+};
+
 // CORS configuration – allow frontend origins (Vercel, localhost, etc.)
 app.use(
   cors({
-    origin: config.corsOrigin,
+    origin: corsOriginResolver,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
@@ -62,11 +81,12 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Rate limiting
-app.use('/api', apiLimiter);
+// app.use('/api', apiLimiter);
 
 // Health check routes
 const healthRoutes = require('./routes/health.routes');
 app.use('/health', healthRoutes);
+app.use('/api/health', healthRoutes);
 
 // Documentation routes
 const docsRoutes = require('./routes/docs.routes');
@@ -210,7 +230,7 @@ const PORT = config.port;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📝 Environment: ${config.nodeEnv}`);
-  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/api/health (legacy: /health)`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api/docs/swagger`);
   console.log(`📥 Postman Collection: http://localhost:${PORT}/api/docs/postman-collection.json`);
 });

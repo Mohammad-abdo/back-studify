@@ -1,0 +1,109 @@
+paths:
+  /print-centers:
+    post:
+      summary: Create print center account (Admin only)
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrintCenterCreateRequest'
+      responses:
+        '201':
+          description: Print center created
+        '400':
+          description: Validation error
+    get:
+      summary: List all registered print centers (Admin only)
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: search
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of print centers
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Paginated'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/PrintCenter'
+
+  /print-centers/{id}:
+    get:
+      summary: Get print center by ID
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Print center details
+    put:
+      summary: Update print center configuration
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrintCenterUpdateRequest'
+      responses:
+        '200':
+          description: Configuration updated
+    delete:
+      summary: Unregister and delete print center account
+      tags:
+        - Print Center
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Node deleted

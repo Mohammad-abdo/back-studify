@@ -1,0 +1,69 @@
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        categoryId:
+          type: string
+          format: uuid
+
+    ProductCreateRequest:
+      type: object
+      required:
+        - name
+        - description
+        - categoryId
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        categoryId:
+          type: string
+          format: uuid
+
+    ProductUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        categoryId:
+          type: string
+          format: uuid
+
+    ProductPricingRequest:
+      type: object
+      required:
+        - minQuantity
+        - price
+      properties:
+        minQuantity:
+          type: integer
+          minimum: 1
+        price:
+          type: number
+          minimum: 0

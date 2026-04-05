@@ -88,7 +88,7 @@ studify-backend/
    npm run dev
    ```
 
-The server will start on `http://localhost:6000` (or the port specified in your `.env` file).
+The server will start on `http://localhost:6001` (or the port specified in your `.env` file).
 
 ## 📝 Environment Variables
 
@@ -116,7 +116,7 @@ API documentation will be available at `/api/docs` (to be implemented).
 
 ### Base URL
 ```
-http://localhost:6000/api
+http://localhost:6001/api
 ```
 
 ### Authentication

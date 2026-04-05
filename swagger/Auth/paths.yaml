@@ -1,0 +1,120 @@
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '201':
+          description: User registered, OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/login:
+    post:
+      summary: Login to obtain access token
+      description: For mobile apps send clientType (STUDENT, DOCTOR, DELIVERY, CUSTOMER, PRINT_CENTER, ADMIN). Only users of that type get a token; others get 403. Omit clientType for admin panel.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '403':
+          description: User type does not match clientType (e.g. student credentials on delivery app)
+
+  /auth/delivery/login:
+    post:
+      summary: Specialized login for delivery personnel
+      description: Returns additional nested data like wallet and delivery profile
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthDeliveryLoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthDeliveryLoginResponse'
+
+  /auth/verify-otp:
+    post:
+      summary: Verify OTP code after registration or password reset
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthVerifyOtpRequest'
+      responses:
+        '200':
+          description: Verified successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+
+  /auth/resend-otp:
+    post:
+      summary: Resend OTP code
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthResendOtpRequest'
+      responses:
+        '200':
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+
+  /auth/profile:
+    get:
+      summary: Get current user profile
+      tags:
+        - Auth
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthProfileResponse'

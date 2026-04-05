@@ -10,11 +10,12 @@ const { HTTP_STATUS } = require('../utils/constants');
 /**
  * General API rate limiter
  * Skip /auth so login & profile don't consume the global limit (they use authLimiter)
+ * Skip /docs so Swagger UI and API documentation don't get rate limited
  */
 const apiLimiter = rateLimit({
   windowMs: config.rateLimitWindowMs,
   max: config.rateLimitMax,
-  skip: (req) => req.path.startsWith('/auth'),
+  skip: (req) => req.path.startsWith('/auth') || req.path.startsWith('/docs'),
   message: {
     success: false,
     error: {

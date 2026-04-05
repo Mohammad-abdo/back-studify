@@ -1,0 +1,86 @@
+paths:
+  /users/profile:
+    get:
+      summary: Get current authenticated user profile
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfileResponse'
+    put:
+      summary: Update common profile fields
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileUpdateRequest'
+      responses:
+        '200':
+          description: Profile updated
+    delete:
+      summary: Delete user account
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Account deleted
+
+  /users/profile/image:
+    post:
+      summary: Upload profile avatar image
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfileImageUploadRequest'
+      responses:
+        '200':
+          description: Image uploaded
+
+  /users/student/profile:
+    put:
+      summary: Update student-specific profile data
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentProfileUpdateRequest'
+      responses:
+        '200':
+          description: Student profile updated
+
+  /users/doctor/profile:
+    put:
+      summary: Update doctor-specific profile data
+      tags:
+        - Users
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DoctorProfileUpdateRequest'
+      responses:
+        '200':
+          description: Doctor profile updated

@@ -1,0 +1,118 @@
+components:
+  schemas:
+    Book:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        fileUrl:
+          type: string
+          format: uri
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        totalPages:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        doctorId:
+          type: string
+          format: uuid
+        collegeId:
+          type: string
+          format: uuid
+          nullable: true
+        departmentId:
+          type: string
+          format: uuid
+          nullable: true
+        approvalStatus:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+
+    BookCreateRequest:
+      type: object
+      required:
+        - title
+        - description
+        - fileUrl
+        - totalPages
+        - categoryId
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        fileUrl:
+          type: string
+          format: uri
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        totalPages:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        collegeId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+
+    BookUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        fileUrl:
+          type: string
+          format: uri
+        imageUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+        totalPages:
+          type: integer
+        categoryId:
+          type: string
+          format: uuid
+        collegeId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+
+    BookPricingRequest:
+      type: object
+      required:
+        - accessType
+        - price
+      properties:
+        accessType:
+          type: string
+          enum:
+            - READ
+            - BUY
+            - PRINT
+        price:
+          type: number
+          minimum: 0

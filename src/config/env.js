@@ -5,6 +5,9 @@
 
 require('dotenv').config();
 
+const port = process.env.PORT || '6000';
+const nodeEnv = process.env.NODE_ENV || 'development';
+
 const requiredEnvVars = [
   'DATABASE_URL',
   'JWT_SECRET',
@@ -23,8 +26,8 @@ if (missingVars.length > 0) {
 
 const config = {
   // Server
-  port: process.env.PORT || 6000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  port,
+  nodeEnv,
 
   // Database
   databaseUrl: process.env.DATABASE_URL,
@@ -39,7 +42,7 @@ const config = {
   corsOrigin: (() => {
     const raw = process.env.CORS_ORIGIN;
     const defaults = ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:3000', 'http://localhost:5000'];
-    if (!raw) return process.env.NODE_ENV === 'development' ? defaults : '*';
+    if (!raw) return nodeEnv === 'development' ? defaults : '*';
     if (Array.isArray(raw)) return raw;
     if (typeof raw === 'string') {
       if (raw.trim() === '*') return '*';
@@ -82,7 +85,7 @@ const config = {
 
   // App URLs
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
-  backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
+  backendUrl: process.env.BACKEND_URL || `http://localhost:${port}`,
 };
 
 module.exports = config;

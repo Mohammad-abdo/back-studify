@@ -1,0 +1,59 @@
+components:
+  schemas:
+    Delivery:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        vehicleType:
+          type: string
+        vehiclePlateNumber:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - ON_DELIVERY
+            - OFFLINE
+
+    DeliveryProfileUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        vehicleType:
+          type: string
+        vehiclePlateNumber:
+          type: string
+
+    DeliveryStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - ON_DELIVERY
+            - OFFLINE
+
+    DeliveryLocationUpdateRequest:
+      type: object
+      required:
+        - latitude
+        - longitude
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+        address:
+          type: string

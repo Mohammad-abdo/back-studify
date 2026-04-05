@@ -1,0 +1,208 @@
+components:
+  schemas:
+    AuthRegisterRequest:
+      type: object
+      required:
+        - phone
+        - password
+        - type
+      properties:
+        phone:
+          type: string
+          example: '+201234567890'
+        password:
+          type: string
+          example: 'Password123!'
+        type:
+          type: string
+          enum:
+            - STUDENT
+            - DOCTOR
+            - DELIVERY
+            - CUSTOMER
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        name:
+          type: string
+          example: John Doe
+        collegeId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+
+    AuthLoginRequest:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        phone:
+          type: string
+          example: '+201234567890'
+        password:
+          type: string
+          example: 'Password123!'
+        clientType:
+          type: string
+          description: Required for mobile, only this user type gets token
+          enum:
+            - STUDENT
+            - DOCTOR
+            - DELIVERY
+            - CUSTOMER
+            - PRINT_CENTER
+            - ADMIN
+
+    AuthDeliveryLoginRequest:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        phone:
+          type: string
+          example: '+201234567890'
+        password:
+          type: string
+          example: 'Password123!'
+
+    AuthVerifyOtpRequest:
+      type: object
+      required:
+        - userId
+        - code
+      properties:
+        userId:
+          type: string
+          format: uuid
+        code:
+          type: string
+          example: '1234'
+
+    AuthResendOtpRequest:
+      type: object
+      required:
+        - userId
+      properties:
+        userId:
+          type: string
+          format: uuid
+
+    AuthLoginData:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        token:
+          type: string
+          example: eyJhbG...
+        refreshToken:
+          type: string
+          example: eyJhbG...
+
+    AuthLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Login successful
+        data:
+          $ref: '#/components/schemas/AuthLoginData'
+
+    DeliveryWallet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        deliveryId:
+          type: string
+          format: uuid
+        balance:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+
+    AuthDeliveryLoginData:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        vehicleType:
+          type: string
+        vehiclePlateNumber:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - AVAILABLE
+            - ON_DELIVERY
+            - OFFLINE
+        createdAt:
+          type: string
+          format: date-time
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            phone:
+              type: string
+            email:
+              type: string
+              format: email
+              nullable: true
+            avatarUrl:
+              type: string
+              format: uri
+              nullable: true
+        wallet:
+          allOf:
+            - $ref: '#/components/schemas/DeliveryWallet'
+          nullable: true
+        token:
+          type: string
+          example: eyJhbG...
+        refreshToken:
+          type: string
+          example: eyJhbG...
+
+    AuthDeliveryLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Profile retrieved successfully
+        data:
+          $ref: '#/components/schemas/AuthDeliveryLoginData'
+
+    AuthProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Profile retrieved successfully
+        data:
+          $ref: '#/components/schemas/User'

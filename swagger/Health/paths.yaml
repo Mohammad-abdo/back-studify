@@ -1,0 +1,32 @@
+paths:
+  /health:
+    get:
+      summary: Server health check
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthStatusResponse'
+
+  /health/database:
+    get:
+      summary: Database health check
+      tags:
+        - Health
+      responses:
+        '200':
+          description: Database is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseHealthResponse'
+        '503':
+          description: Database connection failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

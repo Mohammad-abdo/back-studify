@@ -3,7 +3,7 @@
  */
 
 const { AppError, ValidationError } = require('../utils/errors');
-const { HTTP_STATUS } = require('../utils/constants');
+const { HTTP_STATUS, ERROR_CODES } = require('../utils/constants');
 const { sendError } = require('../utils/response');
 const config = require('../config/env');
 
@@ -35,6 +35,28 @@ const errorHandler = (err, req, res, next) => {
     statusCode = HTTP_STATUS.NOT_FOUND;
     code = 'NOT_FOUND';
     return sendError(res, message, statusCode, code);
+  }
+
+  // Handle Prisma initialization / connectivity errors
+  if (err.name === 'PrismaClientInitializationError') {
+    statusCode = HTTP_STATUS.INTERNAL_SERVER_ERROR;
+    code = ERROR_CODES.DATABASE_ERROR;
+
+    if (err.errorCode === 'P1000') {
+      message = 'Database authentication failed. Check DATABASE_URL username/password.';
+    } else if (err.errorCode === 'P1001') {
+      message = 'Database server is unreachable. Check that MySQL is running and DATABASE_URL is correct.';
+    } else {
+      message = 'Database connection failed. Check DATABASE_URL and database availability.';
+    }
+
+    return sendError(
+      res,
+      message,
+      statusCode,
+      code,
+      config.nodeEnv === 'development' ? { prismaCode: err.errorCode || null } : null
+    );
   }
 
   // Handle Zod validation errors

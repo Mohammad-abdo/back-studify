@@ -1,0 +1,87 @@
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        total:
+          type: number
+        status:
+          type: string
+          enum:
+            - CREATED
+            - PAID
+            - PROCESSING
+            - SHIPPED
+            - DELIVERED
+            - CANCELLED
+        orderType:
+          type: string
+          enum:
+            - PRODUCT
+            - CONTENT
+            - PRINT
+        address:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderCreateItem:
+      type: object
+      required:
+        - referenceType
+        - referenceId
+        - quantity
+      properties:
+        referenceType:
+          type: string
+          enum:
+            - BOOK
+            - PRODUCT
+            - MATERIAL
+            - PRINT_OPTION
+        referenceId:
+          type: string
+          format: uuid
+        quantity:
+          type: integer
+          minimum: 1
+
+    OrderCreateRequest:
+      type: object
+      required:
+        - orderType
+      properties:
+        orderType:
+          type: string
+          enum:
+            - PRODUCT
+            - CONTENT
+            - PRINT
+        address:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderCreateItem'
+
+    OrderStatusUpdateRequest:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - PAID
+            - PROCESSING
+            - SHIPPED
+            - DELIVERED
+            - CANCELLED

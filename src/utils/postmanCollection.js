@@ -3,6 +3,13 @@
  * Generates comprehensive Postman collection from all API routes
  */
 
+const config = require('../config/env');
+
+const normalizedBackendUrl = config.backendUrl.replace(/\/+$/, '');
+const apiBaseUrl = normalizedBackendUrl.endsWith('/api')
+  ? normalizedBackendUrl
+  : `${normalizedBackendUrl}/api`;
+
 /**
  * Generate Postman Collection v2.1 from all API routes
  */
@@ -19,7 +26,7 @@ const generatePostmanCollection = () => {
     variable: [
       {
         key: 'base_url',
-        value: 'https://back-studify.developteam.site/api',
+        value: apiBaseUrl,
         type: 'string',
       },
       {
@@ -1646,10 +1653,7 @@ const generatePostmanCollection = () => {
         request: {
           method: 'GET',
           url: {
-            raw: 'http://localhost:6000/health',
-            protocol: 'http',
-            host: ['localhost'],
-            port: '6000',
+            raw: '{{base_url}}/health',
             path: ['health'],
           },
         },

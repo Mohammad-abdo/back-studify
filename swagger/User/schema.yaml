@@ -1,0 +1,128 @@
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        phone:
+          type: string
+          example: '+201234567890'
+        email:
+          type: string
+          format: email
+          nullable: true
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+        type:
+          type: string
+          enum:
+            - STUDENT
+            - DOCTOR
+            - DELIVERY
+            - CUSTOMER
+            - ADMIN
+            - PRINT_CENTER
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        collegeId:
+          type: string
+          format: uuid
+          nullable: true
+        departmentId:
+          type: string
+          format: uuid
+          nullable: true
+
+    Doctor:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        specialization:
+          type: string
+        approvalStatus:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - REJECTED
+
+    UserProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Profile retrieved successfully
+        data:
+          $ref: '#/components/schemas/User'
+
+    UserProfileUpdateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        avatarUrl:
+          type: string
+          format: uri
+
+    UserProfileImageUploadRequest:
+      type: object
+      properties:
+        file:
+          type: string
+          format: binary
+
+    StudentProfileUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        collegeId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid
+
+    DoctorProfileUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        specialization:
+          type: string
+        collegeId:
+          type: string
+          format: uuid
+        departmentId:
+          type: string
+          format: uuid

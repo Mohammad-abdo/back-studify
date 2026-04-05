@@ -8,30 +8,6 @@ const prisma = require('../config/database');
 const { sendSuccess, sendError } = require('../utils/response');
 const { HTTP_STATUS } = require('../utils/constants');
 
-/**
- * @swagger
- * /health:
- *   get:
- *     summary: Server health check
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Server is healthy
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Server is running
- *                 timestamp:
- *                   type: string
- *                   format: date-time
- */
 router.get('/', (req, res) => {
   res.status(HTTP_STATUS.OK).json({
     success: true,
@@ -40,49 +16,13 @@ router.get('/', (req, res) => {
   });
 });
 
-/**
- * @swagger
- * /health/database:
- *   get:
- *     summary: Database health check
- *     tags: [Health]
- *     responses:
- *       200:
- *         description: Database is healthy
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: Database connection is healthy
- *                 database:
- *                   type: object
- *                   properties:
- *                     status:
- *                       type: string
- *                       example: connected
- *                     responseTime:
- *                       type: number
- *                       example: 15.5
- *       503:
- *         description: Database connection failed
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
 router.get('/database', async (req, res) => {
   try {
     const startTime = Date.now();
-    
+
     // Test database connection
     await prisma.$queryRaw`SELECT 1`;
-    
+
     const responseTime = Date.now() - startTime;
 
     sendSuccess(res, {
@@ -102,4 +42,3 @@ router.get('/database', async (req, res) => {
 });
 
 module.exports = router;
-
