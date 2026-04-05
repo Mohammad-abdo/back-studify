@@ -40,17 +40,12 @@ enum ContentAccessType {
   PRINT
 }
 
-enum CartItemType {
-  CONTENT
-  PRODUCT
-  PRINT_OPTION
+enum PrintSettingType {
+  COLOR_TYPE
+  PAPER_TYPE
+  DOUBLE_SIDE
 }
 
-enum OrderItemType {
-  CONTENT
-  PRODUCT
-  PRINT_OPTION
-}
 
 enum MessageSender {
   USER
@@ -64,6 +59,11 @@ enum MaterialType {
   ASSIGNMENT
   SLIDES
   OTHER
+}
+
+enum PricingStrategy {
+  FIXED_TIERS
+  DISCOUNT_TIERS
 }
 
 enum OrderStatus {
@@ -80,12 +80,6 @@ enum PaymentMethod {
   CASH
   CREDIT
   PAYMENT_LINK  // للويب عند ربط بوابات الدفع لاحقاً
-}
-
-// Distinguish between different order domains
-enum OrderType {
-  PRODUCT  // Cart / physical products
-  CONTENT  // Books & materials (READ, DOWNLOAD, PRINT access)
 }
 
 enum ReviewTarget {
@@ -148,6 +142,7 @@ model User {
   otpCodes      OTPVerification[]
   cart          Cart?
   orders        Order[]
+  printOrders   PrintOrder[]
   reviews       Review[]
   notifications Notification[]
   chatSessions  AIChatSession[]
@@ -243,8 +238,8 @@ model PrintCenter {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  printAssignments  PrintOrderAssignment[]
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printOrders PrintOrder[]
 
   @@index([userId])
   @@index([isActive])
@@ -301,8 +296,9 @@ model Institute {
   instituteName String
   createdAt     DateTime @default(now())
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  wholesaleOrders WholesaleOrder[]
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+  cart   Cart?
 
   @@index([userId])
   @@map("institutes")
@@ -400,6 +396,7 @@ model Content {
   department          Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   pricing             ContentPricing[]
   printOptions        PrintOption[]
+  printOrders         PrintOrder[]
   userAccesses        UserContentAccess[]
 
   @@index([categoryId])
@@ -427,14 +424,17 @@ model ContentPricing {
 }
 
 model UserContentAccess {
-  id         String         @id @default(uuid())
-  userId     String
-  contentId  String
-  accessType ContentAccessType
-  grantedAt  DateTime       @default(now())
+  id            String         @id @default(uuid())
+  userId        String
+  contentId     String
+  accessType    ContentAccessType
+  price         Float
+  transactionId String?        @unique
+  grantedAt     DateTime       @default(now())
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     Content               @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  transaction FinancialTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
   @@unique([userId, contentId, accessType])
   @@index([userId])
@@ -446,9 +446,9 @@ model PrintOption {
   id              String     @id @default(uuid())
   contentId       String?
   uploadedFileUrl String?
-  colorType       ColorType
+  colorType       String
   copies          Int
-  paperType       PaperType
+  paperType       String
   doubleSide      Boolean
   enabled         Boolean    @default(true)
   createdAt       DateTime?  @default(now())
@@ -459,14 +459,37 @@ model PrintOption {
   @@index([contentId])
   @@map("print_options")
 }
-enum ColorType {
-  COLOR
-  BLACK_WHITE
+
+model PrintSetting {
+  id                 String              @id @default(uuid())
+  type               PrintSettingType
+  value              String
+  label              String
+  isVisible          Boolean             @default(true)
+  order              Int                 @default(0)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  printOrderSettings PrintOrderSetting[]
+
+  @@index([type])
+  @@index([isVisible])
+  @@index([order])
+  @@map("print_settings")
 }
-enum PaperType {
-  A4
-  A3
-  LETTER
+
+model PrintOrderSetting {
+  id             String @id @default(uuid())
+  printOrderId   String
+  printSettingId String
+
+  printOrder   PrintOrder   @relation(fields: [printOrderId], references: [id], onDelete: Cascade)
+  printSetting PrintSetting @relation(fields: [printSettingId], references: [id], onDelete: Cascade)
+
+  @@unique([printOrderId, printSettingId])
+  @@index([printOrderId])
+  @@index([printSettingId])
+  @@map("print_order_settings")
 }
 
 // ============================================
@@ -474,40 +497,49 @@ enum PaperType {
 // ============================================
 
 model ProductCategory {
-  id        String   @id @default(uuid())
-  name      String
-  collegeId String?
-  createdAt DateTime @default(now())
+  id                  String   @id @default(uuid())
+  name                String
+  isInstituteCategory Boolean  @default(false)
+  collegeId           String?
+  createdAt           DateTime @default(now())
 
   college  College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   products Product[]
 
   @@index([collegeId])
+  @@index([isInstituteCategory])
   @@map("product_categories")
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String   @db.Text
-  imageUrls   String?  @db.Text // JSON array of image URLs
-  categoryId  String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String           @id @default(uuid())
+  name               String
+  description        String           @db.Text
+  imageUrls          String?          @db.Text // JSON array of image URLs
+  categoryId         String
+  isInstituteProduct Boolean          @default(false)
+  basePrice          Float?           // only for regular products
+  pricingStrategy    PricingStrategy? // only for institute products
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
-  category            ProductCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  pricing             ProductPricing[]
-  wholesaleOrderItems WholesaleOrderItem[]
+  category   ProductCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  pricing    ProductPricing[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
 
   @@index([categoryId])
+  @@index([isInstituteProduct])
   @@map("products")
 }
 
 model ProductPricing {
-  id          String @id @default(uuid())
-  productId   String
-  minQuantity Int
-  price       Float
+  id              String  @id @default(uuid())
+  productId       String
+  minQuantity     Int
+  maxQuantity     Int?    // null means "and above"
+  fixedPrice      Float?  // when pricingStrategy = FIXED_TIERS
+  discountPercent Float?  // when pricingStrategy = DISCOUNT_TIERS
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -556,17 +588,17 @@ model Cart {
 model CartItem {
   id            String   @id @default(uuid())
   cartId        String
-  referenceType CartItemType
-  referenceId   String
+  productId     String
   quantity      Int      @default(1)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([cartId, referenceType, referenceId])
+  @@unique([cartId, productId])
   @@index([cartId])
-  @@index([referenceType, referenceId])
+  @@index([productId])
   @@map("cart_items")
 }
 
@@ -579,7 +611,6 @@ model Order {
   userId         String
   total          Float
   status         OrderStatus    @default(CREATED)
-  orderType      OrderType      @default(PRODUCT)
   paymentMethod  PaymentMethod? // CASH | CREDIT | PAYMENT_LINK (عند التأكيد)
   address        String?        @db.Text
   latitude       Float?
@@ -590,7 +621,6 @@ model Order {
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           OrderItem[]
   assignment      DeliveryAssignment?
-  printAssignment PrintOrderAssignment?
   transactions    FinancialTransaction[]
 
   @@index([userId])
@@ -599,39 +629,49 @@ model Order {
   @@map("orders")
 }
 
-model PrintOrderAssignment {
-  id            String          @id @default(uuid())
-  orderId       String          @unique
-  printCenterId String
+model PrintOrder {
+  id            String           @id @default(uuid())
+  userId        String
+  contentId     String?
+  uploadedFileUrl String?
+  printCenterId String?
+  copies        Int
   status        PrintOrderStatus @default(PENDING)
-  assignedAt    DateTime        @default(now())
-  acceptedAt   DateTime?
+  price         Float
+  paidAt        DateTime?
+  assignedAt    DateTime?
+  acceptedAt    DateTime?
   completedAt   DateTime?
-  notes         String?         @db.Text
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  notes         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
-  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  printCenter PrintCenter @relation(fields: [printCenterId], references: [id], onDelete: Cascade)
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     Content?              @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  printCenter PrintCenter?          @relation(fields: [printCenterId], references: [id], onDelete: SetNull)
+  transaction FinancialTransaction?
+  settings    PrintOrderSetting[]
 
-  @@index([orderId])
+  @@index([userId])
+  @@index([contentId])
   @@index([printCenterId])
   @@index([status])
-  @@map("print_order_assignments")
+  @@index([createdAt])
+  @@map("print_orders")
 }
 
 model OrderItem {
   id            String @id @default(uuid())
   orderId       String
-  referenceType OrderItemType
-  referenceId   String
+  productId     String
   quantity      Int
   price         Float
 
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
-  @@index([referenceType, referenceId])
+  @@index([productId])
   @@map("order_items")
 }
 
@@ -736,42 +776,6 @@ model Report {
 }
 
 // ============================================
-// DOMAIN 11: WHOLESALE ORDERS
-// ============================================
-
-model WholesaleOrder {
-  id         String      @id @default(uuid())
-  instituteId String
-  total      Float
-  status     OrderStatus @default(CREATED)
-  address    String?     @db.Text
-  createdAt  DateTime    @default(now())
-
-  institute Institute           @relation(fields: [instituteId], references: [id], onDelete: Cascade)
-  items     WholesaleOrderItem[]
-
-  @@index([instituteId])
-  @@index([status])
-  @@index([createdAt])
-  @@map("wholesale_orders")
-}
-
-model WholesaleOrderItem {
-  id        String @id @default(uuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Float
-
-  order   WholesaleOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-  @@index([productId])
-  @@map("wholesale_order_items")
-}
-
-// ============================================
 // DOMAIN 12: FINANCIAL MANAGEMENT
 // ============================================
 
@@ -783,17 +787,21 @@ model FinancialTransaction {
   description String?           @db.Text
   deliveryId  String?
   orderId     String?
+  printOrderId String?          @unique
   metadata    Json?
   createdAt   DateTime          @default(now())
   completedAt DateTime?
 
-  delivery Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
-  order    Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  delivery      Delivery?           @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  order         Order?              @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  printOrder    PrintOrder?         @relation(fields: [printOrderId], references: [id], onDelete: SetNull)
+  contentAccess UserContentAccess?
 
   @@index([type])
   @@index([status])
   @@index([deliveryId])
   @@index([orderId])
+  @@index([printOrderId])
   @@index([createdAt])
   @@map("financial_transactions")
 }
