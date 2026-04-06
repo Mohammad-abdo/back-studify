@@ -37,7 +37,7 @@ enum ContentType {
 enum ContentAccessType {
   READ
   DOWNLOAD
-  PRINT
+  PRINT  // add back — used in ContentPricing only, not in UserContentAccess
 }
 
 enum PrintSettingType {
@@ -117,7 +117,6 @@ enum TransactionStatus {
   CANCELLED
 }
 
-
 // ============================================
 // DOMAIN 1: AUTH & IDENTITY
 // ============================================
@@ -126,11 +125,13 @@ model User {
   id        String   @id @default(uuid())
   phone     String   @unique
   password  String
+  name      String
   email     String?  @unique
   avatarUrl String?
   type      UserType
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
   student       Student?
@@ -157,7 +158,6 @@ model User {
 model Student {
   id                 String   @id @default(uuid())
   userId             String   @unique
-  name               String
   collegeId          String?
   departmentId       String?
   collegeUpdateCount Int      @default(0)
@@ -177,7 +177,6 @@ model Student {
 model Doctor {
   id             String         @id @default(uuid())
   userId         String         @unique
-  name           String
   specialization String
   collegeId      String?
   departmentId   String?
@@ -200,7 +199,6 @@ model Doctor {
 model Delivery {
   id                 String         @id @default(uuid())
   userId             String         @unique
-  name               String
   vehicleType        String
   vehiclePlateNumber String?
   status             DeliveryStatus @default(AVAILABLE)
@@ -222,7 +220,7 @@ model Admin {
   userId String @unique
 
   user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  operations AdminOperationLog[]
+  reports    Report[]
 
   @@index([userId])
   @@map("admins")
@@ -230,7 +228,6 @@ model Admin {
 model PrintCenter {
   id        String   @id @default(uuid())
   userId    String   @unique
-  name      String
   location  String?
   address   String?  @db.Text
   latitude  Float?
@@ -293,12 +290,10 @@ model DeliveryAssignment {
 model Institute {
   id            String   @id @default(uuid())
   userId        String   @unique
-  instituteName String
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[]
-  cart   Cart?
 
   @@index([userId])
   @@map("institutes")
@@ -395,7 +390,7 @@ model Content {
   college             College?        @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   department          Department?     @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   pricing             ContentPricing[]
-  printOptions        PrintOption[]
+  
   printOrders         PrintOrder[]
   userAccesses        UserContentAccess[]
 
@@ -427,7 +422,7 @@ model UserContentAccess {
   id            String         @id @default(uuid())
   userId        String
   contentId     String
-  accessType    ContentAccessType
+  accessType ContentAccessType // only READ or DOWNLOAD, never PRINT — enforced at service layer
   price         Float
   transactionId String?        @unique
   grantedAt     DateTime       @default(now())
@@ -442,23 +437,6 @@ model UserContentAccess {
   @@map("user_content_access")
 }
 
-model PrintOption {
-  id              String     @id @default(uuid())
-  contentId       String?
-  uploadedFileUrl String?
-  colorType       String
-  copies          Int
-  paperType       String
-  doubleSide      Boolean
-  enabled         Boolean    @default(true)
-  createdAt       DateTime?  @default(now())
-  updatedAt       DateTime?  @updatedAt
-
-  content Content? @relation(fields: [contentId], references: [id], onDelete: Cascade)
-
-  @@index([contentId])
-  @@map("print_options")
-}
 
 model PrintSetting {
   id                 String              @id @default(uuid())
@@ -617,6 +595,7 @@ model Order {
   longitude      Float?
   paidAt         DateTime?     // وقت تأكيد الدفع
   createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           OrderItem[]
@@ -771,6 +750,9 @@ model Report {
   name      String
   fileUrl   String
   createdAt DateTime @default(now())
+  createdBy String
+
+  creator   Admin @relation(fields: [createdBy], references: [id], onDelete: Cascade)
 
   @@map("reports")
 }
