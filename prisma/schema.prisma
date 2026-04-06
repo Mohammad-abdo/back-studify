@@ -147,7 +147,7 @@ model User {
   type      UserType
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now()) @updatedAt
 
   // Relations
   student         Student?
@@ -717,7 +717,7 @@ model Product {
   basePrice          Float?
   pricingStrategy    PricingStrategy?
   createdAt          DateTime         @default(now())
-  updatedAt          DateTime         @updatedAt
+  updatedAt          DateTime         @default(now()) @updatedAt
 
   category            ProductCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   pricing             ProductPricing[]
