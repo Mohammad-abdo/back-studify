@@ -341,6 +341,7 @@ const getUsers = async (req, res, next) => {
           id: true,
           phone: true,
           email: true,
+          name: true,
           avatarUrl: true,
           type: true,
           isActive: true,
@@ -381,6 +382,17 @@ const getUsers = async (req, res, next) => {
               id: true,
             },
           },
+          institute: {
+            select: {
+              id: true,
+            },
+          },
+          printCenter: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -408,6 +420,7 @@ const getUserById = async (req, res, next) => {
         id: true,
         phone: true,
         email: true,
+        name: true,
         avatarUrl: true,
         type: true,
         isActive: true,
@@ -446,6 +459,17 @@ const getUserById = async (req, res, next) => {
         admin: {
           select: {
             id: true,
+          },
+        },
+        institute: {
+          select: {
+            id: true,
+          },
+        },
+        printCenter: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

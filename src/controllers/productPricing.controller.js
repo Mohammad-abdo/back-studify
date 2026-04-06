@@ -6,6 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError } = require('../utils/errors');
+const { sanitizeProduct, sanitizeProductPricing } = require('../utils/legacyApiShape');
 
 /**
  * Get all product pricings
@@ -41,7 +42,11 @@ const getProductPricings = async (req, res, next) => {
     ]);
 
     const pagination = buildPagination(page, limit, total);
-    sendPaginated(res, pricings, pagination, 'Product pricings retrieved successfully');
+    const shaped = pricings.map((row) => ({
+      ...sanitizeProductPricing(row),
+      product: row.product,
+    }));
+    sendPaginated(res, shaped, pagination, 'Product pricings retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -65,7 +70,14 @@ const getProductPricingById = async (req, res, next) => {
       throw new NotFoundError('Product pricing not found');
     }
 
-    sendSuccess(res, pricing, 'Product pricing retrieved successfully');
+    sendSuccess(
+      res,
+      {
+        ...sanitizeProductPricing(pricing),
+        product: pricing.product ? sanitizeProduct(pricing.product) : pricing.product,
+      },
+      'Product pricing retrieved successfully'
+    );
   } catch (error) {
     next(error);
   }
@@ -98,7 +110,15 @@ const createProductPricing = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, pricing, 'Product pricing created successfully', 201);
+    sendSuccess(
+      res,
+      {
+        ...sanitizeProductPricing(pricing),
+        product: sanitizeProduct(pricing.product),
+      },
+      'Product pricing created successfully',
+      201
+    );
   } catch (error) {
     next(error);
   }
@@ -132,7 +152,14 @@ const updateProductPricing = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, pricing, 'Product pricing updated successfully');
+    sendSuccess(
+      res,
+      {
+        ...sanitizeProductPricing(pricing),
+        product: sanitizeProduct(pricing.product),
+      },
+      'Product pricing updated successfully'
+    );
   } catch (error) {
     next(error);
   }

@@ -6,6 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, AuthorizationError } = require('../utils/errors');
+const { sanitizeProduct, sanitizeProductPricing } = require('../utils/legacyApiShape');
 
 /**
  * Get all products (with filters)
@@ -66,10 +67,10 @@ const getProducts = async (req, res, next) => {
           parsedImageUrls = [];
         }
       }
-      return {
+      return sanitizeProduct({
         ...product,
         imageUrls: parsedImageUrls,
-      };
+      });
     });
 
     const pagination = buildPagination(page, limit, total);
@@ -119,10 +120,10 @@ const getProductById = async (req, res, next) => {
       }
     }
 
-    const parsedProduct = {
+    const parsedProduct = sanitizeProduct({
       ...product,
       imageUrls: parsedImageUrls,
-    };
+    });
 
     // Get reviews for this product (polymorphic relation)
     const reviews = await prisma.review.findMany({
@@ -173,7 +174,7 @@ const createProduct = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, product, 'Product created successfully', 201);
+    sendSuccess(res, sanitizeProduct(product), 'Product created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -213,7 +214,7 @@ const updateProduct = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, product, 'Product updated successfully');
+    sendSuccess(res, sanitizeProduct(product), 'Product updated successfully');
   } catch (error) {
     next(error);
   }
@@ -272,7 +273,11 @@ const addProductPricing = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, pricing, 'Pricing added successfully', 201);
+    const safePricing = {
+      ...sanitizeProductPricing(pricing),
+      product: sanitizeProduct(pricing.product),
+    };
+    sendSuccess(res, safePricing, 'Pricing added successfully', 201);
   } catch (error) {
     next(error);
   }

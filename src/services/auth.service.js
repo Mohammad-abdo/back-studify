@@ -11,6 +11,7 @@ const { sendOTPEmail } = require('./email.service');
 const { ConflictError, NotFoundError, InvalidCredentialsError, OTPExpiredError, OTPInvalidError, AuthorizationError } = require('../utils/errors');
 const { APPROVAL_STATUS } = require('../utils/constants');
 const config = require('../config/env');
+const { sanitizeUserScalars } = require('../utils/legacyApiShape');
 
 /**
  * Register new user
@@ -110,6 +111,16 @@ const register = async (phone, password, type, email = null, name = null, colleg
         name,
       },
     });
+  } else if (type === 'INSTITUTE') {
+    await prisma.institute.create({
+      data: { userId: user.id },
+    });
+    if (name && String(name).trim()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { name: String(name).trim() },
+      });
+    }
   }
 
   // Generate and send OTP
@@ -171,6 +182,7 @@ const login = async (phone, password, clientType = null) => {
         },
       },
       customer: true,
+      institute: true,
       admin: true,
       printCenter: true,
       userRoles: {
@@ -215,8 +227,9 @@ const login = async (phone, password, clientType = null) => {
   const token = generateToken(payload);
   const refreshToken = generateRefreshToken(payload);
 
-  // Remove password from response
-  const { password: _, ...userWithoutPassword } = user;
+  // Remove password from response (hide new schema-only scalars from clients)
+  const { password: _, ...userRaw } = user;
+  const userWithoutPassword = sanitizeUserScalars(userRaw);
 
   // Extract name and username from related profile
   let name = null;
@@ -236,6 +249,9 @@ const login = async (phone, password, clientType = null) => {
   } else if (user.printCenter) {
     name = user.printCenter.name;
     username = user.printCenter.name;
+  } else if (user.institute) {
+    name = user.name || null;
+    username = user.name || null;
   }
 
   // Add name and username and role flags to user object
@@ -249,6 +265,7 @@ const login = async (phone, password, clientType = null) => {
     isDelivery: user.type === 'DELIVERY',
     isCustomer: user.type === 'CUSTOMER',
     isAdmin: user.type === 'ADMIN',
+    isInstitute: user.type === 'INSTITUTE',
     isPrintCenter: user.type === 'PRINT_CENTER',
     printCenterId: user.printCenter?.id || null,
   };

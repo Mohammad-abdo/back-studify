@@ -26,14 +26,14 @@ const paginationSchema = z.object({
 const loginSchema = z.object({
   phone: phoneSchema,
   password: z.string().min(1),
-  clientType: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'PRINT_CENTER', 'ADMIN']).optional(),
+  clientType: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'INSTITUTE', 'PRINT_CENTER', 'ADMIN']).optional(),
 });
 
 const registerSchema = z.object({
   phone: phoneSchema,
   password: passwordSchema,
   repeatPassword: z.string().optional(),
-  type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'PRINT_CENTER', 'ADMIN']),
+  type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'INSTITUTE', 'PRINT_CENTER', 'ADMIN']),
   email: emailSchema.optional(),
   name: z.string().min(2).max(100).optional(),
   nameAr: z.string().min(2).max(100).optional(), // Arabic name

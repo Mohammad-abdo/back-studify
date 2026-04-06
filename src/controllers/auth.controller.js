@@ -6,6 +6,7 @@
 const authService = require('../services/auth.service');
 const { sendSuccess, sendError } = require('../utils/response');
 const { HTTP_STATUS } = require('../utils/constants');
+const { sanitizeUserScalars } = require('../utils/legacyApiShape');
 
 /**
  * Register new user
@@ -140,7 +141,8 @@ const getProfile = async (req, res, next) => {
     const user = req.user;
 
     // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...userRaw } = user;
+    const userWithoutPassword = sanitizeUserScalars(userRaw);
 
     // Extract name and username from related profile
     let name = null;
@@ -160,6 +162,9 @@ const getProfile = async (req, res, next) => {
     } else if (user.printCenter) {
       name = user.printCenter?.name;
       username = user.printCenter?.name;
+    } else if (user.institute) {
+      name = user.name || null;
+      username = user.name || null;
     }
 
     // Add name, username and role flags to user object
@@ -173,6 +178,7 @@ const getProfile = async (req, res, next) => {
       isDelivery: user.type === 'DELIVERY',
       isCustomer: user.type === 'CUSTOMER',
       isAdmin: user.type === 'ADMIN',
+      isInstitute: user.type === 'INSTITUTE',
       isPrintCenter: user.type === 'PRINT_CENTER',
       printCenterId: user.printCenter?.id || null,
     };

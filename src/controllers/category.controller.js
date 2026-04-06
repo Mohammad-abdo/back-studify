@@ -4,6 +4,7 @@
  */
 
 const prisma = require('../config/database');
+const { sanitizeProductCategory } = require('../utils/legacyApiShape');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError } = require('../utils/errors');
 
@@ -123,7 +124,11 @@ const getProductCategories = async (req, res, next) => {
       orderBy: { name: 'asc' },
     });
 
-    sendSuccess(res, categories, 'Product categories retrieved successfully');
+    sendSuccess(
+      res,
+      categories.map(sanitizeProductCategory),
+      'Product categories retrieved successfully'
+    );
   } catch (error) {
     next(error);
   }
@@ -171,7 +176,7 @@ const createProductCategory = async (req, res, next) => {
       data: { name },
     });
 
-    sendSuccess(res, category, 'Product category created successfully', 201);
+    sendSuccess(res, sanitizeProductCategory(category), 'Product category created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -198,7 +203,7 @@ const updateProductCategory = async (req, res, next) => {
       data: { name },
     });
 
-    sendSuccess(res, category, 'Product category updated successfully');
+    sendSuccess(res, sanitizeProductCategory(category), 'Product category updated successfully');
   } catch (error) {
     next(error);
   }

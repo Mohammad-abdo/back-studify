@@ -6,6 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendError } = require('../utils/response');
 const { NotFoundError, BadRequestError } = require('../utils/errors');
+const { sanitizeProduct } = require('../utils/legacyApiShape');
 
 /**
  * Get or create user's cart
@@ -64,13 +65,14 @@ const getCart = async (req, res, next) => {
             },
           });
         } else if (item.referenceType === 'PRODUCT') {
-          referenceData = await prisma.product.findUnique({
+          const rawProduct = await prisma.product.findUnique({
             where: { id: item.referenceId },
             include: {
               category: true,
               pricing: true,
             },
           });
+          referenceData = rawProduct ? sanitizeProduct(rawProduct) : null;
         } else if (item.referenceType === 'MATERIAL') {
           referenceData = await prisma.material.findUnique({
             where: { id: item.referenceId },

@@ -92,7 +92,7 @@ The API uses a standard response wrapper:
             phone: { type: 'string', example: '+201234567890' },
             email: { type: 'string', format: 'email', nullable: true },
             avatarUrl: { type: 'string', format: 'uri', nullable: true },
-            type: { type: 'string', enum: ['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'ADMIN', 'PRINT_CENTER'] },
+            type: { type: 'string', enum: ['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'INSTITUTE', 'ADMIN', 'PRINT_CENTER'] },
             isActive: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' },
           },

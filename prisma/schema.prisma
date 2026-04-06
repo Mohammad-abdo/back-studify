@@ -19,6 +19,7 @@ enum UserType {
   DOCTOR
   DELIVERY
   CUSTOMER
+  INSTITUTE
   ADMIN
   PRINT_CENTER
 }
@@ -48,14 +49,14 @@ enum OrderStatus {
 enum PaymentMethod {
   CASH
   CREDIT
-  PAYMENT_LINK  // للويب عند ربط بوابات الدفع لاحقاً
+  PAYMENT_LINK // للويب عند ربط بوابات الدفع لاحقاً
 }
 
 // Distinguish between different order domains
 enum OrderType {
-  PRODUCT  // Cart / physical products
-  CONTENT  // Books & materials (READ, BUY, PRINT access)
-  PRINT    // Dedicated print-center jobs (optional, currently we use CONTENT + PRINT access)
+  PRODUCT // Cart / physical products
+  CONTENT // Books & materials (READ, BUY, PRINT access)
+  PRINT // Dedicated print-center jobs (optional, currently we use CONTENT + PRINT access)
 }
 
 enum ReviewTarget {
@@ -76,11 +77,11 @@ enum DeliveryStatus {
 }
 
 enum PrintOrderStatus {
-  PENDING      // Assigned, waiting for print center to accept
-  ACCEPTED     // Print center accepted the order
-  PRINTING     // In progress
-  READY_FOR_PICKUP  // Ready for customer/delivery
-  COMPLETED    // Done
+  PENDING // Assigned, waiting for print center to accept
+  ACCEPTED // Print center accepted the order
+  PRINTING // In progress
+  READY_FOR_PICKUP // Ready for customer/delivery
+  COMPLETED // Done
   CANCELLED
 }
 
@@ -110,6 +111,28 @@ enum AdminOperationType {
   SYSTEM
 }
 
+enum ContentAccessType {
+  READ
+  DOWNLOAD
+  PRINT
+}
+
+enum PrintSettingType {
+  COLOR_TYPE
+  PAPER_TYPE
+  DOUBLE_SIDE
+}
+
+enum MessageSender {
+  USER
+  AI
+}
+
+enum PricingStrategy {
+  FIXED_TIERS
+  DISCOUNT_TIERS
+}
+
 // ============================================
 // DOMAIN 1: AUTH & IDENTITY
 // ============================================
@@ -118,26 +141,31 @@ model User {
   id        String   @id @default(uuid())
   phone     String   @unique
   password  String
+  name      String?
   email     String?  @unique
   avatarUrl String?
   type      UserType
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // Relations
-  student       Student?
-  doctor        Doctor?
-  delivery      Delivery?
-  customer      Customer?
-  admin         Admin?
-  printCenter   PrintCenter?
-  otpCodes      OTPVerification[]
-  cart          Cart?
-  orders        Order[]
-  reviews       Review[]
-  notifications Notification[]
-  chatSessions  AIChatSession[]
-  userRoles     UserRole[]
+  student         Student?
+  doctor          Doctor?
+  delivery        Delivery?
+  customer        Customer?
+  institute       Institute?
+  admin           Admin?
+  printCenter     PrintCenter?
+  otpCodes        OTPVerification[]
+  cart            Cart?
+  orders          Order[]
+  printOrders     PrintOrder[]
+  reviews         Review[]
+  notifications   Notification[]
+  chatSessions    AIChatSession[]
+  userRoles       UserRole[]
+  contentAccesses UserContentAccess[]
 
   @@index([phone])
   @@index([email])
@@ -161,14 +189,14 @@ model OTPVerification {
 }
 
 model Student {
-  id                 String   @id @default(uuid())
-  userId             String   @unique
-  name               String
-  collegeId          String?
-  departmentId       String?
-  collegeUpdateCount Int      @default(0)
-  departmentUpdateCount Int  @default(0)
-  createdAt          DateTime @default(now())
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  name                  String
+  collegeId             String?
+  departmentId          String?
+  collegeUpdateCount    Int      @default(0)
+  departmentUpdateCount Int      @default(0)
+  createdAt             DateTime @default(now())
 
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   college    College?    @relation(fields: [collegeId], references: [id], onDelete: SetNull)
@@ -306,12 +334,25 @@ model PrintCenter {
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
-  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  printAssignments  PrintOrderAssignment[]
+  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  printAssignments PrintOrderAssignment[]
+  printOrders      PrintOrder[]
 
   @@index([userId])
   @@index([isActive])
   @@map("print_centers")
+}
+
+model Institute {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("institutes")
 }
 
 // ============================================
@@ -374,13 +415,13 @@ model College {
   name      String
   createdAt DateTime @default(now())
 
-  departments         Department[]
-  students            Student[]
-  doctors             Doctor[]
-  books               Book[]
-  materials           Material[]
-  productCategories   ProductCategory[]
-  materialCategories  MaterialCategory[]
+  departments        Department[]
+  students           Student[]
+  doctors            Doctor[]
+  books              Book[]
+  materials          Material[]
+  productCategories  ProductCategory[]
+  materialCategories MaterialCategory[]
 
   @@map("colleges")
 }
@@ -421,7 +462,7 @@ model MaterialCategory {
   collegeId String?
   createdAt DateTime @default(now())
 
-  college   College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  college   College?   @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   materials Material[]
 
   @@index([collegeId])
@@ -442,12 +483,14 @@ model Book {
   approvalStatus ApprovalStatus @default(PENDING)
   createdAt      DateTime       @default(now())
 
-  category     BookCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  doctor       Doctor        @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  college      College?      @relation(fields: [collegeId], references: [id], onDelete: SetNull)
-  department   Department?   @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  category     BookCategory        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  doctor       Doctor              @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  college      College?            @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   pricing      BookPricing[]
   printOptions PrintOption[]
+  printOrders  PrintOrder[]
+  userAccesses UserContentAccess[]
 
   @@index([categoryId])
   @@index([doctorId])
@@ -472,17 +515,17 @@ model BookPricing {
 }
 
 model PrintOption {
-  id             String     @id @default(uuid())
-  bookId         String?
-  materialId     String?
+  id              String    @id @default(uuid())
+  bookId          String?
+  materialId      String?
   uploadedFileUrl String?
-  colorType      ColorType
-  copies         Int
-  paperType      PaperType
-  doubleSide     Boolean
-  enabled        Boolean    @default(true)
-  createdAt      DateTime?  @default(now())
-  updatedAt      DateTime?  @updatedAt
+  colorType       ColorType
+  copies          Int
+  paperType       PaperType
+  doubleSide      Boolean
+  enabled         Boolean   @default(true)
+  createdAt       DateTime? @default(now())
+  updatedAt       DateTime? @updatedAt
 
   book     Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
   material Material? @relation(fields: [materialId], references: [id], onDelete: Cascade)
@@ -491,15 +534,107 @@ model PrintOption {
   @@index([materialId])
   @@map("print_options")
 }
+
 enum ColorType {
   COLOR
   BLACK_WHITE
 }
+
 enum PaperType {
   A4
   A3
   LETTER
 }
+
+model PrintSetting {
+  id        String           @id @default(uuid())
+  type      PrintSettingType
+  value     String
+  label     String
+  isVisible Boolean          @default(true)
+  order     Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  printOrderSettings PrintOrderSetting[]
+
+  @@index([type])
+  @@index([isVisible])
+  @@index([order])
+  @@map("print_settings")
+}
+
+model PrintOrder {
+  id              String           @id @default(uuid())
+  userId          String
+  bookId          String?
+  materialId      String?
+  uploadedFileUrl String?
+  printCenterId   String?
+  copies          Int
+  status          PrintOrderStatus @default(PENDING)
+  price           Float
+  paidAt          DateTime?
+  assignedAt      DateTime?
+  acceptedAt      DateTime?
+  completedAt     DateTime?
+  notes           String?          @db.Text
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book?                 @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  material    Material?             @relation(fields: [materialId], references: [id], onDelete: SetNull)
+  printCenter PrintCenter?          @relation(fields: [printCenterId], references: [id], onDelete: SetNull)
+  settings    PrintOrderSetting[]
+  transaction FinancialTransaction?
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([materialId])
+  @@index([printCenterId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("print_orders")
+}
+
+model PrintOrderSetting {
+  id             String @id @default(uuid())
+  printOrderId   String
+  printSettingId String
+
+  printOrder   PrintOrder   @relation(fields: [printOrderId], references: [id], onDelete: Cascade)
+  printSetting PrintSetting @relation(fields: [printSettingId], references: [id], onDelete: Cascade)
+
+  @@unique([printOrderId, printSettingId])
+  @@index([printOrderId])
+  @@index([printSettingId])
+  @@map("print_order_settings")
+}
+
+model UserContentAccess {
+  id            String            @id @default(uuid())
+  userId        String
+  bookId        String?
+  materialId    String?
+  accessType    ContentAccessType
+  price         Float
+  transactionId String?           @unique
+  grantedAt     DateTime          @default(now())
+
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book?                 @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  material    Material?             @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  transaction FinancialTransaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, bookId, accessType])
+  @@unique([userId, materialId, accessType])
+  @@index([userId])
+  @@index([bookId])
+  @@index([materialId])
+  @@map("user_content_access")
+}
+
 // ============================================
 // DOMAIN 4.5: MATERIALS
 // ============================================
@@ -515,18 +650,20 @@ model Material {
   doctorId       String
   collegeId      String?
   departmentId   String?
-  materialType   String         // "LECTURE_NOTE", "SUMMARY", "FINAL_EXAM", etc.
+  materialType   String // "LECTURE_NOTE", "SUMMARY", "FINAL_EXAM", etc.
   downloads      Int            @default(0)
   rating         Float          @default(0)
   approvalStatus ApprovalStatus @default(PENDING)
   createdAt      DateTime       @default(now())
 
-  category     MaterialCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  doctor       Doctor           @relation(fields: [doctorId], references: [id], onDelete: Cascade)
-  college      College?         @relation(fields: [collegeId], references: [id], onDelete: SetNull)
-  department   Department?      @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  category     MaterialCategory    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  doctor       Doctor              @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  college      College?            @relation(fields: [collegeId], references: [id], onDelete: SetNull)
+  department   Department?         @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   pricing      MaterialPricing[]
   printOptions PrintOption[]
+  printOrders  PrintOrder[]
+  userAccesses UserContentAccess[]
 
   @@index([categoryId])
   @@index([doctorId])
@@ -556,39 +693,49 @@ model MaterialPricing {
 // ============================================
 
 model ProductCategory {
-  id        String   @id @default(uuid())
-  name      String
-  collegeId String?
-  createdAt DateTime @default(now())
+  id                  String   @id @default(uuid())
+  name                String
+  isInstituteCategory Boolean  @default(false)
+  collegeId           String?
+  createdAt           DateTime @default(now())
 
   college  College?  @relation(fields: [collegeId], references: [id], onDelete: SetNull)
   products Product[]
 
   @@index([collegeId])
+  @@index([isInstituteCategory])
   @@map("product_categories")
 }
 
 model Product {
-  id          String   @id @default(uuid())
-  name        String
-  description String   @db.Text
-  imageUrls   String?  @db.Text // JSON array of image URLs
-  categoryId  String
-  createdAt   DateTime @default(now())
+  id                 String           @id @default(uuid())
+  name               String
+  description        String           @db.Text
+  imageUrls          String?          @db.Text // JSON array of image URLs
+  categoryId         String
+  isInstituteProduct Boolean          @default(false)
+  basePrice          Float?
+  pricingStrategy    PricingStrategy?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
 
   category            ProductCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   pricing             ProductPricing[]
   wholesaleOrderItems WholesaleOrderItem[]
 
   @@index([categoryId])
+  @@index([isInstituteProduct])
   @@map("products")
 }
 
 model ProductPricing {
-  id          String @id @default(uuid())
-  productId   String
-  minQuantity Int
-  price       Float
+  id              String @id @default(uuid())
+  productId       String
+  minQuantity     Int
+  maxQuantity     Int?
+  price           Float
+  fixedPrice      Float?
+  discountPercent Float?
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
@@ -622,10 +769,10 @@ model Review {
 // ============================================
 
 model Cart {
-  id        String     @id @default(uuid())
-  userId    String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CartItem[]
@@ -637,7 +784,7 @@ model Cart {
 model CartItem {
   id            String   @id @default(uuid())
   cartId        String
-  referenceType String   // "BOOK", "PRODUCT", "MATERIAL", "PRINT_OPTION"
+  referenceType String // "BOOK", "PRODUCT", "MATERIAL", "PRINT_OPTION"
   referenceId   String
   quantity      Int      @default(1)
   createdAt     DateTime @default(now())
@@ -656,19 +803,19 @@ model CartItem {
 // ============================================
 
 model Order {
-  id             String         @id @default(uuid())
-  userId         String
-  total          Float
-  status         OrderStatus    @default(CREATED)
-  orderType      OrderType      @default(PRODUCT)
-  paymentMethod  PaymentMethod? // CASH | CREDIT | PAYMENT_LINK (عند التأكيد)
-  address        String?        @db.Text
-  latitude       Float?
-  longitude      Float?
-  paidAt         DateTime?     // وقت تأكيد الدفع
-  createdAt      DateTime      @default(now())
+  id            String         @id @default(uuid())
+  userId        String
+  total         Float
+  status        OrderStatus    @default(CREATED)
+  orderType     OrderType      @default(PRODUCT)
+  paymentMethod PaymentMethod? // CASH | CREDIT | PAYMENT_LINK (عند التأكيد)
+  address       String?        @db.Text
+  latitude      Float?
+  longitude     Float?
+  paidAt        DateTime? // وقت تأكيد الدفع
+  createdAt     DateTime       @default(now())
 
-  user            User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           OrderItem[]
   assignment      DeliveryAssignment?
   printAssignment PrintOrderAssignment?
@@ -680,16 +827,16 @@ model Order {
 }
 
 model PrintOrderAssignment {
-  id            String          @id @default(uuid())
-  orderId       String          @unique
+  id            String           @id @default(uuid())
+  orderId       String           @unique
   printCenterId String
   status        PrintOrderStatus @default(PENDING)
-  assignedAt    DateTime        @default(now())
-  acceptedAt   DateTime?
+  assignedAt    DateTime         @default(now())
+  acceptedAt    DateTime?
   completedAt   DateTime?
-  notes         String?         @db.Text
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  notes         String?          @db.Text
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
   order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
   printCenter PrintCenter @relation(fields: [printCenterId], references: [id], onDelete: Cascade)
@@ -765,8 +912,8 @@ model Slider {
   id          String   @id @default(uuid())
   imageUrl    String
   title       String?
-  description String?   @db.Text
-  linkUrl     String?   // Optional link when slider is clicked
+  description String?  @db.Text
+  linkUrl     String? // Optional link when slider is clicked
   order       Int      @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -868,23 +1015,27 @@ model WholesaleOrderItem {
 // ============================================
 
 model FinancialTransaction {
-  id          String            @id @default(uuid())
-  type        TransactionType
-  amount      Float
-  status      TransactionStatus @default(PENDING)
-  description String?           @db.Text
-  deliveryId  String?
-  orderId     String?
-  metadata    Json?
-  createdAt   DateTime          @default(now())
-  completedAt DateTime?
+  id           String            @id @default(uuid())
+  type         TransactionType
+  amount       Float
+  status       TransactionStatus @default(PENDING)
+  description  String?           @db.Text
+  deliveryId   String?
+  orderId      String?
+  printOrderId String?           @unique
+  metadata     Json?
+  createdAt    DateTime          @default(now())
+  completedAt  DateTime?
 
-  delivery Delivery? @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  delivery      Delivery?          @relation(fields: [deliveryId], references: [id], onDelete: SetNull)
+  printOrder    PrintOrder?        @relation(fields: [printOrderId], references: [id], onDelete: SetNull)
+  contentAccess UserContentAccess?
 
   @@index([type])
   @@index([status])
   @@index([deliveryId])
   @@index([orderId])
+  @@index([printOrderId])
   @@index([createdAt])
   @@map("financial_transactions")
 }
@@ -931,11 +1082,11 @@ model DashboardMetric {
 
 model FinancialSettings {
   id                        String   @id @default("default")
-  taxRate                   Float    @default(0)   // نسبة الضرائب %
-  commissionRate            Float    @default(0)   // العمولات/النسب العامة %
-  shippingValue             Float    @default(0)   // قيمة الشحن الافتراضية
-  deliveryCommissionRate    Float    @default(0)   // عمولة الدليفري %
-  printCenterCommissionRate Float    @default(0)   // عمولة المطابع %
+  taxRate                   Float    @default(0) // نسبة الضرائب %
+  commissionRate            Float    @default(0) // العمولات/النسب العامة %
+  shippingValue             Float    @default(0) // قيمة الشحن الافتراضية
+  deliveryCommissionRate    Float    @default(0) // عمولة الدليفري %
+  printCenterCommissionRate Float    @default(0) // عمولة المطابع %
   updatedAt                 DateTime @updatedAt
   createdAt                 DateTime @default(now())
 

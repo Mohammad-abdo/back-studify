@@ -43,6 +43,7 @@ const authenticate = async (req, res, next) => {
           },
         },
         customer: true,
+        institute: true,
         admin: true,
         printCenter: true,
         userRoles: {

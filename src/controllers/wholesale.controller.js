@@ -8,6 +8,7 @@ const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = req
 const { NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
 const { ORDER_STATUS } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
+const { sanitizeOrderItemsWithProducts } = require('../utils/legacyApiShape');
 
 /**
  * Get customer's wholesale orders
@@ -51,7 +52,12 @@ const getMyWholesaleOrders = async (req, res, next) => {
 
     const pagination = buildPagination(page, limit, total);
 
-    sendPaginated(res, orders, pagination, 'Wholesale orders retrieved successfully');
+    sendPaginated(
+      res,
+      orders.map(sanitizeOrderItemsWithProducts),
+      pagination,
+      'Wholesale orders retrieved successfully'
+    );
   } catch (error) {
     next(error);
   }
@@ -104,7 +110,7 @@ const getWholesaleOrderById = async (req, res, next) => {
       throw new NotFoundError('Wholesale order not found');
     }
 
-    sendSuccess(res, order, 'Wholesale order retrieved successfully');
+    sendSuccess(res, sanitizeOrderItemsWithProducts(order), 'Wholesale order retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -158,7 +164,7 @@ const createWholesaleOrder = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, order, 'Wholesale order created successfully', 201);
+    sendSuccess(res, sanitizeOrderItemsWithProducts(order), 'Wholesale order created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -192,7 +198,7 @@ const updateWholesaleOrderStatus = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, order, 'Wholesale order status updated successfully');
+    sendSuccess(res, sanitizeOrderItemsWithProducts(order), 'Wholesale order status updated successfully');
   } catch (error) {
     next(error);
   }

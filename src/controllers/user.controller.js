@@ -7,6 +7,39 @@ const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, ValidationError } = require('../utils/errors');
 const { getFileUrl } = require('../services/fileUpload.service');
+const { sanitizeUserScalars } = require('../utils/legacyApiShape');
+
+const profileInclude = {
+  student: {
+    include: {
+      college: true,
+      department: true,
+    },
+  },
+  doctor: true,
+  delivery: {
+    include: {
+      wallet: true,
+    },
+  },
+  customer: true,
+  institute: true,
+  admin: true,
+  printCenter: true,
+  userRoles: {
+    include: {
+      role: {
+        include: {
+          permissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
+      },
+    },
+  },
+};
 
 /**
  * Get user profile
@@ -17,35 +50,7 @@ const getProfile = async (req, res, next) => {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: {
-        student: {
-          include: {
-            college: true,
-            department: true,
-          },
-        },
-        doctor: true,
-        delivery: {
-          include: {
-            wallet: true,
-          },
-        },
-        customer: true,
-        admin: true,
-        userRoles: {
-          include: {
-            role: {
-              include: {
-                permissions: {
-                  include: {
-                    permission: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
+      include: profileInclude,
     });
 
     if (!user) {
@@ -53,7 +58,8 @@ const getProfile = async (req, res, next) => {
     }
 
     // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    const { password: _, ...userRaw } = user;
+    const userWithoutPassword = sanitizeUserScalars(userRaw);
 
     // Ensure profile exists for STUDENT type users
     if (user.type === 'STUDENT' && !user.student) {
@@ -67,39 +73,12 @@ const getProfile = async (req, res, next) => {
       // Re-fetch user with student profile
       const updatedUser = await prisma.user.findUnique({
         where: { id: user.id },
-        include: {
-          student: {
-            include: {
-              college: true,
-              department: true,
-            },
-          },
-          doctor: true,
-          delivery: {
-            include: {
-              wallet: true,
-            },
-          },
-          customer: true,
-          admin: true,
-          userRoles: {
-            include: {
-              role: {
-                include: {
-                  permissions: {
-                    include: {
-                      permission: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
+        include: profileInclude,
       });
       if (updatedUser) {
         Object.assign(user, updatedUser);
-        Object.assign(userWithoutPassword, { ...updatedUser, password: undefined });
+        const { password: __, ...clean } = updatedUser;
+        Object.assign(userWithoutPassword, sanitizeUserScalars(clean));
       }
     }
 
@@ -118,6 +97,12 @@ const getProfile = async (req, res, next) => {
     } else if (user.customer) {
       name = user.customer.contactPerson || user.customer.entityName || '';
       username = user.customer.contactPerson || user.customer.entityName || '';
+    } else if (user.printCenter) {
+      name = user.printCenter.name || '';
+      username = user.printCenter.name || '';
+    } else if (user.institute) {
+      name = user.name || '';
+      username = user.name || '';
     }
 
     // Build response object
@@ -132,6 +117,9 @@ const getProfile = async (req, res, next) => {
       isDelivery: user.type === 'DELIVERY',
       isCustomer: user.type === 'CUSTOMER',
       isAdmin: user.type === 'ADMIN',
+      isInstitute: user.type === 'INSTITUTE',
+      isPrintCenter: user.type === 'PRINT_CENTER',
+      printCenterId: user.printCenter?.id || null,
     };
 
     sendSuccess(res, responseData, 'Profile retrieved successfully');

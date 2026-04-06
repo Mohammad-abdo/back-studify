@@ -34,7 +34,7 @@ router.get('/dashboard/stats', adminController.getDashboardStats);
 
 // Users management
 router.get('/users', validateQuery(paginationSchema.extend({
-  type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'ADMIN']).optional(),
+  type: z.enum(['STUDENT', 'DOCTOR', 'DELIVERY', 'CUSTOMER', 'INSTITUTE', 'PRINT_CENTER', 'ADMIN']).optional(),
   isActive: z.enum(['true', 'false']).optional(),
   search: z.string().optional(),
 })), adminController.getUsers);

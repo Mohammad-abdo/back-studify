@@ -9,6 +9,7 @@ const { NotFoundError, ValidationError } = require('../utils/errors');
 const { ORDER_STATUS } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
 const { assignOrderToNearestPrintCenter } = require('../services/printOrderAssignment.service');
+const { sanitizeProduct } = require('../utils/legacyApiShape');
 
 /**
  * Get user orders
@@ -112,9 +113,10 @@ const getMyOrders = async (req, res, next) => {
             where: { id: item.referenceId },
             include: {
               category: true,
+              pricing: true,
             },
           });
-          referenceData = product;
+          referenceData = product ? sanitizeProduct(product) : null;
         }
 
         return {
@@ -246,9 +248,10 @@ const getActiveOrders = async (req, res, next) => {
             where: { id: item.referenceId },
             include: {
               category: true,
+              pricing: true,
             },
           });
-          referenceData = product;
+          referenceData = product ? sanitizeProduct(product) : null;
           title = product?.name || '';
         }
 

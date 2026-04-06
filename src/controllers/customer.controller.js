@@ -6,6 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError } = require('../utils/errors');
+const { sanitizeCustomerWholesaleOrders } = require('../utils/legacyApiShape');
 
 /**
  * Get all customers
@@ -106,7 +107,7 @@ const getCustomerById = async (req, res, next) => {
       throw new NotFoundError('Customer not found');
     }
 
-    sendSuccess(res, customer, 'Customer retrieved successfully');
+    sendSuccess(res, sanitizeCustomerWholesaleOrders(customer), 'Customer retrieved successfully');
   } catch (error) {
     next(error);
   }
