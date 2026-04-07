@@ -1,6 +1,6 @@
 /**
  * Wholesale Order Controller
- * Handles wholesale order-related HTTP requests
+ * Handles wholesale order-related HTTP requests for institute users.
  */
 
 const prisma = require('../config/database');
@@ -9,29 +9,37 @@ const { NotFoundError, AuthorizationError, ValidationError } = require('../utils
 const { ORDER_STATUS } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
 const { sanitizeOrderItemsWithProducts } = require('../utils/legacyApiShape');
+const { validateInstituteProducts, calculateInstitutePriceFromTiers } = require('../services/institute.service');
 
 /**
- * Get customer's wholesale orders
+ * Get wholesale orders.
+ * ADMIN sees all orders; CUSTOMER/INSTITUTE sees only their own.
  */
 const getMyWholesaleOrders = async (req, res, next) => {
   try {
     const userId = req.userId;
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { status } = req.query;
+    const { status, customerId: filterCustomerId } = req.query;
 
-    // Check if user is a customer
-    const customer = await prisma.customer.findUnique({
-      where: { userId },
-    });
+    const isAdmin = req.userType === 'ADMIN';
 
-    if (!customer) {
-      throw new AuthorizationError('Only wholesale customers can access this');
+    let where = {};
+
+    if (isAdmin) {
+      if (filterCustomerId) where.customerId = filterCustomerId;
+    } else {
+      const customer = await prisma.customer.findUnique({
+        where: { userId },
+      });
+
+      if (!customer) {
+        throw new AuthorizationError('No customer profile found. Institute users must have a linked customer profile.');
+      }
+
+      where.customerId = customer.id;
     }
 
-    const where = {
-      customerId: customer.id,
-      ...(status && { status }),
-    };
+    if (status) where.status = status;
 
     const [orders, total] = await Promise.all([
       prisma.wholesaleOrder.findMany({
@@ -44,6 +52,13 @@ const getMyWholesaleOrders = async (req, res, next) => {
               product: true,
             },
           },
+          customer: isAdmin ? {
+            include: {
+              user: {
+                select: { id: true, phone: true, email: true },
+              },
+            },
+          } : false,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -54,7 +69,7 @@ const getMyWholesaleOrders = async (req, res, next) => {
 
     sendPaginated(
       res,
-      orders.map(sanitizeOrderItemsWithProducts),
+      orders,
       pagination,
       'Wholesale orders retrieved successfully'
     );
@@ -70,13 +85,17 @@ const getWholesaleOrderById = async (req, res, next) => {
   try {
     const userId = req.userId;
     const { id } = req.params;
+    const isAdmin = req.userType === 'ADMIN';
 
-    const customer = await prisma.customer.findUnique({
-      where: { userId },
-    });
+    let customer = null;
+    if (!isAdmin) {
+      customer = await prisma.customer.findUnique({
+        where: { userId },
+      });
 
-    if (!customer) {
-      throw new AuthorizationError('Only wholesale customers can access this');
+      if (!customer) {
+        throw new AuthorizationError('No customer profile found. Institute users must have a linked customer profile.');
+      }
     }
 
     const order = await prisma.wholesaleOrder.findUnique({
@@ -105,12 +124,11 @@ const getWholesaleOrderById = async (req, res, next) => {
       throw new NotFoundError('Wholesale order not found');
     }
 
-    // Check if order belongs to customer (unless admin)
-    if (order.customerId !== customer.id && req.userType !== 'ADMIN') {
+    if (!isAdmin && order.customerId !== customer.id) {
       throw new NotFoundError('Wholesale order not found');
     }
 
-    sendSuccess(res, sanitizeOrderItemsWithProducts(order), 'Wholesale order retrieved successfully');
+    sendSuccess(res, order, 'Wholesale order retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -118,6 +136,8 @@ const getWholesaleOrderById = async (req, res, next) => {
 
 /**
  * Create wholesale order
+ * - Validates all products are institute products
+ * - Calculates prices from ProductPricing tiers when no explicit price is given
  */
 const createWholesaleOrder = async (req, res, next) => {
   try {
@@ -128,19 +148,70 @@ const createWholesaleOrder = async (req, res, next) => {
       throw new ValidationError('Order must have at least one item');
     }
 
-    // Check if user is a customer
     const customer = await prisma.customer.findUnique({
       where: { userId },
     });
 
     if (!customer) {
-      throw new AuthorizationError('Only wholesale customers can create wholesale orders');
+      throw new AuthorizationError('No customer profile found. Institute users must have a linked customer profile.');
     }
 
-    // Calculate total
-    const total = calculateOrderTotal(items);
+    // Validate ALL products are institute products
+    const productIds = items.map((i) => i.productId);
+    const { valid, invalidIds } = await validateInstituteProducts(productIds);
+    if (!valid) {
+      throw new ValidationError(
+        `The following products are not institute products or do not exist: ${invalidIds.join(', ')}`
+      );
+    }
 
-    // Create order with items
+    // Fetch products with pricing tiers to compute prices
+    const products = await prisma.product.findMany({
+      where: { id: { in: productIds } },
+      include: { pricing: { orderBy: { minQuantity: 'asc' } } },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    const resolvedItems = items.map((item) => {
+      const product = productMap.get(item.productId);
+
+      // If the client sent a price, honour it (admin / pre-negotiated)
+      if (item.price != null && item.price > 0) {
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price,
+        };
+      }
+
+      // Calculate from pricing tiers
+      if (product.pricing && product.pricing.length > 0) {
+        const calc = calculateInstitutePriceFromTiers(item.quantity, product.pricing);
+        if (calc) {
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            price: calc.unitPrice,
+          };
+        }
+      }
+
+      // Fall back to basePrice
+      if (product.basePrice != null) {
+        return {
+          productId: item.productId,
+          quantity: item.quantity,
+          price: product.basePrice,
+        };
+      }
+
+      throw new ValidationError(
+        `No pricing available for product "${product.name}" (${product.id}). Add pricing tiers or a base price.`
+      );
+    });
+
+    const total = resolvedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
     const order = await prisma.wholesaleOrder.create({
       data: {
         customerId: customer.id,
@@ -148,7 +219,7 @@ const createWholesaleOrder = async (req, res, next) => {
         status: ORDER_STATUS.CREATED,
         address,
         items: {
-          create: items.map((item) => ({
+          create: resolvedItems.map((item) => ({
             productId: item.productId,
             quantity: item.quantity,
             price: item.price,
@@ -164,7 +235,7 @@ const createWholesaleOrder = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, sanitizeOrderItemsWithProducts(order), 'Wholesale order created successfully', 201);
+    sendSuccess(res, order, 'Wholesale order created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -198,7 +269,7 @@ const updateWholesaleOrderStatus = async (req, res, next) => {
       },
     });
 
-    sendSuccess(res, sanitizeOrderItemsWithProducts(order), 'Wholesale order status updated successfully');
+    sendSuccess(res, order, 'Wholesale order status updated successfully');
   } catch (error) {
     next(error);
   }

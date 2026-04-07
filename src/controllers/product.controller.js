@@ -5,18 +5,48 @@
 
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError, AuthorizationError } = require('../utils/errors');
+const { NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
 const { sanitizeProduct, sanitizeProductPricing } = require('../utils/legacyApiShape');
+const { getInstituteProductFilter } = require('../middleware/institute.middleware');
+const { USER_TYPES } = require('../utils/constants');
+
+const parseProductImages = (product) => {
+  let parsedImageUrls = [];
+  if (product.imageUrls) {
+    try {
+      parsedImageUrls = typeof product.imageUrls === 'string'
+        ? JSON.parse(product.imageUrls)
+        : product.imageUrls;
+      if (!Array.isArray(parsedImageUrls)) parsedImageUrls = [];
+    } catch {
+      parsedImageUrls = [];
+    }
+  }
+  return { ...product, imageUrls: parsedImageUrls };
+};
+
+const shouldExposeInstituteFields = (userType) =>
+  userType === USER_TYPES.ADMIN || userType === USER_TYPES.INSTITUTE;
 
 /**
  * Get all products (with filters)
+ * Applies institute/retail separation based on user type.
  */
 const getProducts = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
     const { categoryId, collegeId, search } = req.query;
 
+    const userType = req.user?.type;
+
+    // Admin can explicitly filter via query param; others get automatic separation
+    let instituteFilter = getInstituteProductFilter(userType);
+    if (userType === USER_TYPES.ADMIN && req.query.isInstituteProduct !== undefined) {
+      instituteFilter = req.query.isInstituteProduct === 'true';
+    }
+
     const where = {
+      ...(instituteFilter !== undefined && { isInstituteProduct: instituteFilter }),
       ...(categoryId && { categoryId }),
       ...(collegeId && {
         category: {
@@ -49,28 +79,11 @@ const getProducts = async (req, res, next) => {
       prisma.product.count({ where }),
     ]);
 
-    // Parse imageUrls JSON for each product (with error handling)
+    const exposeInstitute = shouldExposeInstituteFields(userType);
+
     const productsWithParsedImages = products.map(product => {
-      let parsedImageUrls = [];
-      if (product.imageUrls) {
-        try {
-          parsedImageUrls = typeof product.imageUrls === 'string' 
-            ? JSON.parse(product.imageUrls) 
-            : product.imageUrls;
-          // Ensure it's an array
-          if (!Array.isArray(parsedImageUrls)) {
-            parsedImageUrls = [];
-          }
-        } catch (error) {
-          // If JSON parsing fails, default to empty array
-          console.error('Error parsing imageUrls for product', product.id, error);
-          parsedImageUrls = [];
-        }
-      }
-      return sanitizeProduct({
-        ...product,
-        imageUrls: parsedImageUrls,
-      });
+      const parsed = parseProductImages(product);
+      return exposeInstitute ? parsed : sanitizeProduct(parsed);
     });
 
     const pagination = buildPagination(page, limit, total);
@@ -83,10 +96,12 @@ const getProducts = async (req, res, next) => {
 
 /**
  * Get product by ID
+ * Access is enforced by checkProductAccess middleware on the route layer.
  */
 const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const userType = req.user?.type;
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -102,30 +117,20 @@ const getProductById = async (req, res, next) => {
       throw new NotFoundError('Product not found');
     }
 
-    // Parse imageUrls JSON (with error handling)
-    let parsedImageUrls = [];
-    if (product.imageUrls) {
-      try {
-        parsedImageUrls = typeof product.imageUrls === 'string' 
-          ? JSON.parse(product.imageUrls) 
-          : product.imageUrls;
-        // Ensure it's an array
-        if (!Array.isArray(parsedImageUrls)) {
-          parsedImageUrls = [];
-        }
-      } catch (error) {
-        // If JSON parsing fails, default to empty array
-        console.error('Error parsing imageUrls for product', product.id, error);
-        parsedImageUrls = [];
+    // Runtime access guard (belt-and-suspenders alongside middleware)
+    if (userType !== USER_TYPES.ADMIN) {
+      if (product.isInstituteProduct && userType !== USER_TYPES.INSTITUTE) {
+        throw new AuthorizationError('Access denied. This is an institute-only product.');
+      }
+      if (!product.isInstituteProduct && userType === USER_TYPES.INSTITUTE) {
+        throw new AuthorizationError('Access denied. Institute users can only access institute products.');
       }
     }
 
-    const parsedProduct = sanitizeProduct({
-      ...product,
-      imageUrls: parsedImageUrls,
-    });
+    const parsed = parseProductImages(product);
+    const exposeInstitute = shouldExposeInstituteFields(userType);
+    const parsedProduct = exposeInstitute ? parsed : sanitizeProduct(parsed);
 
-    // Get reviews for this product (polymorphic relation)
     const reviews = await prisma.review.findMany({
       where: {
         targetId: id,
@@ -152,29 +157,58 @@ const getProductById = async (req, res, next) => {
 
 /**
  * Create product (Admin only)
+ * Supports isInstituteProduct, basePrice, pricingStrategy.
+ * When isInstituteProduct is true, pricing tiers can be supplied inline.
  */
 const createProduct = async (req, res, next) => {
   try {
-    const { name, description, categoryId, imageUrls } = req.body;
+    const {
+      name, description, categoryId, imageUrls,
+      isInstituteProduct = false, basePrice, pricingStrategy,
+      pricingTiers,
+    } = req.body;
 
-    // Convert imageUrls array to JSON string (optional field)
-    const imageUrlsJson = imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0 
-      ? JSON.stringify(imageUrls) 
+    const imageUrlsJson = imageUrls && Array.isArray(imageUrls) && imageUrls.length > 0
+      ? JSON.stringify(imageUrls)
       : null;
 
+    if (isInstituteProduct && (!pricingTiers || pricingTiers.length === 0) && basePrice == null) {
+      throw new ValidationError(
+        'Institute products require at least one pricing tier or a basePrice'
+      );
+    }
+
+    const productData = {
+      name,
+      description,
+      imageUrls: imageUrlsJson,
+      categoryId,
+      isInstituteProduct: !!isInstituteProduct,
+      ...(basePrice != null && { basePrice }),
+      ...(pricingStrategy && { pricingStrategy }),
+    };
+
+    if (isInstituteProduct && pricingTiers && pricingTiers.length > 0) {
+      productData.pricing = {
+        create: pricingTiers.map((t) => ({
+          minQuantity: t.minQuantity,
+          maxQuantity: t.maxQuantity ?? null,
+          price: t.price,
+          fixedPrice: t.fixedPrice ?? null,
+          discountPercent: t.discountPercent ?? null,
+        })),
+      };
+    }
+
     const product = await prisma.product.create({
-      data: {
-        name,
-        description,
-        imageUrls: imageUrlsJson,
-        categoryId,
-      },
+      data: productData,
       include: {
         category: true,
+        pricing: true,
       },
     });
 
-    sendSuccess(res, sanitizeProduct(product), 'Product created successfully', 201);
+    sendSuccess(res, parseProductImages(product), 'Product created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -182,11 +216,16 @@ const createProduct = async (req, res, next) => {
 
 /**
  * Update product (Admin only)
+ * Supports isInstituteProduct, basePrice, pricingStrategy, and pricingTiers replacement.
  */
 const updateProduct = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, description, categoryId, imageUrls } = req.body;
+    const {
+      name, description, categoryId, imageUrls,
+      isInstituteProduct, basePrice, pricingStrategy,
+      pricingTiers,
+    } = req.body;
 
     const existingProduct = await prisma.product.findUnique({
       where: { id },
@@ -200,21 +239,38 @@ const updateProduct = async (req, res, next) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (imageUrls !== undefined) {
-      updateData.imageUrls = Array.isArray(imageUrls) && imageUrls.length > 0 
-        ? JSON.stringify(imageUrls) 
+      updateData.imageUrls = Array.isArray(imageUrls) && imageUrls.length > 0
+        ? JSON.stringify(imageUrls)
         : null;
     }
     if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (isInstituteProduct !== undefined) updateData.isInstituteProduct = !!isInstituteProduct;
+    if (basePrice !== undefined) updateData.basePrice = basePrice;
+    if (pricingStrategy !== undefined) updateData.pricingStrategy = pricingStrategy;
+
+    if (pricingTiers && Array.isArray(pricingTiers)) {
+      updateData.pricing = {
+        deleteMany: {},
+        create: pricingTiers.map((t) => ({
+          minQuantity: t.minQuantity,
+          maxQuantity: t.maxQuantity ?? null,
+          price: t.price,
+          fixedPrice: t.fixedPrice ?? null,
+          discountPercent: t.discountPercent ?? null,
+        })),
+      };
+    }
 
     const product = await prisma.product.update({
       where: { id },
       data: updateData,
       include: {
         category: true,
+        pricing: true,
       },
     });
 
-    sendSuccess(res, sanitizeProduct(product), 'Product updated successfully');
+    sendSuccess(res, parseProductImages(product), 'Product updated successfully');
   } catch (error) {
     next(error);
   }
@@ -248,11 +304,13 @@ const deleteProduct = async (req, res, next) => {
 // Note: Product categories moved to category controller
 
 /**
- * Add product pricing
+ * Add product pricing tier
+ * Supports maxQuantity, fixedPrice, discountPercent for institute tier pricing.
  */
 const addProductPricing = async (req, res, next) => {
   try {
-    const { productId, minQuantity, price } = req.body;
+    const productId = req.params.id || req.body.productId;
+    const { minQuantity, maxQuantity, price, fixedPrice, discountPercent } = req.body;
 
     const existingProduct = await prisma.product.findUnique({
       where: { id: productId },
@@ -266,18 +324,20 @@ const addProductPricing = async (req, res, next) => {
       data: {
         productId,
         minQuantity,
+        maxQuantity: maxQuantity ?? null,
         price,
+        fixedPrice: fixedPrice ?? null,
+        discountPercent: discountPercent ?? null,
       },
       include: {
         product: true,
       },
     });
 
-    const safePricing = {
-      ...sanitizeProductPricing(pricing),
-      product: sanitizeProduct(pricing.product),
-    };
-    sendSuccess(res, safePricing, 'Pricing added successfully', 201);
+    sendSuccess(res, {
+      ...pricing,
+      product: parseProductImages(pricing.product),
+    }, 'Pricing added successfully', 201);
   } catch (error) {
     next(error);
   }

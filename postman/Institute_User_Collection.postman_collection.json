@@ -1,0 +1,951 @@
+{
+  "info": {
+    "name": "Studify - Institute (Government) User Journey",
+    "description": "Complete Postman collection for Institute/Government user flows.\n\nCovers: Auth - Profile - Categories - Products - Cart - Checkout - Orders - Transactions\n\nSeeded Test Users:\n- Phone: +209000000001 (Ministry of Health)\n- Phone: +209000000002 (Ministry of Education)\n- Phone: +209000000003 (Ministry of Interior)\n- Phone: +209000000004 (Financial Oversight)\n- Phone: +209000000005 (Ministry of Electricity)\n- Password for all: Password123!\n\nHow to use:\n1. Run Login with seeded credentials\n2. Copy the token from response\n3. Paste it in the collection variable 'token'\n4. Browse categories - filter products - add to cart - checkout",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    { "key": "host", "value": "localhost", "type": "string" },
+    { "key": "port", "value": "6008", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "refresh_token", "value": "", "type": "string" },
+    { "key": "user_id", "value": "", "type": "string" },
+    { "key": "customer_id", "value": "", "type": "string" },
+    { "key": "product_id", "value": "", "type": "string" },
+    { "key": "category_id", "value": "", "type": "string" },
+    { "key": "cart_item_id", "value": "", "type": "string" },
+    { "key": "order_id", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Register New Institute User",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.user) pm.collectionVariables.set('user_id', json.data.user.id);", "if(json.data && json.data.userId) pm.collectionVariables.set('user_id', json.data.userId);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+964770001234\",\n  \"password\": \"SecurePass123!\",\n  \"type\": \"INSTITUTE\",\n  \"email\": \"new-institute@gov.iq\",\n  \"name\": \"New Government Institute\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/auth/register",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Verify OTP",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.token) pm.collectionVariables.set('token', json.data.token);", "if(json.data && json.data.refreshToken) pm.collectionVariables.set('refresh_token', json.data.refreshToken);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"code\": \"123456\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/auth/verify-otp",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "auth", "verify-otp"]
+            },
+            "description": "Enter the 6-digit OTP. For dev, check console or DB."
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"userId\": \"{{user_id}}\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/auth/resend-otp",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "auth", "resend-otp"]
+            }
+          }
+        },
+        {
+          "name": "LOGIN (Seeded Institute - Health Ministry)",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data){", "  if(json.data.token) pm.collectionVariables.set('token', json.data.token);", "  if(json.data.refreshToken) pm.collectionVariables.set('refresh_token', json.data.refreshToken);", "  if(json.data.user){", "    pm.collectionVariables.set('user_id', json.data.user.id);", "    if(json.data.user.customer) pm.collectionVariables.set('customer_id', json.data.user.customer.id);", "  }", "}"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"phone\": \"+209000000001\",\n  \"password\": \"Password123!\",\n  \"clientType\": \"INSTITUTE\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/auth/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Login with seeded institute user. Token auto-saved to variable."
+          }
+        },
+        {
+          "name": "Get My Profile",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.customer) pm.collectionVariables.set('customer_id', json.data.customer.id);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/auth/profile",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "auth", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"Password123!\",\n  \"newPassword\": \"NewSecure456!\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/change-password",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "change-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Profile",
+      "item": [
+        {
+          "name": "Get Customer Profile",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('customer_id', json.data.id);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/profile/customer",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "profile", "customer"]
+            }
+          }
+        },
+        {
+          "name": "Update Customer Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"entityName\": \"Ministry of Health - Baghdad Branch\",\n  \"contactPerson\": \"Ahmed Mohammed\",\n  \"phone\": \"+964770009999\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/profile/customer",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "profile", "customer"]
+            }
+          }
+        },
+        {
+          "name": "Get Full User Profile",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/profile",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "profile"]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile (email/avatar)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"updated-health@gov.iq\",\n  \"avatarUrl\": \"https://ui-avatars.com/api/?name=MOH&background=1e40af&color=fff\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/profile",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "profile"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Categories",
+      "item": [
+        {
+          "name": "Get ALL Categories (no filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"]
+            },
+            "description": "Returns ALL product categories (both institute and normal)."
+          }
+        },
+        {
+          "name": "Get All Institute Main Categories",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "var cats = json.data || [];", "var mains = cats.filter(function(c){ return c.name.indexOf('/') === -1; });", "if(mains.length > 0) pm.collectionVariables.set('category_id', mains[0].id);", "if(cats.length > 0 && !pm.collectionVariables.get('category_id')) pm.collectionVariables.set('category_id', cats[0].id);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products?isInstituteCategory=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"],
+              "query": [{ "key": "isInstituteCategory", "value": "true" }]
+            },
+            "description": "Get only government/institute categories. Main categories have no '/' in name. Auto-saves first main category ID."
+          }
+        },
+        {
+          "name": "Get All Institute Sub-Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products?isInstituteCategory=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"],
+              "query": [{ "key": "isInstituteCategory", "value": "true" }]
+            },
+            "description": "Returns all institute categories. Sub-categories have '/' separator in name (e.g. 'ParentName / SubName'). Filter in client by checking name.includes('/')."
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&categoryId={{category_id}}&page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "categoryId", "value": "{{category_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "Get all products belonging to a specific category ID. This is 'Get Category by ID' - shows category content."
+          }
+        },
+        {
+          "name": "Get Institute Categories (Mobile)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/categories/products?isInstituteCategory=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "categories", "products"],
+              "query": [{ "key": "isInstituteCategory", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "Get Products by Sub-Category",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.length > 0) pm.collectionVariables.set('product_id', json.data[0].id);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&categoryId={{category_id}}&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "categoryId", "value": "{{category_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Products filtered by a specific sub-category. Change category_id variable to any sub-category ID."
+          }
+        },
+        {
+          "name": "Search Categories by Name",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products?isInstituteCategory=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"],
+              "query": [{ "key": "isInstituteCategory", "value": "true" }]
+            },
+            "description": "Categories are returned as a flat list. Filter client-side by name. The API does not have a search param for categories - filter the response array."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Products",
+      "item": [
+        {
+          "name": "Get All Institute Products",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.length > 0) pm.collectionVariables.set('product_id', json.data[0].id);"] } }],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "All institute products, paginated. Auto-saves first product ID."
+          }
+        },
+        {
+          "name": "Search Products (English)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&search=paper&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "search", "value": "paper" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Search by English name/description."
+          }
+        },
+        {
+          "name": "Search Products (Arabic)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&search=%D9%88%D8%B1%D9%82&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "search", "value": "ورق" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Search by Arabic name/description."
+          }
+        },
+        {
+          "name": "Search + Filter by Category",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&search=paper&categoryId={{category_id}}&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "search", "value": "paper" },
+                { "key": "categoryId", "value": "{{category_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Combine text search with category filter."
+          }
+        },
+        {
+          "name": "Get Single Product (with Pricing Tiers)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products/{{product_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products", "{{product_id}}"]
+            },
+            "description": "Full product detail including pricing tiers, category, and reviews."
+          }
+        },
+        {
+          "name": "Filter Products by Category",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&categoryId={{category_id}}&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "categoryId", "value": "{{category_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Institute Products (Mobile)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/products?isInstituteProduct=true&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Product (Mobile)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/products/{{product_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "products", "{{product_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Cart",
+      "item": [
+        {
+          "name": "Get My Cart",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/cart",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "cart"]
+            }
+          }
+        },
+        {
+          "name": "Add Product to Cart",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('cart_item_id', json.data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"referenceType\": \"PRODUCT\",\n  \"referenceId\": \"{{product_id}}\",\n  \"quantity\": 5\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/cart/items",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "cart", "items"]
+            },
+            "description": "Add an institute product to cart. Cannot mix with normal products."
+          }
+        },
+        {
+          "name": "Update Cart Item Quantity",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 10\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/cart/items/{{cart_item_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "cart", "items", "{{cart_item_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/cart/items/{{cart_item_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "cart", "items", "{{cart_item_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Clear Entire Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/cart",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "cart"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Checkout (Wholesale Order)",
+      "item": [
+        {
+          "name": "Create Wholesale Order",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('order_id', json.data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{product_id}}\",\n      \"quantity\": 50\n    }\n  ],\n  \"address\": \"Baghdad - Green Zone - Ministry Building\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders"]
+            },
+            "description": "Create wholesale order. Price auto-calculated from tiers or basePrice."
+          }
+        },
+        {
+          "name": "Create Wholesale Order (Multiple Items)",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('order_id', json.data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"items\": [\n    { \"productId\": \"{{product_id}}\", \"quantity\": 100 },\n    { \"productId\": \"{{product_id}}\", \"quantity\": 25, \"price\": 5.50 }\n  ],\n  \"address\": \"Baghdad - Al Rashid Street\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders"]
+            }
+          }
+        },
+        {
+          "name": "Create Wholesale Order (Mobile)",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('order_id', json.data.id);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"items\": [\n    { \"productId\": \"{{product_id}}\", \"quantity\": 30 }\n  ],\n  \"address\": \"Basra - Industrial Zone\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/orders",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "orders"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Orders (Track & Manage)",
+      "item": [
+        {
+          "name": "Get My Wholesale Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Filter Orders by Status (CREATED)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders?status=CREATED&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders"],
+              "query": [{ "key": "status", "value": "CREATED" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Filter Orders by Status (DELIVERED)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders?status=DELIVERED&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders"],
+              "query": [{ "key": "status", "value": "DELIVERED" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Get Single Wholesale Order",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders/{{order_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders", "{{order_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get My Orders (Mobile)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/orders?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "orders"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            }
+          }
+        },
+        {
+          "name": "Get Single Order (Mobile)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/orders/{{order_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "orders", "{{order_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Order (Mobile)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/mobile/customer/orders/{{order_id}}/cancel",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "mobile", "customer", "orders", "{{order_id}}", "cancel"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Financial Transactions (Admin)",
+      "item": [
+        {
+          "name": "Get All Transactions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/financial-transactions?page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "financial-transactions"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+            },
+            "description": "Requires ADMIN role."
+          }
+        },
+        {
+          "name": "Create Payment Transaction",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"PAYMENT\",\n  \"amount\": 5000,\n  \"description\": \"Wholesale order payment\",\n  \"referenceId\": \"{{order_id}}\",\n  \"referenceType\": \"WHOLESALE_ORDER\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/financial-transactions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "financial-transactions"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Product Pricing (Admin)",
+      "item": [
+        {
+          "name": "Get Pricing for Product",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/product-pricing?productId={{product_id}}",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "product-pricing"],
+              "query": [{ "key": "productId", "value": "{{product_id}}" }]
+            }
+          }
+        },
+        {
+          "name": "Add Pricing Tier",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"productId\": \"{{product_id}}\",\n  \"minQuantity\": 100,\n  \"maxQuantity\": 500,\n  \"price\": 3.50,\n  \"discountPercent\": 15\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/product-pricing",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "product-pricing"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Admin Helpers",
+      "item": [
+        {
+          "name": "List All Customers (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/customers?page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "customers"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "List All Institute Products (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [{ "key": "isInstituteProduct", "value": "true" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "List All Wholesale Orders (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders?page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders"],
+              "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "50" }]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status (Admin)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"PROCESSING\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/wholesale-orders/{{order_id}}/status",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "wholesale-orders", "{{order_id}}", "status"]
+            },
+            "description": "Status values: CREATED, PAID, PROCESSING, SHIPPED, DELIVERED, CANCELLED"
+          }
+        },
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:6008/health",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["health"]
+            },
+            "description": "Quick check if server is running."
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - AI Chatbot",
+      "item": [
+        {
+          "name": "Get Suggestions",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/chatbot/suggestions",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "chatbot", "suggestions"]
+            },
+            "description": "Get suggested questions based on user type."
+          }
+        },
+        {
+          "name": "Send Message",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.conversationId) pm.collectionVariables.set('conversation_id', json.data.conversationId);"] } }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"What products do you have available?\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/chatbot/message",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "chatbot", "message"]
+            },
+            "description": "Send a message to the AI chatbot. First message creates a conversation."
+          }
+        },
+        {
+          "name": "Continue Conversation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"Tell me more about the pricing\",\n  \"conversationId\": \"{{conversation_id}}\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/chatbot/message",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "chatbot", "message"]
+            },
+            "description": "Continue an existing conversation by passing the conversationId."
+          }
+        },
+        {
+          "name": "Ask in Arabic",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"ما هي المنتجات المتاحة؟ وكم أسعارها؟\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/chatbot/message",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "chatbot", "message"]
+            },
+            "description": "The chatbot automatically responds in Arabic when the question is in Arabic."
+          }
+        },
+        {
+          "name": "Ask for Product Recommendation",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
+            "body": { "mode": "raw", "raw": "{\n  \"message\": \"I need office supplies for a government department. What do you recommend?\",\n  \"conversationId\": \"{{conversation_id}}\"\n}" },
+            "url": {
+              "raw": "http://localhost:6008/api/chatbot/message",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "chatbot", "message"]
+            },
+            "description": "Ask the chatbot for product recommendations."
+          }
+        }
+      ]
+    }
+  ]
+}

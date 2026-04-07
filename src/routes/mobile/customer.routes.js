@@ -23,9 +23,9 @@ const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.midd
 const { singleUpload } = require('../../services/fileUpload.service');
 const { z } = require('zod');
 
-// All routes require authentication and customer type
+// All routes require authentication and customer/institute type
 router.use(authenticate);
-router.use(requireUserType('CUSTOMER'));
+router.use(requireUserType('CUSTOMER', 'INSTITUTE'));
 
 // Transform image URLs to full URLs for mobile
 router.use(transformImageUrlsMiddleware);
@@ -151,8 +151,9 @@ router.post('/orders', validateBody(z.object({
   items: z.array(z.object({
     productId: uuidSchema,
     quantity: z.number().int().positive(),
-    price: z.number().nonnegative(),
+    price: z.number().nonnegative().optional(),
   })).min(1),
+  address: z.string().max(2000).optional(),
 })), wholesaleController.createWholesaleOrder);
 
 router.post('/orders/:id/cancel', async (req, res, next) => {

@@ -11,7 +11,8 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "node prisma/seed.js",
     "prisma:seed:pages": "node prisma/seed-static-pages.js",
-    "prisma:seed:print-orders": "node prisma/seed-print-orders.js"
+    "prisma:seed:print-orders": "node prisma/seed-print-orders.js",
+    "prisma:seed:institute": "node prisma/seed-institute.js"
   },
   "keywords": [
     "studify",
@@ -35,6 +36,7 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "nodemailer": "^7.0.12",
+    "openai": "^6.33.0",
     "pdfkit": "^0.15.2",
     "socket.io": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",

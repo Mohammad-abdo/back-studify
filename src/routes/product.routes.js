@@ -12,6 +12,7 @@ const router = express.Router();
 const productController = require('../controllers/product.controller');
 const authenticate = require('../middleware/auth.middleware');
 const { requireUserType } = require('../middleware/role.middleware');
+const { optionalAuthenticate, checkProductAccess } = require('../middleware/institute.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../utils/validators');
 const { z } = require('zod');
@@ -43,7 +44,7 @@ const { z } = require('zod');
  *                 - properties:
  *                     data: { type: array, items: { $ref: '#/components/schemas/Product' } }
  */
-router.get('/', validateQuery(paginationSchema), productController.getProducts);
+router.get('/', optionalAuthenticate, validateQuery(paginationSchema), productController.getProducts);
 
 /**
  * @swagger
@@ -60,7 +61,7 @@ router.get('/', validateQuery(paginationSchema), productController.getProducts);
  *       200:
  *         description: Product details
  */
-router.get('/:id', productController.getProductById);
+router.get('/:id', optionalAuthenticate, checkProductAccess, productController.getProductById);
 
 // Protected routes (Admin only)
 router.use(authenticate);
@@ -95,6 +96,16 @@ router.post('/', validateBody(z.object({
   description: z.string().min(10),
   imageUrls: z.array(z.string().url()).optional(),
   categoryId: uuidSchema,
+  isInstituteProduct: z.boolean().optional().default(false),
+  basePrice: z.number().nonnegative().optional().nullable(),
+  pricingStrategy: z.enum(['FIXED_TIERS', 'DISCOUNT_TIERS']).optional().nullable(),
+  pricingTiers: z.array(z.object({
+    minQuantity: z.number().int().positive(),
+    maxQuantity: z.number().int().positive().optional().nullable(),
+    price: z.number().nonnegative(),
+    fixedPrice: z.number().nonnegative().optional().nullable(),
+    discountPercent: z.number().min(0).max(100).optional().nullable(),
+  })).optional(),
 })), productController.createProduct);
 
 /**
@@ -119,6 +130,9 @@ router.put('/:id', validateBody(z.object({
   description: z.string().min(10).optional(),
   imageUrls: z.array(z.string().url()).optional(),
   categoryId: uuidSchema.optional(),
+  isInstituteProduct: z.boolean().optional(),
+  basePrice: z.number().nonnegative().optional().nullable(),
+  pricingStrategy: z.enum(['FIXED_TIERS', 'DISCOUNT_TIERS']).optional().nullable(),
 })), productController.updateProduct);
 
 /**
@@ -169,7 +183,10 @@ router.delete('/:id', productController.deleteProduct);
  */
 router.post('/:id/pricing', validateBody(z.object({
   minQuantity: z.number().int().positive(),
+  maxQuantity: z.number().int().positive().optional().nullable(),
   price: z.number().nonnegative(),
+  fixedPrice: z.number().nonnegative().optional().nullable(),
+  discountPercent: z.number().min(0).max(100).optional().nullable(),
 })), productController.addProductPricing);
 
 module.exports = router;

@@ -79,10 +79,10 @@ async function main() {
     },
     include: { admin: true },
   });
-  console.log('✅ Admin created:', adminUser.email);
+  console.log(' Admin created:', adminUser.email);
 
   // 2. Create Colleges
-  console.log('\n🏛️ Creating colleges...');
+  console.log('\n Creating colleges...');
   const colleges = [
     { name: 'Faculty of Engineering' },
     { name: 'Faculty of Medicine' },
@@ -103,15 +103,15 @@ async function main() {
       created = await prisma.college.create({
         data: college,
       });
-      console.log(`✅ College created: ${college.name}`);
+      console.log(` College created: ${college.name}`);
     } else {
-      console.log(`⏭️  College already exists: ${college.name}`);
+      console.log(`⏭  College already exists: ${college.name}`);
     }
     createdColleges.push(created);
   }
 
   // 3. Create Departments
-  console.log('\n📚 Creating departments...');
+  console.log('\n Creating departments...');
   const departments = [
     { name: 'Software Engineering', collegeId: createdColleges[0].id },
     { name: 'Computer Engineering', collegeId: createdColleges[0].id },
@@ -141,7 +141,7 @@ async function main() {
       data: dept,
     });
     createdDepartments.push(created);
-    console.log(`✅ Department created: ${dept.name}`);
+    console.log(` Department created: ${dept.name}`);
   }
 
   // 4. Create Students
@@ -193,11 +193,11 @@ async function main() {
       include: { student: true },
     });
     createdStudents.push(user);
-    console.log(`✅ Student created: ${student.name}`);
+    console.log(` Student created: ${student.name}`);
   }
 
   // 5. Create Doctors
-  console.log('\n👨‍⚕️ Creating doctors...');
+  console.log(' Creating doctors...');
   const doctors = [
     {
       phone: '+202222222221',
@@ -247,7 +247,7 @@ async function main() {
   }
 
   // 6. Create Delivery
-  console.log('\n🚚 Creating delivery personnel...');
+  console.log(' Creating delivery personnel...');
   const deliveries = [
     {
       phone: '+203333333331',

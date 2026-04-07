@@ -5,8 +5,9 @@
 
 const prisma = require('../config/database');
 const { sendSuccess, sendError } = require('../utils/response');
-const { NotFoundError, BadRequestError } = require('../utils/errors');
+const { NotFoundError, BadRequestError, AuthorizationError } = require('../utils/errors');
 const { sanitizeProduct } = require('../utils/legacyApiShape');
+const { USER_TYPES } = require('../utils/constants');
 
 /**
  * Get or create user's cart
@@ -136,30 +137,43 @@ const getCart = async (req, res, next) => {
 
 /**
  * Add item to cart
+ * Prevents mixing institute and normal products in the same cart.
  */
 const addToCart = async (req, res, next) => {
   try {
     const userId = req.userId;
+    const userType = req.userType;
     const { referenceType, referenceId, quantity = 1 } = req.body;
 
     if (!referenceType || !referenceId) {
       throw new BadRequestError('referenceType and referenceId are required');
     }
 
-    // Validate reference type
     const validTypes = ['BOOK', 'PRODUCT', 'MATERIAL', 'PRINT_OPTION'];
     if (!validTypes.includes(referenceType)) {
       throw new BadRequestError(`Invalid referenceType. Must be one of: ${validTypes.join(', ')}`);
     }
 
-    // Verify reference exists
+    // Verify reference exists + enforce institute separation for products
     let referenceExists = false;
+    let incomingIsInstitute = false;
+
     if (referenceType === 'BOOK') {
       const book = await prisma.book.findUnique({ where: { id: referenceId } });
       referenceExists = !!book;
     } else if (referenceType === 'PRODUCT') {
       const product = await prisma.product.findUnique({ where: { id: referenceId } });
       referenceExists = !!product;
+      if (product) {
+        incomingIsInstitute = product.isInstituteProduct;
+
+        if (product.isInstituteProduct && userType !== USER_TYPES.INSTITUTE && userType !== USER_TYPES.ADMIN) {
+          throw new AuthorizationError('Access denied. This is an institute-only product.');
+        }
+        if (!product.isInstituteProduct && userType === USER_TYPES.INSTITUTE) {
+          throw new AuthorizationError('Institute users can only add institute products to cart.');
+        }
+      }
     } else if (referenceType === 'MATERIAL') {
       const material = await prisma.material.findUnique({ where: { id: referenceId } });
       referenceExists = !!material;
@@ -172,10 +186,28 @@ const addToCart = async (req, res, next) => {
       throw new NotFoundError(`${referenceType} not found`);
     }
 
-    // Get or create cart
     const cart = await getOrCreateCart(userId);
 
-    // Check if item already exists in cart
+    // Prevent mixing institute and normal products in the same cart
+    if (referenceType === 'PRODUCT' && cart.items.length > 0) {
+      const existingProductItems = cart.items.filter((i) => i.referenceType === 'PRODUCT');
+      if (existingProductItems.length > 0) {
+        const existingProducts = await prisma.product.findMany({
+          where: { id: { in: existingProductItems.map((i) => i.referenceId) } },
+          select: { id: true, isInstituteProduct: true },
+        });
+        const existingIsInstitute = existingProducts.some((p) => p.isInstituteProduct);
+        const existingIsRetail = existingProducts.some((p) => !p.isInstituteProduct);
+
+        if (incomingIsInstitute && existingIsRetail) {
+          throw new BadRequestError('Cannot mix institute and normal products in the same cart. Please clear your cart first.');
+        }
+        if (!incomingIsInstitute && existingIsInstitute) {
+          throw new BadRequestError('Cannot mix institute and normal products in the same cart. Please clear your cart first.');
+        }
+      }
+    }
+
     const existingItem = await prisma.cartItem.findUnique({
       where: {
         cartId_referenceType_referenceId: {
@@ -186,12 +218,10 @@ const addToCart = async (req, res, next) => {
       },
     });
 
-    // If the item is already in the cart, return it WITHOUT increasing quantity
     if (existingItem) {
       return sendSuccess(res, existingItem, 'Item already exists in cart');
     }
 
-    // Create new item
     const cartItem = await prisma.cartItem.create({
       data: {
         cartId: cart.id,

@@ -83,6 +83,9 @@ const config = {
   // App URLs
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
+
+  // OpenAI
+  openaiApiKey: process.env.OPENAI_API_KEY,
 };
 
 module.exports = config;

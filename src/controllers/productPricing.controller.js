@@ -84,13 +84,13 @@ const getProductPricingById = async (req, res, next) => {
 };
 
 /**
- * Create product pricing
+ * Create product pricing tier
+ * Supports maxQuantity, fixedPrice, discountPercent for institute tier pricing.
  */
 const createProductPricing = async (req, res, next) => {
   try {
-    const { productId, minQuantity, price } = req.body;
+    const { productId, minQuantity, maxQuantity, price, fixedPrice, discountPercent } = req.body;
 
-    // Check if product exists
     const product = await prisma.product.findUnique({
       where: { id: productId },
     });
@@ -103,7 +103,10 @@ const createProductPricing = async (req, res, next) => {
       data: {
         productId,
         minQuantity,
+        maxQuantity: maxQuantity ?? null,
         price,
+        fixedPrice: fixedPrice ?? null,
+        discountPercent: discountPercent ?? null,
       },
       include: {
         product: true,
@@ -112,10 +115,7 @@ const createProductPricing = async (req, res, next) => {
 
     sendSuccess(
       res,
-      {
-        ...sanitizeProductPricing(pricing),
-        product: sanitizeProduct(pricing.product),
-      },
+      { ...pricing, product: pricing.product },
       'Product pricing created successfully',
       201
     );
@@ -125,12 +125,13 @@ const createProductPricing = async (req, res, next) => {
 };
 
 /**
- * Update product pricing
+ * Update product pricing tier
+ * Supports maxQuantity, fixedPrice, discountPercent.
  */
 const updateProductPricing = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { minQuantity, price } = req.body;
+    const { minQuantity, maxQuantity, price, fixedPrice, discountPercent } = req.body;
 
     const existingPricing = await prisma.productPricing.findUnique({
       where: { id },
@@ -142,7 +143,10 @@ const updateProductPricing = async (req, res, next) => {
 
     const updateData = {};
     if (minQuantity !== undefined) updateData.minQuantity = minQuantity;
+    if (maxQuantity !== undefined) updateData.maxQuantity = maxQuantity;
     if (price !== undefined) updateData.price = price;
+    if (fixedPrice !== undefined) updateData.fixedPrice = fixedPrice;
+    if (discountPercent !== undefined) updateData.discountPercent = discountPercent;
 
     const pricing = await prisma.productPricing.update({
       where: { id },
@@ -154,10 +158,7 @@ const updateProductPricing = async (req, res, next) => {
 
     sendSuccess(
       res,
-      {
-        ...sanitizeProductPricing(pricing),
-        product: sanitizeProduct(pricing.product),
-      },
+      { ...pricing, product: pricing.product },
       'Product pricing updated successfully'
     );
   } catch (error) {

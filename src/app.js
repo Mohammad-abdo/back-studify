@@ -118,6 +118,7 @@ const settingsRoutes = require('./routes/settings.routes');
 const mobileRoutes = require('./routes/mobile');
 const publicRoutes = require('./routes/public.routes');
 const sliderRoutes = require('./routes/slider.routes');
+const chatbotRoutes = require('./routes/chatbot.routes');
 const { validateQuery } = require('./middleware/validation.middleware');
 const { paginationSchema } = require('./utils/validators');
 const { transformImageUrlsMiddleware } = require('./middleware/imageUrl.middleware');
@@ -195,6 +196,9 @@ app.use('/api/public', publicRoutes);
 
 // Slider routes
 app.use('/api/sliders', sliderRoutes);
+
+// AI Chatbot routes
+app.use('/api/chatbot', chatbotRoutes);
 
 // 404 handler
 app.use((req, res) => {

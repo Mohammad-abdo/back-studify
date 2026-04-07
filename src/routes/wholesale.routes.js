@@ -1,5 +1,6 @@
 /**
  * Wholesale Order Routes
+ * Accessible by CUSTOMER, INSTITUTE, and ADMIN user types.
  */
 
 const express = require('express');
@@ -14,15 +15,16 @@ const { z } = require('zod');
 // All routes require authentication
 router.use(authenticate);
 
-// Customer routes
-router.get('/', requireUserType('CUSTOMER'), validateQuery(paginationSchema), wholesaleController.getMyWholesaleOrders);
-router.get('/:id', requireUserType('CUSTOMER'), wholesaleController.getWholesaleOrderById);
-router.post('/', requireUserType('CUSTOMER'), validateBody(z.object({
+// Customer, institute & admin routes
+router.get('/', requireUserType('CUSTOMER', 'INSTITUTE', 'ADMIN'), validateQuery(paginationSchema), wholesaleController.getMyWholesaleOrders);
+router.get('/:id', requireUserType('CUSTOMER', 'INSTITUTE', 'ADMIN'), wholesaleController.getWholesaleOrderById);
+router.post('/', requireUserType('CUSTOMER', 'INSTITUTE'), validateBody(z.object({
   items: z.array(z.object({
     productId: uuidSchema,
     quantity: z.number().int().positive(),
-    price: z.number().nonnegative(),
+    price: z.number().nonnegative().optional(),
   })).min(1),
+  address: z.string().max(2000).optional(),
 })), wholesaleController.createWholesaleOrder);
 
 // Admin routes (update order status)

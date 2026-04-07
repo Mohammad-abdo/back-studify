@@ -7,6 +7,8 @@ const prisma = require('../config/database');
 const { sanitizeProductCategory } = require('../utils/legacyApiShape');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError } = require('../utils/errors');
+const { getInstituteCategoryFilter } = require('../middleware/institute.middleware');
+const { USER_TYPES } = require('../utils/constants');
 
 /**
  * Get book categories
@@ -101,15 +103,22 @@ const deleteBookCategory = async (req, res, next) => {
 
 /**
  * Get product categories
+ * Applies institute/retail separation based on user type.
  */
 const getProductCategories = async (req, res, next) => {
   try {
     const { collegeId } = req.query;
-    const where = {};
-    
-    if (collegeId) {
-      where.collegeId = collegeId;
+    const userType = req.user?.type;
+
+    let instituteFilter = getInstituteCategoryFilter(userType);
+    if (userType === USER_TYPES.ADMIN && req.query.isInstituteCategory !== undefined) {
+      instituteFilter = req.query.isInstituteCategory === 'true';
     }
+
+    const where = {
+      ...(instituteFilter !== undefined && { isInstituteCategory: instituteFilter }),
+      ...(collegeId && { collegeId }),
+    };
 
     const categories = await prisma.productCategory.findMany({
       where,
@@ -124,9 +133,10 @@ const getProductCategories = async (req, res, next) => {
       orderBy: { name: 'asc' },
     });
 
+    const exposeInstitute = userType === USER_TYPES.ADMIN || userType === USER_TYPES.INSTITUTE;
     sendSuccess(
       res,
-      categories.map(sanitizeProductCategory),
+      exposeInstitute ? categories : categories.map(sanitizeProductCategory),
       'Product categories retrieved successfully'
     );
   } catch (error) {
@@ -167,16 +177,22 @@ const getMaterialCategories = async (req, res, next) => {
 
 /**
  * Create product category (Admin only)
+ * Supports isInstituteCategory and collegeId.
  */
 const createProductCategory = async (req, res, next) => {
   try {
-    const { name } = req.body;
+    const { name, isInstituteCategory = false, collegeId } = req.body;
 
     const category = await prisma.productCategory.create({
-      data: { name },
+      data: {
+        name,
+        isInstituteCategory: !!isInstituteCategory,
+        ...(collegeId && { collegeId }),
+      },
+      include: { college: true },
     });
 
-    sendSuccess(res, sanitizeProductCategory(category), 'Product category created successfully', 201);
+    sendSuccess(res, category, 'Product category created successfully', 201);
   } catch (error) {
     next(error);
   }
@@ -184,11 +200,12 @@ const createProductCategory = async (req, res, next) => {
 
 /**
  * Update product category (Admin only)
+ * Supports isInstituteCategory and collegeId.
  */
 const updateProductCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name } = req.body;
+    const { name, isInstituteCategory, collegeId } = req.body;
 
     const existingCategory = await prisma.productCategory.findUnique({
       where: { id },
@@ -198,12 +215,18 @@ const updateProductCategory = async (req, res, next) => {
       throw new NotFoundError('Product category not found');
     }
 
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (isInstituteCategory !== undefined) updateData.isInstituteCategory = !!isInstituteCategory;
+    if (collegeId !== undefined) updateData.collegeId = collegeId;
+
     const category = await prisma.productCategory.update({
       where: { id },
-      data: { name },
+      data: updateData,
+      include: { college: true },
     });
 
-    sendSuccess(res, sanitizeProductCategory(category), 'Product category updated successfully');
+    sendSuccess(res, category, 'Product category updated successfully');
   } catch (error) {
     next(error);
   }

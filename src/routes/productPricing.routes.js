@@ -20,11 +20,17 @@ router.get('/:id', productPricingController.getProductPricingById);
 router.post('/', validateBody(z.object({
   productId: uuidSchema,
   minQuantity: z.number().int().positive(),
+  maxQuantity: z.number().int().positive().optional().nullable(),
   price: z.number().nonnegative(),
+  fixedPrice: z.number().nonnegative().optional().nullable(),
+  discountPercent: z.number().min(0).max(100).optional().nullable(),
 })), productPricingController.createProductPricing);
 router.put('/:id', validateBody(z.object({
   minQuantity: z.number().int().positive().optional(),
+  maxQuantity: z.number().int().positive().optional().nullable(),
   price: z.number().nonnegative().optional(),
+  fixedPrice: z.number().nonnegative().optional().nullable(),
+  discountPercent: z.number().min(0).max(100).optional().nullable(),
 })), productPricingController.updateProductPricing);
 router.delete('/:id', productPricingController.deleteProductPricing);
 

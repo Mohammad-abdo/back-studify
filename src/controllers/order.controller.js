@@ -5,8 +5,8 @@
 
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
-const { NotFoundError, ValidationError } = require('../utils/errors');
-const { ORDER_STATUS } = require('../utils/constants');
+const { NotFoundError, ValidationError, AuthorizationError } = require('../utils/errors');
+const { ORDER_STATUS, USER_TYPES } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
 const { assignOrderToNearestPrintCenter } = require('../services/printOrderAssignment.service');
 const { sanitizeProduct } = require('../utils/legacyApiShape');
@@ -358,7 +358,9 @@ const getOrderById = async (req, res, next) => {
 };
 
 /**
- * Create order
+ * Create order (retail flow only)
+ * Institute users must use /wholesale-orders instead.
+ *
  * Automatically determines orderType based on items:
  * - PRODUCT items → PRODUCT order
  * - BOOK/MATERIAL items → CONTENT order
@@ -367,23 +369,27 @@ const getOrderById = async (req, res, next) => {
 const createOrder = async (req, res, next) => {
   try {
     const userId = req.userId;
+    const userType = req.userType;
     const { items, address } = req.body;
 
     if (!items || items.length === 0) {
       throw new ValidationError('Order must have at least one item');
     }
 
+    // Institute users must use the wholesale order flow
+    if (userType === USER_TYPES.INSTITUTE) {
+      throw new AuthorizationError(
+        'Institute users must use the wholesale order endpoint (/wholesale-orders) to place orders.'
+      );
+    }
+
     const deliveryAddress = (address && String(address).trim()) ? String(address).trim() : 'Address not provided';
 
-    // Determine orderType based on items
-    // If all items are PRODUCT → PRODUCT order
-    // If all items are BOOK or MATERIAL → CONTENT order
-    // If mixed, default to PRODUCT (cart-based)
     const hasProduct = items.some(item => item.referenceType === 'PRODUCT');
     const hasBookOrMaterial = items.some(item => item.referenceType === 'BOOK' || item.referenceType === 'MATERIAL');
     const hasPrintOption = items.some(item => item.referenceType === 'PRINT_OPTION');
 
-    let orderType = 'PRODUCT'; // default
+    let orderType = 'PRODUCT';
     if (hasPrintOption && !hasProduct && !hasBookOrMaterial) {
       orderType = 'PRINT';
     } else if (hasBookOrMaterial && !hasProduct && !hasPrintOption) {
@@ -392,17 +398,30 @@ const createOrder = async (req, res, next) => {
       orderType = 'PRODUCT';
     }
 
-    // Validate: Don't allow mixing PRODUCT with BOOK/MATERIAL/PRINT_OPTION
     if ((hasProduct && hasBookOrMaterial) || (hasProduct && hasPrintOption) || (hasBookOrMaterial && hasPrintOption)) {
       throw new ValidationError('Cannot mix PRODUCT items with BOOK/MATERIAL/PRINT_OPTION items in the same order');
     }
 
-    // Calculate total
-    const total = calculateOrderTotal(items);
+    // Block institute products in normal order flow
+    if (hasProduct) {
+      const productItems = items.filter((i) => i.referenceType === 'PRODUCT');
+      const productIds = productItems.map((i) => i.referenceId);
+      const products = await prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, isInstituteProduct: true },
+      });
 
+      const instituteProduct = products.find((p) => p.isInstituteProduct);
+      if (instituteProduct) {
+        throw new ValidationError(
+          'Institute products cannot be ordered through the regular order flow. Use /wholesale-orders instead.'
+        );
+      }
+    }
+
+    const total = calculateOrderTotal(items);
     const { latitude, longitude } = req.body;
 
-    // Create order with items
     const order = await prisma.order.create({
       data: {
         userId,
@@ -433,7 +452,6 @@ const createOrder = async (req, res, next) => {
       },
     });
 
-    // Emit socket event for the new order
     const io = req.app.get('io');
     if (io) {
       io.emit('new_order', order);
