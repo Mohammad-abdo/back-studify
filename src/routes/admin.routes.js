@@ -38,6 +38,7 @@ router.get('/users', validateQuery(paginationSchema.extend({
   isActive: z.enum(['true', 'false']).optional(),
   search: z.string().optional(),
 })), adminController.getUsers);
+router.get('/users/:id/financial-activity', adminController.getUserFinancialActivity);
 router.get('/users/:id', adminController.getUserById);
 router.put('/users/:id', validateBody(z.object({
   phone: z.string().optional(),

@@ -19,9 +19,11 @@ const { paginationSchema, uuidSchema } = require('../../utils/validators');
 const { sendPaginated, getPaginationParams, buildPagination, sendSuccess } = require('../../utils/response');
 const { NotFoundError } = require('../../utils/errors');
 const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
+const { mobileNormalizeMiddleware } = require('../../middleware/mobileNormalize.middleware');
 const { z } = require('zod');
 
 router.use(transformImageUrlsMiddleware);
+router.use(mobileNormalizeMiddleware);
 
 // ============================================
 // PUBLIC — catalog (no auth)

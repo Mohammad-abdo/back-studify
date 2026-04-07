@@ -11,6 +11,8 @@ const bookController = require('../../controllers/book.controller');
 const bookPricingController = require('../../controllers/bookPricing.controller');
 const materialController = require('../../controllers/material.controller');
 const productController = require('../../controllers/product.controller');
+const categoryController = require('../../controllers/category.controller');
+const collegeController = require('../../controllers/college.controller');
 const orderController = require('../../controllers/order.controller');
 const reviewController = require('../../controllers/review.controller');
 const doctorController = require('../../controllers/doctor.controller');
@@ -23,6 +25,7 @@ const { validateBody, validateQuery } = require('../../middleware/validation.mid
 const { paginationSchema, uuidSchema } = require('../../utils/validators');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../../utils/response');
 const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
+const { mobileNormalizeMiddleware } = require('../../middleware/mobileNormalize.middleware');
 const { singleUpload } = require('../../services/fileUpload.service');
 const { z } = require('zod');
 
@@ -32,6 +35,8 @@ router.use(requireUserType('DOCTOR'));
 
 // Transform image URLs to full URLs for mobile
 router.use(transformImageUrlsMiddleware);
+// Flatten _count, ensure imageUrls arrays, add convenience fields
+router.use(mobileNormalizeMiddleware);
 
 // ============================================
 // PROFILE
@@ -58,6 +63,76 @@ router.post('/change-password', validateBody(z.object({
 
 // Delete account
 router.delete('/profile', userController.deleteAccount);
+
+// ============================================
+// CATEGORIES
+// ============================================
+router.get('/categories/products', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+})), categoryController.getProductCategories);
+
+router.get('/categories/books', categoryController.getBookCategories);
+
+router.get('/categories/materials', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+})), categoryController.getMaterialCategories);
+
+// ============================================
+// COLLEGES / FACULTIES
+// ============================================
+router.get('/colleges', validateQuery(paginationSchema.extend({
+  search: z.string().optional(),
+})), collegeController.getColleges);
+
+router.get('/colleges/:id', collegeController.getCollegeById);
+
+// ============================================
+// DEPARTMENTS
+// ============================================
+router.get('/departments', validateQuery(paginationSchema.extend({
+  collegeId: uuidSchema.optional(),
+  search: z.string().optional(),
+})), async (req, res, next) => {
+  try {
+    const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
+    const { collegeId, search } = req.query;
+
+    const where = {
+      ...(collegeId && { collegeId }),
+      ...(search && { name: { contains: search, mode: 'insensitive' } }),
+    };
+
+    const [departments, total] = await Promise.all([
+      prisma.department.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { college: { select: { id: true, name: true } } },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.department.count({ where }),
+    ]);
+
+    const pagination = buildPagination(page, limit, total);
+    sendPaginated(res, departments, pagination, 'Departments retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/departments/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const department = await prisma.department.findUnique({
+      where: { id },
+      include: { college: { select: { id: true, name: true } } },
+    });
+    if (!department) throw new NotFoundError('Department not found');
+    sendSuccess(res, department, 'Department retrieved successfully');
+  } catch (error) {
+    next(error);
+  }
+});
 
 // ============================================
 // STATISTICS (dashboard)

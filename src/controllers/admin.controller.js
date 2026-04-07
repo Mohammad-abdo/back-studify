@@ -486,6 +486,144 @@ const getUserById = async (req, res, next) => {
 };
 
 /**
+ * Financial activity for a user: retail orders, print orders, wholesale orders, ledger transactions (Admin only)
+ */
+const getUserFinancialActivity = async (req, res, next) => {
+  try {
+    const { id: userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!user) {
+      throw new NotFoundError('User not found');
+    }
+
+    const orderRows = await prisma.order.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const orderIds = orderRows.map((o) => o.id);
+
+    const orTx = [
+      { delivery: { userId } },
+      { printOrder: { userId } },
+      { contentAccess: { userId } },
+    ];
+    if (orderIds.length > 0) {
+      orTx.unshift({ orderId: { in: orderIds } });
+    }
+
+    const [orders, printOrders, customer, financialTransactions] = await Promise.all([
+      prisma.order.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        include: {
+          items: {
+            select: {
+              id: true,
+              referenceType: true,
+              quantity: true,
+              price: true,
+            },
+          },
+        },
+      }),
+      prisma.printOrder.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          price: true,
+          status: true,
+          paidAt: true,
+          copies: true,
+          createdAt: true,
+          bookId: true,
+          materialId: true,
+        },
+      }),
+      prisma.customer.findUnique({
+        where: { userId },
+        select: { id: true },
+      }),
+      prisma.financialTransaction.findMany({
+        where: { OR: orTx },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: {
+          delivery: { select: { id: true, name: true } },
+          printOrder: { select: { id: true, price: true, status: true } },
+          contentAccess: {
+            select: {
+              id: true,
+              accessType: true,
+              price: true,
+              bookId: true,
+              materialId: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    let wholesaleOrders = [];
+    if (customer) {
+      wholesaleOrders = await prisma.wholesaleOrder.findMany({
+        where: { customerId: customer.id },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+        include: {
+          items: {
+            include: {
+              product: { select: { id: true, name: true } },
+            },
+          },
+        },
+      });
+    }
+
+    const paidRetailTotal = orders
+      .filter((o) => o.status === 'PAID' || o.paidAt)
+      .reduce((sum, o) => sum + (o.total || 0), 0);
+    const paidPrintTotal = printOrders
+      .filter((p) => p.paidAt)
+      .reduce((sum, p) => sum + (p.price || 0), 0);
+    const wholesaleTotal = wholesaleOrders.reduce((sum, w) => sum + (w.total || 0), 0);
+    const completedTxTotal = financialTransactions
+      .filter((t) => t.status === 'COMPLETED')
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    sendSuccess(
+      res,
+      {
+        orders,
+        printOrders,
+        wholesaleOrders,
+        financialTransactions,
+        summary: {
+          retailOrderCount: orders.length,
+          printOrderCount: printOrders.length,
+          wholesaleOrderCount: wholesaleOrders.length,
+          financialTransactionCount: financialTransactions.length,
+          paidRetailTotal,
+          paidPrintTotal,
+          wholesaleTotal,
+          completedTransactionsAmountSum: completedTxTotal,
+        },
+      },
+      'User financial activity retrieved successfully'
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Update user (Admin only)
  */
 const updateUser = async (req, res, next) => {
@@ -884,6 +1022,7 @@ module.exports = {
   getDashboardStats,
   getUsers,
   getUserById,
+  getUserFinancialActivity,
   updateUser,
   getReviews,
   getRecentOrders,
