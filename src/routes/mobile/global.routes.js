@@ -14,6 +14,7 @@ const printOptionController = require('../../controllers/printOption.controller'
 const cartRoutes = require('../cart.routes');
 const prisma = require('../../config/database');
 const authenticate = require('../../middleware/auth.middleware');
+const { optionalAuthenticate } = require('../../middleware/institute.middleware');
 const { validateQuery } = require('../../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../../utils/validators');
 const { sendPaginated, getPaginationParams, buildPagination, sendSuccess } = require('../../utils/response');
@@ -28,18 +29,18 @@ router.use(mobileNormalizeMiddleware);
 // ============================================
 // PUBLIC — catalog (no auth)
 // ============================================
-router.get('/categories/products', validateQuery(paginationSchema.extend({
+router.get('/categories/products', optionalAuthenticate, validateQuery(paginationSchema.extend({
   collegeId: uuidSchema.optional(),
 })), categoryController.getProductCategories);
 router.get('/colleges', validateQuery(paginationSchema.extend({
   search: z.string().optional(),
 })), collegeController.getColleges);
-router.get('/products', validateQuery(paginationSchema.extend({
+router.get('/products', optionalAuthenticate, validateQuery(paginationSchema.extend({
   categoryId: uuidSchema.optional(),
   collegeId: uuidSchema.optional(),
   search: z.string().optional(),
 })), productController.getProducts);
-router.get('/products/:id', productController.getProductById);
+router.get('/products/:id', optionalAuthenticate, productController.getProductById);
 
 router.use(authenticate);
 

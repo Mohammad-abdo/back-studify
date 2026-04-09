@@ -86,11 +86,19 @@ const checkProductAccess = async (req, res, next) => {
     }
 
     if (product.isInstituteProduct && userType !== USER_TYPES.INSTITUTE) {
-      return next(new AuthorizationError('Access denied. This is an institute-only product.'));
+      return next(
+        new AuthorizationError(
+          'This product is part of the government/wholesale catalogue. Sign in with an institute account.'
+        )
+      );
     }
 
     if (!product.isInstituteProduct && userType === USER_TYPES.INSTITUTE) {
-      return next(new AuthorizationError('Access denied. Institute users can only access institute products.'));
+      return next(
+        new AuthorizationError(
+          'Institute accounts only use the wholesale catalogue. Use institute categories and products.'
+        )
+      );
     }
 
     next();

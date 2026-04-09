@@ -8,13 +8,36 @@ const { RateLimitError } = require('../utils/errors');
 const { HTTP_STATUS } = require('../utils/constants');
 
 /**
+ * Chatbot: excluded from global /api bucket (AI + dev/HMR can burn 1000 req fast).
+ * Own limiter on POST /message only.
+ */
+const chatbotLimiter = rateLimit({
+  windowMs: parseInt(process.env.CHATBOT_RATE_LIMIT_WINDOW_MS || '60000', 10),
+  max: parseInt(process.env.CHATBOT_RATE_LIMIT_MAX || '200', 10),
+  message: {
+    success: false,
+    error: {
+      message: 'Too many chat messages, please wait a moment',
+      code: 'RATE_LIMIT_EXCEEDED',
+    },
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * General API rate limiter
- * Skip /auth so login & profile don't consume the global limit (they use authLimiter)
+ * Skip /auth and /chatbot (they use dedicated limiters)
  */
 const apiLimiter = rateLimit({
   windowMs: config.rateLimitWindowMs,
   max: config.rateLimitMax,
-  skip: (req) => req.path.startsWith('/auth'),
+  skip: (req) => {
+    const orig = req.originalUrl || req.url || '';
+    if (req.path.startsWith('/auth') || orig.includes('/api/auth')) return true;
+    if (req.path.startsWith('/chatbot') || orig.includes('/api/chatbot')) return true;
+    return false;
+  },
   message: {
     success: false,
     error: {
@@ -83,5 +106,6 @@ module.exports = {
   authLimiter,
   otpLimiter,
   uploadLimiter,
+  chatbotLimiter,
 };
 

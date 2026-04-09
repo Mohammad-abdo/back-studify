@@ -35,8 +35,9 @@
  * 21. Reviews (for books, materials, and products - 1-5 stars)
  * 22. Wholesale Orders (with bulk pricing and multiple items)
  * 23. Roles & Permissions (Admin, Doctor roles with RBAC)
+ * 24. Institute / government seed (seed-institute.js): institute users, 4 main + sub categories, wholesale products & orders
  * 
- * All data is in English.
+ * All data is in English (institute catalogue uses Arabic category names per seed-institute.js).
  * Product and Material categories are linked to colleges.
  * Books and Materials are linked to colleges and departments.
  * Order statuses cover the full lifecycle: CREATED → PAID → PROCESSING → SHIPPED → DELIVERED
@@ -2099,6 +2100,9 @@ async function main() {
     }
     console.log(`\n✅ Backfilled latitude/longitude for ${ordersWithoutCoords.length} order(s)`);
   }
+
+  const { runInstituteSeed } = require('./seed-institute');
+  await runInstituteSeed(prisma);
 
   console.log('\n✨ Seed completed successfully!');
   console.log('\n📝 Default credentials:');

@@ -168,10 +168,14 @@ const addToCart = async (req, res, next) => {
         incomingIsInstitute = product.isInstituteProduct;
 
         if (product.isInstituteProduct && userType !== USER_TYPES.INSTITUTE && userType !== USER_TYPES.ADMIN) {
-          throw new AuthorizationError('Access denied. This is an institute-only product.');
+          throw new AuthorizationError(
+            'This item is from the government/wholesale catalogue. Sign in with an institute account to add it.'
+          );
         }
         if (!product.isInstituteProduct && userType === USER_TYPES.INSTITUTE) {
-          throw new AuthorizationError('Institute users can only add institute products to cart.');
+          throw new AuthorizationError(
+            '[WHOLESALE_PRODUCT_REQUIRED] This product is retail (isInstituteProduct=false). Institute users must add items from the government wholesale list only — request GET /api/mobile/products or GET /api/products with your Bearer token, then use that product id.'
+          );
         }
       }
     } else if (referenceType === 'MATERIAL') {
