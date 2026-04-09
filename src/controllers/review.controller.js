@@ -6,6 +6,23 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, ConflictError, AuthorizationError, ValidationError } = require('../utils/errors');
+const { USER_TYPES } = require('../utils/constants');
+
+/**
+ * Institute users may only create/update reviews for products with isInstituteProduct true.
+ */
+const assertInstituteOwnsInstituteProductReview = async (review) => {
+  if (review.targetType !== 'PRODUCT') {
+    throw new AuthorizationError('Institute users can only manage reviews for institute products');
+  }
+  const product = await prisma.product.findUnique({
+    where: { id: review.targetId },
+    select: { isInstituteProduct: true },
+  });
+  if (!product || !product.isInstituteProduct) {
+    throw new AuthorizationError('Institute users can only manage reviews for institute products');
+  }
+};
 
 /**
  * Get reviews for a target (book or product)
@@ -53,18 +70,25 @@ const getReviews = async (req, res, next) => {
 
 /**
  * Create review
+ * - STUDENT: books and retail products only (not institute-only products).
+ * - INSTITUTE: institute products (PRODUCT + isInstituteProduct) only.
  */
 const createReview = async (req, res, next) => {
   try {
     const userId = req.userId;
     const { targetId, targetType, rating, comment } = req.body;
 
-    // Check if user is a student (only students can review)
-    if (req.userType !== 'STUDENT') {
-      throw new AuthorizationError('Only students can create reviews');
+    const isStudent = req.userType === USER_TYPES.STUDENT;
+    const isInstitute = req.userType === USER_TYPES.INSTITUTE;
+
+    if (!isStudent && !isInstitute) {
+      throw new AuthorizationError('Only students and institute users can create reviews');
     }
 
-    // Check if target exists
+    if (isInstitute && targetType === 'BOOK') {
+      throw new AuthorizationError('Institute users can only review institute products');
+    }
+
     if (targetType === 'BOOK') {
       const book = await prisma.book.findUnique({
         where: { id: targetId },
@@ -80,6 +104,14 @@ const createReview = async (req, res, next) => {
 
       if (!product) {
         throw new NotFoundError('Product not found');
+      }
+
+      if (isInstitute) {
+        if (!product.isInstituteProduct) {
+          throw new AuthorizationError('Institute users can only review institute products');
+        }
+      } else if (isStudent && product.isInstituteProduct) {
+        throw new AuthorizationError('Students cannot review institute products');
       }
     }
 
@@ -144,6 +176,10 @@ const updateReview = async (req, res, next) => {
       throw new AuthorizationError('You can only update your own reviews');
     }
 
+    if (req.userType === USER_TYPES.INSTITUTE) {
+      await assertInstituteOwnsInstituteProductReview(existingReview);
+    }
+
     const updateData = {};
     if (rating !== undefined) updateData.rating = rating;
     if (comment !== undefined) updateData.comment = comment;
@@ -186,6 +222,10 @@ const deleteReview = async (req, res, next) => {
 
     if (existingReview.userId !== userId && req.userType !== 'ADMIN') {
       throw new AuthorizationError('You can only delete your own reviews');
+    }
+
+    if (req.userType === USER_TYPES.INSTITUTE && existingReview.userId === userId) {
+      await assertInstituteOwnsInstituteProductReview(existingReview);
     }
 
     await prisma.review.delete({

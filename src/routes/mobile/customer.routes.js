@@ -10,6 +10,7 @@ const authController = require('../../controllers/auth.controller');
 const customerController = require('../../controllers/customer.controller');
 const wholesaleController = require('../../controllers/wholesale.controller');
 const productController = require('../../controllers/product.controller');
+const reviewController = require('../../controllers/review.controller');
 const notificationService = require('../../services/notification.service');
 const prisma = require('../../config/database');
 const { NotFoundError, ValidationError, AuthorizationError } = require('../../utils/errors');
@@ -17,7 +18,7 @@ const { ORDER_STATUS } = require('../../utils/constants');
 const authenticate = require('../../middleware/auth.middleware');
 const { requireUserType } = require('../../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../../middleware/validation.middleware');
-const { paginationSchema, uuidSchema } = require('../../utils/validators');
+const { paginationSchema, uuidSchema, createReviewSchema } = require('../../utils/validators');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../../utils/response');
 const { transformImageUrlsMiddleware } = require('../../middleware/imageUrl.middleware');
 const { singleUpload } = require('../../services/fileUpload.service');
@@ -137,6 +138,18 @@ router.get('/products', validateQuery(paginationSchema.extend({
 })), productController.getProducts);
 
 router.get('/products/:id', productController.getProductById);
+
+// ============================================
+// REVIEWS (institute: institute products only — enforced in controller)
+// ============================================
+router.get('/reviews', validateQuery(paginationSchema.extend({
+  targetId: uuidSchema,
+  targetType: z.enum(['BOOK', 'PRODUCT']),
+})), reviewController.getReviews);
+
+router.post('/reviews', validateBody(createReviewSchema), reviewController.createReview);
+router.put('/reviews/:id', validateBody(createReviewSchema.partial()), reviewController.updateReview);
+router.delete('/reviews/:id', reviewController.deleteReview);
 
 // ============================================
 // WHOLESALE ORDERS

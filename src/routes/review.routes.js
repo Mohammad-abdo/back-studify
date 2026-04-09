@@ -20,9 +20,9 @@ router.get('/', validateQuery(paginationSchema.extend({
 // Protected routes
 router.use(authenticate);
 
-// Student routes (create, update, delete reviews)
-router.post('/', requireUserType('STUDENT'), validateBody(createReviewSchema), reviewController.createReview);
-router.put('/:id', requireUserType('STUDENT'), validateBody(createReviewSchema.partial()), reviewController.updateReview);
+// Students (books + retail products) and institutes (institute products only)
+router.post('/', requireUserType('STUDENT', 'INSTITUTE'), validateBody(createReviewSchema), reviewController.createReview);
+router.put('/:id', requireUserType('STUDENT', 'INSTITUTE'), validateBody(createReviewSchema.partial()), reviewController.updateReview);
 router.delete('/:id', reviewController.deleteReview);
 
 module.exports = router;
