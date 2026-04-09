@@ -48,7 +48,7 @@ app.use('/uploads', (req, res, next) => {
   }
 }));
 
-// Security middleware - configure helmet (after /uploads to avoid conflicts)
+// Security middleware — does NOT return HTTP 429; rate limits and OpenAI quota are separate.
 app.use(
   helmet({
     crossOriginEmbedderPolicy: false,

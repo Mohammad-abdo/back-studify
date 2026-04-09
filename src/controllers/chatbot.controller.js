@@ -48,8 +48,9 @@ const sendMessage = async (req, res, next) => {
       });
     }
 
+    // Use 503 (not 429) so the frontend axios interceptor does not auto-retry and burn more OpenAI quota.
     if (error.status === 429 || error.code === 'insufficient_quota') {
-      return res.status(429).json({
+      return res.status(503).json({
         success: false,
         error: {
           message: 'AI service quota exceeded. Please check your OpenAI billing at platform.openai.com',

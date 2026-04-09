@@ -9,11 +9,17 @@ const { HTTP_STATUS } = require('../utils/constants');
 
 /**
  * Chatbot: excluded from global /api bucket (AI + dev/HMR can burn 1000 req fast).
- * Own limiter on POST /message only.
+ * Own limiter on POST /message only. Disabled in development unless CHATBOT_RATE_LIMIT_MAX is set.
  */
 const chatbotLimiter = rateLimit({
   windowMs: parseInt(process.env.CHATBOT_RATE_LIMIT_WINDOW_MS || '60000', 10),
   max: parseInt(process.env.CHATBOT_RATE_LIMIT_MAX || '200', 10),
+  skip: () => {
+    if (config.nodeEnv === 'development' && process.env.CHATBOT_RATE_LIMIT_MAX === undefined) {
+      return true;
+    }
+    return false;
+  },
   message: {
     success: false,
     error: {
