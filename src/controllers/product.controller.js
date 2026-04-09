@@ -38,7 +38,8 @@ const getProducts = async (req, res, next) => {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
     const { categoryId, collegeId, search } = req.query;
 
-    const userType = req.user?.type;
+    // INSTITUTE → only isInstituteProduct true (see getInstituteProductFilter). Use userType from auth / optionalAuthenticate.
+    const userType = req.user?.type ?? req.userType;
 
     // Admin: optional explicit filter. INSTITUTE: always wholesale catalogue only.
     // Everyone else (incl. guest): type-based default, unless `isInstituteProduct` is set explicitly (Postman / public catalogue).
@@ -122,7 +123,7 @@ const getProducts = async (req, res, next) => {
 const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userType = req.user?.type;
+    const userType = req.user?.type ?? req.userType;
 
     const product = await prisma.product.findUnique({
       where: { id },
