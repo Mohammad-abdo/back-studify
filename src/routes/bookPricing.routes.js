@@ -16,16 +16,16 @@ router.use(authenticate);
 
 router.get('/', validateQuery(paginationSchema), bookPricingController.getBookPricings);
 router.get('/:id', bookPricingController.getBookPricingById);
-router.post('/', requireUserType('DOCTOR'), validateBody(z.object({
+router.post('/', requireUserType('DOCTOR', 'ADMIN'), validateBody(z.object({
   bookId: uuidSchema,
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
   price: z.number().nonnegative(),
 })), bookPricingController.createBookPricing);
-router.put('/:id', requireUserType('DOCTOR'), validateBody(z.object({
+router.put('/:id', requireUserType('DOCTOR', 'ADMIN'), validateBody(z.object({
   price: z.number().nonnegative().optional(),
   approvalStatus: z.enum(['PENDING', 'APPROVED', 'REJECTED']).optional(),
 })), bookPricingController.updateBookPricing);
-router.delete('/:id', requireUserType('DOCTOR'), bookPricingController.deleteBookPricing);
+router.delete('/:id', requireUserType('DOCTOR', 'ADMIN'), bookPricingController.deleteBookPricing);
 
 module.exports = router;
 

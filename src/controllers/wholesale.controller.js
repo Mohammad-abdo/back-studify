@@ -33,7 +33,9 @@ const getMyWholesaleOrders = async (req, res, next) => {
       });
 
       if (!customer) {
-        throw new AuthorizationError('No customer profile found. Institute users must have a linked customer profile.');
+        throw new AuthorizationError(
+          'No customer profile found. Wholesale orders require a customer profile (institute accounts should have one linked).'
+        );
       }
 
       where.customerId = customer.id;
@@ -94,7 +96,9 @@ const getWholesaleOrderById = async (req, res, next) => {
       });
 
       if (!customer) {
-        throw new AuthorizationError('No customer profile found. Institute users must have a linked customer profile.');
+        throw new AuthorizationError(
+          'No customer profile found. Wholesale orders require a customer profile (institute accounts should have one linked).'
+        );
       }
     }
 
@@ -153,7 +157,9 @@ const createWholesaleOrder = async (req, res, next) => {
     });
 
     if (!customer) {
-      throw new AuthorizationError('No customer profile found. Institute users must have a linked customer profile.');
+      throw new AuthorizationError(
+        'No customer profile found. Wholesale orders require a customer profile (institute accounts should have one linked).'
+      );
     }
 
     // Validate ALL products are institute products

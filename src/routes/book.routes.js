@@ -107,7 +107,7 @@ router.use(authenticate);
  *       403:
  *         description: Forbidden - Only doctors can create books
  */
-router.post('/', requireUserType('DOCTOR'), validateBody(z.object({
+router.post('/', requireUserType('DOCTOR', 'ADMIN'), validateBody(z.object({
   title: z.string().min(2).max(200),
   description: z.string().min(10),
   fileUrl: z.string().url(),
@@ -168,7 +168,7 @@ router.put('/:id', validateBody(z.object({
  *       204:
  *         description: Book deleted
  */
-router.delete('/:id', requireUserType('DOCTOR'), bookController.deleteBook);
+router.delete('/:id', requireUserType('DOCTOR', 'ADMIN'), bookController.deleteBook);
 
 /**
  * @swagger
@@ -197,7 +197,7 @@ router.delete('/:id', requireUserType('DOCTOR'), bookController.deleteBook);
  *       200:
  *         description: Pricing added
  */
-router.post('/:id/pricing', requireUserType('DOCTOR'), validateBody(z.object({
+router.post('/:id/pricing', requireUserType('DOCTOR', 'ADMIN'), validateBody(z.object({
   accessType: z.enum(['READ', 'BUY', 'PRINT']),
   price: z.number().nonnegative(),
 })), bookController.addBookPricing);

@@ -113,10 +113,21 @@ const register = async (phone, password, type, email = null, name = null, colleg
     await prisma.institute.create({
       data: { userId: user.id },
     });
-    if (name && String(name).trim()) {
+    const trimmedName = name && String(name).trim();
+    const entityName = trimmedName || 'Government Institute';
+    const contactPerson = trimmedName || 'Contact';
+    await prisma.customer.create({
+      data: {
+        userId: user.id,
+        entityName,
+        contactPerson,
+        phone: formattedPhone,
+      },
+    });
+    if (trimmedName) {
       await prisma.user.update({
         where: { id: user.id },
-        data: { name: String(name).trim() },
+        data: { name: trimmedName },
       });
     }
   }
