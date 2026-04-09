@@ -9,6 +9,7 @@ const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = req
 const { NotFoundError } = require('../utils/errors');
 const { getInstituteCategoryFilter } = require('../middleware/institute.middleware');
 const { USER_TYPES } = require('../utils/constants');
+const { isDirectChildCategoryName } = require('../utils/productCategoryQuery');
 
 /**
  * Get book categories
@@ -133,10 +134,39 @@ const getProductCategories = async (req, res, next) => {
       orderBy: { name: 'asc' },
     });
 
+    // Hierarchy via names "Main / Sub" only (no schema parentId). Scoped per isInstituteCategory.
+    const withBranchCounts = categories.map((c) => {
+      const children = categories
+        .filter(
+          (o) =>
+            o.id !== c.id &&
+            o.isInstituteCategory === c.isInstituteCategory &&
+            isDirectChildCategoryName(c.name, o.name)
+        )
+        .sort((a, b) => a.name.localeCompare(b.name, 'ar'))
+        .map((ch) => ({
+          id: ch.id,
+          name: ch.name,
+          isInstituteCategory: ch.isInstituteCategory,
+          collegeId: ch.collegeId,
+          createdAt: ch.createdAt,
+          _count: ch._count,
+        }));
+
+      const direct = c._count?.products ?? 0;
+      const inChildren = children.reduce((sum, ch) => sum + (ch._count?.products ?? 0), 0);
+
+      return {
+        ...c,
+        children,
+        productCount: direct + inChildren,
+      };
+    });
+
     const exposeInstitute = userType === USER_TYPES.ADMIN || userType === USER_TYPES.INSTITUTE;
     sendSuccess(
       res,
-      exposeInstitute ? categories : categories.map(sanitizeProductCategory),
+      exposeInstitute ? withBranchCounts : withBranchCounts.map(sanitizeProductCategory),
       'Product categories retrieved successfully'
     );
   } catch (error) {

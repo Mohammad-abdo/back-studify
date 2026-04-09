@@ -8,6 +8,7 @@ const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = req
 const { NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
 const { sanitizeProduct, sanitizeProductPricing } = require('../utils/legacyApiShape');
 const { getInstituteProductFilter } = require('../middleware/institute.middleware');
+const { getCategoryIdsIncludingDescendants } = require('../utils/productCategoryQuery');
 const { USER_TYPES } = require('../utils/constants');
 
 const parseProductImages = (product) => {
@@ -45,9 +46,22 @@ const getProducts = async (req, res, next) => {
       instituteFilter = req.query.isInstituteProduct === 'true';
     }
 
+    let categoryIdIn = undefined;
+    if (categoryId) {
+      const root = await prisma.productCategory.findUnique({
+        where: { id: categoryId },
+        select: { id: true },
+      });
+      if (!root) {
+        throw new NotFoundError('Category not found');
+      }
+      const branchIds = await getCategoryIdsIncludingDescendants(prisma, categoryId);
+      categoryIdIn = { in: branchIds };
+    }
+
     const where = {
       ...(instituteFilter !== undefined && { isInstituteProduct: instituteFilter }),
-      ...(categoryId && { categoryId }),
+      ...(categoryIdIn && { categoryId: categoryIdIn }),
       ...(collegeId && {
         category: {
           collegeId: collegeId,
@@ -120,10 +134,14 @@ const getProductById = async (req, res, next) => {
     // Runtime access guard (belt-and-suspenders alongside middleware)
     if (userType !== USER_TYPES.ADMIN) {
       if (product.isInstituteProduct && userType !== USER_TYPES.INSTITUTE) {
-        throw new AuthorizationError('Access denied. This is an institute-only product.');
+        throw new AuthorizationError(
+          'This product is part of the government/wholesale catalogue. Sign in with an institute account.'
+        );
       }
       if (!product.isInstituteProduct && userType === USER_TYPES.INSTITUTE) {
-        throw new AuthorizationError('Access denied. Institute users can only access institute products.');
+        throw new AuthorizationError(
+          'Institute accounts only use the wholesale catalogue. Open a retail-category product while signed in as a retail customer.'
+        );
       }
     }
 
