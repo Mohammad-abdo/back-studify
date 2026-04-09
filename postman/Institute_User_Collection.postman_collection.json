@@ -249,7 +249,7 @@
               ]
             },
             "description": "Wholesale government catalogue. `isInstituteProduct=true` is required for unauthenticated calls and ensures category/search query params reach the server."
-          }``
+          }
         },
         {
           "name": "Products under MAIN category (branch)",
