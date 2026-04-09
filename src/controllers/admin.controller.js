@@ -6,7 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
-const { APPROVAL_STATUS, ADMIN_OPERATION_TYPE } = require('../utils/constants');
+const { APPROVAL_STATUS, ADMIN_OPERATION_TYPE, USER_TYPES } = require('../utils/constants');
 
 /**
  * Log admin operation
@@ -676,6 +676,45 @@ const updateUser = async (req, res, next) => {
 };
 
 /**
+ * KPIs for the government / institute admin UI: scoped to INSTITUTE customers,
+ * wholesale catalogue, and wholesale orders placed by those customers only.
+ */
+const getGovernmentCircleStats = async (req, res, next) => {
+  try {
+    const instituteCustomer = { user: { type: USER_TYPES.INSTITUTE } };
+    const paidPipeline = ['PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
+
+    const [customers, products, categories, orders, revenueAgg] = await Promise.all([
+      prisma.customer.count({ where: instituteCustomer }),
+      prisma.product.count({ where: { isInstituteProduct: true } }),
+      prisma.productCategory.count({ where: { isInstituteCategory: true } }),
+      prisma.wholesaleOrder.count({ where: { customer: instituteCustomer } }),
+      prisma.wholesaleOrder.aggregate({
+        where: {
+          customer: instituteCustomer,
+          status: { in: paidPipeline },
+        },
+        _sum: { total: true },
+      }),
+    ]);
+
+    sendSuccess(
+      res,
+      {
+        customers,
+        products,
+        categories,
+        orders,
+        revenue: revenueAgg._sum.total ?? 0,
+      },
+      'Government circle statistics retrieved successfully'
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get dashboard statistics
  */
 const getDashboardStats = async (req, res, next) => {
@@ -1020,6 +1059,7 @@ module.exports = {
   getPendingApprovals,
   getOperationLogs,
   getDashboardStats,
+  getGovernmentCircleStats,
   getUsers,
   getUserById,
   getUserFinancialActivity,

@@ -15,7 +15,10 @@ const { z } = require('zod');
 router.use(authenticate);
 router.use(requireUserType('ADMIN'));
 
-router.get('/', validateQuery(paginationSchema), customerController.getCustomers);
+router.get('/', validateQuery(paginationSchema.extend({
+  search: z.string().optional(),
+  userType: z.enum(['INSTITUTE', 'CUSTOMER']).optional(),
+})), customerController.getCustomers);
 router.get('/:id', customerController.getCustomerById);
 router.put('/:id', validateBody(z.object({
   entityName: z.string().min(2).max(200).optional(),

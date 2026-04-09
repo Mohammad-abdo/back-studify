@@ -517,6 +517,7 @@ router.get('/products', validateQuery(paginationSchema.extend({
   categoryId: uuidSchema.optional(),
   collegeId: uuidSchema.optional(),
   search: z.string().optional(),
+  isInstituteProduct: z.enum(['true', 'false']).optional(),
 })), productController.getProducts);
 
 router.get('/products/:id', productController.getProductById);

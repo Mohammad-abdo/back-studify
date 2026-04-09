@@ -16,7 +16,11 @@ const { z } = require('zod');
 router.use(authenticate);
 
 // Customer, institute & admin routes
-router.get('/', requireUserType('CUSTOMER', 'INSTITUTE', 'ADMIN'), validateQuery(paginationSchema), wholesaleController.getMyWholesaleOrders);
+router.get('/', requireUserType('CUSTOMER', 'INSTITUTE', 'ADMIN'), validateQuery(paginationSchema.extend({
+  status: z.enum(['CREATED', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
+  customerId: uuidSchema.optional(),
+  instituteOnly: z.enum(['true', 'false']).optional(),
+})), wholesaleController.getMyWholesaleOrders);
 router.get('/:id', requireUserType('CUSTOMER', 'INSTITUTE', 'ADMIN'), wholesaleController.getWholesaleOrderById);
 router.post('/', requireUserType('CUSTOMER', 'INSTITUTE'), validateBody(z.object({
   items: z.array(z.object({

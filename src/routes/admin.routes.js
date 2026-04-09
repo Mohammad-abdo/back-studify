@@ -31,6 +31,7 @@ router.get('/logs', validateQuery(paginationSchema), adminController.getOperatio
 
 // Dashboard
 router.get('/dashboard/stats', adminController.getDashboardStats);
+router.get('/government-circle/stats', adminController.getGovernmentCircleStats);
 
 // Users management
 router.get('/users', validateQuery(paginationSchema.extend({

@@ -6,7 +6,7 @@
 const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
-const { ORDER_STATUS } = require('../utils/constants');
+const { ORDER_STATUS, USER_TYPES } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
 const { sanitizeOrderItemsWithProducts } = require('../utils/legacyApiShape');
 const { validateInstituteProducts, calculateInstitutePriceFromTiers } = require('../services/institute.service');
@@ -19,14 +19,18 @@ const getMyWholesaleOrders = async (req, res, next) => {
   try {
     const userId = req.userId;
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { status, customerId: filterCustomerId } = req.query;
+    const { status, customerId: filterCustomerId, instituteOnly } = req.query;
 
     const isAdmin = req.userType === 'ADMIN';
 
     let where = {};
 
     if (isAdmin) {
-      if (filterCustomerId) where.customerId = filterCustomerId;
+      if (filterCustomerId) {
+        where.customerId = filterCustomerId;
+      } else if (instituteOnly === 'true') {
+        where.customer = { user: { type: USER_TYPES.INSTITUTE } };
+      }
     } else {
       const customer = await prisma.customer.findUnique({
         where: { userId },

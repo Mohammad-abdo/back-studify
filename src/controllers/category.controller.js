@@ -114,6 +114,12 @@ const getProductCategories = async (req, res, next) => {
     let instituteFilter = getInstituteCategoryFilter(userType);
     if (userType === USER_TYPES.ADMIN && req.query.isInstituteCategory !== undefined) {
       instituteFilter = req.query.isInstituteCategory === 'true';
+    } else if (
+      userType !== USER_TYPES.INSTITUTE &&
+      userType !== USER_TYPES.ADMIN &&
+      req.query.isInstituteCategory !== undefined
+    ) {
+      instituteFilter = req.query.isInstituteCategory === 'true';
     }
 
     const where = {

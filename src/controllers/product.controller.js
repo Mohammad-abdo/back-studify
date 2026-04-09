@@ -40,9 +40,16 @@ const getProducts = async (req, res, next) => {
 
     const userType = req.user?.type;
 
-    // Admin can explicitly filter via query param; others get automatic separation
+    // Admin: optional explicit filter. INSTITUTE: always wholesale catalogue only.
+    // Everyone else (incl. guest): type-based default, unless `isInstituteProduct` is set explicitly (Postman / public catalogue).
     let instituteFilter = getInstituteProductFilter(userType);
     if (userType === USER_TYPES.ADMIN && req.query.isInstituteProduct !== undefined) {
+      instituteFilter = req.query.isInstituteProduct === 'true';
+    } else if (
+      userType !== USER_TYPES.INSTITUTE &&
+      userType !== USER_TYPES.ADMIN &&
+      req.query.isInstituteProduct !== undefined
+    ) {
       instituteFilter = req.query.isInstituteProduct === 'true';
     }
 

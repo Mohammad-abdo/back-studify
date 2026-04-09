@@ -14,10 +14,14 @@ const { sanitizeCustomerWholesaleOrders } = require('../utils/legacyApiShape');
 const getCustomers = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { search } = req.query;
+    const { search, userType } = req.query;
 
-    const where = {
-      ...(search && {
+    const clauses = [];
+    if (userType) {
+      clauses.push({ user: { type: userType } });
+    }
+    if (search) {
+      clauses.push({
         OR: [
           { entityName: { contains: search } },
           { contactPerson: { contains: search } },
@@ -25,8 +29,9 @@ const getCustomers = async (req, res, next) => {
           { user: { phone: { contains: search } } },
           { user: { email: { contains: search } } },
         ],
-      }),
-    };
+      });
+    }
+    const where = clauses.length ? { AND: clauses } : {};
 
     const [customers, total] = await Promise.all([
       prisma.customer.findMany({

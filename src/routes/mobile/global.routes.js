@@ -31,6 +31,7 @@ router.use(mobileNormalizeMiddleware);
 // ============================================
 router.get('/categories/products', optionalAuthenticate, validateQuery(paginationSchema.extend({
   collegeId: uuidSchema.optional(),
+  isInstituteCategory: z.enum(['true', 'false']).optional(),
 })), categoryController.getProductCategories);
 router.get('/colleges', validateQuery(paginationSchema.extend({
   search: z.string().optional(),
@@ -39,6 +40,7 @@ router.get('/products', optionalAuthenticate, validateQuery(paginationSchema.ext
   categoryId: uuidSchema.optional(),
   collegeId: uuidSchema.optional(),
   search: z.string().optional(),
+  isInstituteProduct: z.enum(['true', 'false']).optional(),
 })), productController.getProducts);
 router.get('/products/:id', optionalAuthenticate, productController.getProductById);
 
