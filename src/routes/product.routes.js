@@ -44,7 +44,13 @@ const { z } = require('zod');
  *                 - properties:
  *                     data: { type: array, items: { $ref: '#/components/schemas/Product' } }
  */
-router.get('/', optionalAuthenticate, validateQuery(paginationSchema), productController.getProducts);
+router.get('/', optionalAuthenticate, validateQuery(paginationSchema.extend({
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  search: z.string().optional(),
+  // Admin-only filter when listing all products (ignored for non-admin in controller)
+  isInstituteProduct: z.enum(['true', 'false']).optional(),
+})), productController.getProducts);
 
 /**
  * @swagger

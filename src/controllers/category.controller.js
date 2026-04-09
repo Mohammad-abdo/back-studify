@@ -109,7 +109,7 @@ const deleteBookCategory = async (req, res, next) => {
 const getProductCategories = async (req, res, next) => {
   try {
     const { collegeId } = req.query;
-    const userType = req.user?.type;
+    const userType = req.user?.type ?? req.userType;
 
     let instituteFilter = getInstituteCategoryFilter(userType);
     if (userType === USER_TYPES.ADMIN && req.query.isInstituteCategory !== undefined) {

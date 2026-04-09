@@ -38,7 +38,8 @@ const getProducts = async (req, res, next) => {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
     const { categoryId, collegeId, search } = req.query;
 
-    const userType = req.user?.type;
+    // INSTITUTE → only isInstituteProduct true (see getInstituteProductFilter). Use userType from auth / optionalAuthenticate.
+    const userType = req.user?.type ?? req.userType;
 
     // Admin can explicitly filter via query param; others get automatic separation
     let instituteFilter = getInstituteProductFilter(userType);
@@ -115,7 +116,7 @@ const getProducts = async (req, res, next) => {
 const getProductById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const userType = req.user?.type;
+    const userType = req.user?.type ?? req.userType;
 
     const product = await prisma.product.findUnique({
       where: { id },
