@@ -150,22 +150,29 @@ const getProductCategories = async (req, res, next) => {
             isDirectChildCategoryName(c.name, o.name)
         )
         .sort((a, b) => a.name.localeCompare(b.name, 'ar'))
-        .map((ch) => ({
-          id: ch.id,
-          name: ch.name,
-          isInstituteCategory: ch.isInstituteCategory,
-          collegeId: ch.collegeId,
-          createdAt: ch.createdAt,
-          _count: ch._count,
-        }));
+        .map((ch) => {
+          const subDirect = ch._count?.products ?? 0;
+          return {
+            id: ch.id,
+            name: ch.name,
+            isInstituteCategory: ch.isInstituteCategory,
+            collegeId: ch.collegeId,
+            createdAt: ch.createdAt,
+            _count: ch._count,
+            productCount: subDirect,
+            productsCount: subDirect,
+          };
+        });
 
       const direct = c._count?.products ?? 0;
       const inChildren = children.reduce((sum, ch) => sum + (ch._count?.products ?? 0), 0);
+      const branchTotal = direct + inChildren;
 
       return {
         ...c,
         children,
-        productCount: direct + inChildren,
+        productCount: branchTotal,
+        productsCount: branchTotal,
       };
     });
 
