@@ -9,6 +9,7 @@ const userController = require('../../controllers/user.controller');
 const authController = require('../../controllers/auth.controller');
 const customerController = require('../../controllers/customer.controller');
 const wholesaleController = require('../../controllers/wholesale.controller');
+const orderController = require('../../controllers/order.controller');
 const productController = require('../../controllers/product.controller');
 const reviewController = require('../../controllers/review.controller');
 const notificationService = require('../../services/notification.service');
@@ -160,6 +161,14 @@ router.get('/orders', validateQuery(paginationSchema.extend({
 })), wholesaleController.getMyWholesaleOrders);
 
 router.get('/orders/:id', wholesaleController.getWholesaleOrderById);
+
+router.post(
+  '/orders/:id/confirm-payment',
+  validateBody(z.object({
+    paymentMethod: z.enum(['CASH', 'CREDIT', 'PAYMENT_LINK']),
+  })),
+  orderController.confirmPayment
+);
 
 router.post('/orders', validateBody(z.object({
   items: z.array(z.object({

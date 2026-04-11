@@ -6,6 +6,7 @@
 const express = require('express');
 const router = express.Router();
 const wholesaleController = require('../controllers/wholesale.controller');
+const orderController = require('../controllers/order.controller');
 const authenticate = require('../middleware/auth.middleware');
 const { requireUserType } = require('../middleware/role.middleware');
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
@@ -30,6 +31,15 @@ router.post('/', requireUserType('CUSTOMER', 'INSTITUTE'), validateBody(z.object
   })).min(1),
   address: z.string().max(2000).optional(),
 })), wholesaleController.createWholesaleOrder);
+
+router.post(
+  '/:id/confirm-payment',
+  requireUserType('CUSTOMER', 'INSTITUTE', 'ADMIN'),
+  validateBody(z.object({
+    paymentMethod: z.enum(['CASH', 'CREDIT', 'PAYMENT_LINK']),
+  })),
+  orderController.confirmPayment
+);
 
 // Admin routes (update order status)
 router.put('/:id/status', requireUserType('ADMIN'), validateBody(updateOrderStatusSchema), wholesaleController.updateWholesaleOrderStatus);

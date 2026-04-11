@@ -334,25 +334,58 @@ const getOrderById = async (req, res, next) => {
       },
     });
 
-    if (!order) {
+    if (order) {
+      if (order.userId !== userId && req.userType !== 'ADMIN') {
+        throw new NotFoundError('Order not found');
+      }
+      const orderForResponse = {
+        ...order,
+        orderKind: 'RETAIL',
+        address: (order.address && String(order.address).trim()) ? order.address : 'Address not provided',
+      };
+      const user = orderForResponse.user || {};
+      orderForResponse.customerName =
+        user.student?.name || user.doctor?.name || user.customer?.contactPerson || user.customer?.entityName || user.phone || null;
+      return sendSuccess(res, orderForResponse, 'Order retrieved successfully');
+    }
+
+    const wholesale = await prisma.wholesaleOrder.findUnique({
+      where: { id },
+      include: {
+        items: { include: { product: true } },
+        customer: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                phone: true,
+                email: true,
+                customer: { select: { contactPerson: true, entityName: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!wholesale) {
       throw new NotFoundError('Order not found');
     }
 
-    // Check if order belongs to user (unless admin)
-    if (order.userId !== userId && req.userType !== 'ADMIN') {
+    if (wholesale.customer.userId !== userId && req.userType !== 'ADMIN') {
       throw new NotFoundError('Order not found');
     }
 
-    // Ensure address is never null for display (backfill happens in seed for DB)
-    const orderForResponse = {
-      ...order,
-      address: (order.address && String(order.address).trim()) ? order.address : 'Address not provided',
-    };
-    const user = orderForResponse.user || {};
-    orderForResponse.customerName =
-      user.student?.name || user.doctor?.name || user.customer?.contactPerson || user.customer?.entityName || user.phone || null;
-
-    sendSuccess(res, orderForResponse, 'Order retrieved successfully');
+    const u = wholesale.customer?.user;
+    sendSuccess(
+      res,
+      {
+        ...wholesale,
+        orderKind: 'WHOLESALE',
+        customerName: u?.customer?.entityName || u?.customer?.contactPerson || u?.phone || null,
+      },
+      'Order retrieved successfully'
+    );
   } catch (error) {
     next(error);
   }
@@ -541,48 +574,94 @@ const confirmPayment = async (req, res, next) => {
       where: { id },
     });
 
-    if (!existingOrder) {
+    if (existingOrder) {
+      if (existingOrder.userId !== userId && req.userType !== 'ADMIN') {
+        throw new NotFoundError('Order not found');
+      }
+
+      if (existingOrder.status !== ORDER_STATUS.CREATED) {
+        throw new ValidationError('Only orders with status CREATED can be confirmed for payment');
+      }
+
+      const order = await prisma.order.update({
+        where: { id },
+        data: {
+          status: ORDER_STATUS.PAID,
+          paymentMethod: paymentMethod || null,
+          paidAt: new Date(),
+        },
+        include: {
+          items: true,
+          user: {
+            select: {
+              id: true,
+              phone: true,
+              email: true,
+            },
+          },
+        },
+      });
+
+      try {
+        const io = req.app.get('io');
+        if (io) {
+          io.emit('order_updated', order);
+        }
+        await assignOrderToNearestPrintCenter(id, req.app.get('io') || null);
+      } catch (assignErr) {
+        console.error('Print assignment failed:', assignErr.message);
+      }
+
+      return sendSuccess(res, order, 'Payment confirmed successfully');
+    }
+
+    // Institute / wholesale checkout uses WholesaleOrder (same id returned from POST /orders or /wholesale-orders)
+    const existingWholesale = await prisma.wholesaleOrder.findUnique({
+      where: { id },
+      include: {
+        customer: { select: { userId: true } },
+      },
+    });
+
+    if (!existingWholesale) {
       throw new NotFoundError('Order not found');
     }
 
-    if (existingOrder.userId !== userId && req.userType !== 'ADMIN') {
+    if (existingWholesale.customer.userId !== userId && req.userType !== 'ADMIN') {
       throw new NotFoundError('Order not found');
     }
 
-    if (existingOrder.status !== ORDER_STATUS.CREATED) {
+    if (existingWholesale.status !== ORDER_STATUS.CREATED) {
       throw new ValidationError('Only orders with status CREATED can be confirmed for payment');
     }
 
-    const order = await prisma.order.update({
+    const wholesaleOrder = await prisma.wholesaleOrder.update({
       where: { id },
       data: {
         status: ORDER_STATUS.PAID,
-        paymentMethod: paymentMethod || null,
-        paidAt: new Date(),
       },
       include: {
-        items: true,
-        user: {
-          select: {
-            id: true,
-            phone: true,
-            email: true,
+        items: { include: { product: true } },
+        customer: {
+          include: {
+            user: {
+              select: { id: true, phone: true, email: true },
+            },
           },
         },
       },
     });
 
-    try {
-      const io = req.app.get('io');
-      if (io) {
-        io.emit('order_updated', order);
-      }
-      await assignOrderToNearestPrintCenter(id, req.app.get('io') || null);
-    } catch (assignErr) {
-      console.error('Print assignment failed:', assignErr.message);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('wholesale_order_updated', wholesaleOrder);
     }
 
-    sendSuccess(res, order, 'Payment confirmed successfully');
+    return sendSuccess(
+      res,
+      { ...wholesaleOrder, paymentMethod: paymentMethod || null, orderKind: 'WHOLESALE' },
+      'Payment confirmed successfully'
+    );
   } catch (error) {
     next(error);
   }
@@ -600,30 +679,57 @@ const cancelOrder = async (req, res, next) => {
       where: { id },
     });
 
-    if (!existingOrder) {
+    if (existingOrder) {
+      if (existingOrder.userId !== userId && req.userType !== 'ADMIN') {
+        throw new NotFoundError('Order not found');
+      }
+
+      if (existingOrder.status === ORDER_STATUS.DELIVERED) {
+        throw new ValidationError('Cannot cancel a delivered order');
+      }
+
+      if (existingOrder.status === ORDER_STATUS.CANCELLED) {
+        throw new ValidationError('Order is already cancelled');
+      }
+
+      const order = await prisma.order.update({
+        where: { id },
+        data: { status: ORDER_STATUS.CANCELLED },
+      });
+
+      return sendSuccess(res, order, 'Order cancelled successfully');
+    }
+
+    const existingWholesale = await prisma.wholesaleOrder.findUnique({
+      where: { id },
+      include: { customer: { select: { userId: true } } },
+    });
+
+    if (!existingWholesale) {
       throw new NotFoundError('Order not found');
     }
 
-    // Check if order belongs to user
-    if (existingOrder.userId !== userId && req.userType !== 'ADMIN') {
+    if (existingWholesale.customer.userId !== userId && req.userType !== 'ADMIN') {
       throw new NotFoundError('Order not found');
     }
 
-    // Check if order can be cancelled
-    if (existingOrder.status === ORDER_STATUS.DELIVERED) {
+    if (existingWholesale.status === ORDER_STATUS.DELIVERED) {
       throw new ValidationError('Cannot cancel a delivered order');
     }
 
-    if (existingOrder.status === ORDER_STATUS.CANCELLED) {
+    if (existingWholesale.status === ORDER_STATUS.CANCELLED) {
       throw new ValidationError('Order is already cancelled');
     }
 
-    const order = await prisma.order.update({
+    const order = await prisma.wholesaleOrder.update({
       where: { id },
       data: { status: ORDER_STATUS.CANCELLED },
+      include: {
+        items: { include: { product: true } },
+      },
     });
 
-    sendSuccess(res, order, 'Order cancelled successfully');
+    return sendSuccess(res, { ...order, orderKind: 'WHOLESALE' }, 'Order cancelled successfully');
   } catch (error) {
     next(error);
   }
