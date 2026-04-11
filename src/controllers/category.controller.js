@@ -9,7 +9,7 @@ const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = req
 const { NotFoundError } = require('../utils/errors');
 const { getInstituteCategoryFilter } = require('../middleware/institute.middleware');
 const { USER_TYPES } = require('../utils/constants');
-const { isDirectChildCategoryName } = require('../utils/productCategoryQuery');
+const { isDirectChildCategoryName, isRootCategoryAmong } = require('../utils/productCategoryQuery');
 
 /**
  * Get book categories
@@ -170,9 +170,18 @@ const getProductCategories = async (req, res, next) => {
     });
 
     const exposeInstitute = userType === USER_TYPES.ADMIN || userType === USER_TYPES.INSTITUTE;
+
+    // Institute app: only main (root) categories — no nested `children`, no duplicate rows for sub-paths.
+    let payload = withBranchCounts;
+    if (userType === USER_TYPES.INSTITUTE) {
+      payload = withBranchCounts
+        .filter((c) => isRootCategoryAmong(c, categories))
+        .map(({ children: _ch, ...rest }) => rest);
+    }
+
     sendSuccess(
       res,
-      exposeInstitute ? withBranchCounts : withBranchCounts.map(sanitizeProductCategory),
+      exposeInstitute ? payload : payload.map(sanitizeProductCategory),
       'Product categories retrieved successfully'
     );
   } catch (error) {

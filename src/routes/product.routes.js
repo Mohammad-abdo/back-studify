@@ -44,7 +44,14 @@ const { z } = require('zod');
  *                 - properties:
  *                     data: { type: array, items: { $ref: '#/components/schemas/Product' } }
  */
-router.get('/', optionalAuthenticate, validateQuery(paginationSchema), productController.getProducts);
+const productListQuerySchema = paginationSchema.extend({
+  categoryId: uuidSchema.optional(),
+  collegeId: uuidSchema.optional(),
+  search: z.string().optional(),
+  isInstituteProduct: z.enum(['true', 'false']).optional(),
+});
+
+router.get('/', optionalAuthenticate, validateQuery(productListQuerySchema), productController.getProducts);
 
 /**
  * @swagger

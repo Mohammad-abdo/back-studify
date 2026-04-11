@@ -36,7 +36,11 @@ const shouldExposeInstituteFields = (userType) =>
 const getProducts = async (req, res, next) => {
   try {
     const { page, limit } = getPaginationParams(req.query.page, req.query.limit);
-    const { categoryId, collegeId, search } = req.query;
+    const { categoryId, collegeId } = req.query;
+    const search =
+      typeof req.query.search === 'string' && req.query.search.trim() !== ''
+        ? req.query.search.trim()
+        : undefined;
 
     // INSTITUTE → only isInstituteProduct true (see getInstituteProductFilter). Use userType from auth / optionalAuthenticate.
     const userType = req.user?.type ?? req.userType;

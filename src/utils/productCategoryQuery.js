@@ -44,8 +44,21 @@ function isDirectChildCategoryName(parentName, candidateName) {
   return rest.length > 0 && !rest.includes(CATEGORY_PATH_SEP);
 }
 
+/**
+ * True if `category` is not a direct child of any other row in `list` (same isInstituteCategory).
+ */
+function isRootCategoryAmong(category, list) {
+  return !list.some(
+    (p) =>
+      p.id !== category.id &&
+      p.isInstituteCategory === category.isInstituteCategory &&
+      isDirectChildCategoryName(p.name, category.name)
+  );
+}
+
 module.exports = {
   getCategoryIdsIncludingDescendants,
   categoryPathSeparator,
   isDirectChildCategoryName,
+  isRootCategoryAmong,
 };

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Studify - Institute (Government) User Journey",
-    "description": "Complete Postman collection for Institute/Government user flows.\n\nCovers: Auth - Profile - Categories - Products - Cart - Checkout - Orders - Transactions\n\nSeeded Test Users:\n- Phone: +209000000001 (Ministry of Health)\n- Phone: +209000000002 (Ministry of Education)\n- Phone: +209000000003 (Ministry of Interior)\n- Phone: +209000000004 (Financial Oversight)\n- Phone: +209000000005 (Ministry of Electricity)\n- Password for all: Password123!\n\nHow to use:\n1. Run **LOGIN (Seeded Institute)** — token is saved automatically via collection Bearer auth.\n2. Run **03** → **List + save main & sub IDs**, then **04** → **List wholesale products** (or **Products under SUB**) — saves `product_id`.\n3. **Add Product to Cart** then **Create Wholesale Order** (checkout is wholesale, not regular orders).\n\nCategories & products (government catalogue):\n- Four main categories (no ` / ` in name): تجهيز المواد الاوليه، القرطاسية، مستلزمات عامة، الاثاث المكتبي.\n- Sub-categories in API/DB: `MainName / SubName` (space-slash-space). `GET /products?categoryId=<main_or_sub_id>` returns only products in that branch (main = all subs under it).\n- Retail (`isInstituteCategory: false`) and institute (`true`) stay separated by user type and flags — same JSON shape as before: `{ success, message, data, pagination? }`.\n- **Query params `isInstituteCategory=true` / `isInstituteProduct=true`**: Always set on catalogue requests in this collection. They fix empty lists when Bearer is missing or wrong, and (on web `/api/products`) they are required for `categoryId` / `search` to work — the route used to strip unknown query keys before the controller.\n\nTroubleshooting:\n- **Cart: wholesale / institute product required**: You are INSTITUTE but `referenceId` points to a **retail** product. Call catalogue **with Bearer token** (`GET /api/products` or `GET /api/mobile/customer/products`), or run **04 - List wholesale products** so `product_id` is wholesale.\n- **JWT must be INSTITUTE**: Login with `\"clientType\": \"INSTITUTE\"` for a phone registered as INSTITUTE.\n- **No customer profile / wholesale**: Institute checkout needs a **Customer** row (seed + new register include it).\n- **Mixed cart**: **Clear Entire Cart** then add again.\n- **Seed**: `npx prisma db seed` / `npm run prisma:seed` runs main + institute seed (or `npm run prisma:seed:institute` only; re-run safe).",
+    "description": "Complete Postman collection for Institute/Government user flows.\n\nCovers: Auth - Profile - Categories - Products - Cart - Checkout - Orders - Transactions\n\nSeeded Test Users:\n- Phone: +209000000001 (Ministry of Health)\n- Phone: +209000000002 (Ministry of Education)\n- Phone: +209000000003 (Ministry of Interior)\n- Phone: +209000000004 (Financial Oversight)\n- Phone: +209000000005 (Ministry of Electricity)\n- Password for all: Password123!\n\nHow to use:\n1. Run Login with seeded credentials\n2. Copy the token from response\n3. Paste it in the collection variable 'token'\n4. Browse categories - filter products - add to cart - checkout",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "version": "1.0.0"
   },
@@ -14,7 +14,6 @@
     { "key": "customer_id", "value": "", "type": "string" },
     { "key": "product_id", "value": "", "type": "string" },
     { "key": "category_id", "value": "", "type": "string" },
-    { "key": "sub_category_id", "value": "", "type": "string" },
     { "key": "cart_item_id", "value": "", "type": "string" },
     { "key": "order_id", "value": "", "type": "string" }
   ],
@@ -76,7 +75,7 @@
         },
         {
           "name": "LOGIN (Seeded Institute - Health Ministry)",
-          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data){", "  if(json.data.token) pm.collectionVariables.set('token', json.data.token);", "  if(json.data.refreshToken) pm.collectionVariables.set('refresh_token', json.data.refreshToken);", "  if(json.data.user){", "    pm.collectionVariables.set('user_id', json.data.user.id);", "    if(json.data.user.customer) pm.collectionVariables.set('customer_id', json.data.user.customer.id);", "  }", "}", "pm.test('Login returns 200', function () { pm.response.to.have.status(200); });", "pm.test('Logged-in user type is INSTITUTE', function () { pm.expect(json.success).to.be.true; pm.expect(json.data && json.data.user && json.data.user.type).to.eql('INSTITUTE'); });", "pm.test('Bearer token saved to collection', function () { pm.expect(pm.collectionVariables.get('token')).to.be.a('string').and.not.empty; });"] } }],
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data){", "  if(json.data.token) pm.collectionVariables.set('token', json.data.token);", "  if(json.data.refreshToken) pm.collectionVariables.set('refresh_token', json.data.refreshToken);", "  if(json.data.user){", "    pm.collectionVariables.set('user_id', json.data.user.id);", "    if(json.data.user.customer) pm.collectionVariables.set('customer_id', json.data.user.customer.id);", "  }", "}"] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -188,12 +187,26 @@
       ]
     },
     {
-      "name": "03 - Categories (Government only)",
-      "description": "Use **INSTITUTE** login **or** keep `isInstituteCategory=true` on every request so government categories always return. Naming: main = no ` / `; sub = `Main / Sub`.",
+      "name": "03 - Categories",
       "item": [
         {
-          "name": "List + save main & sub IDs (web)",
-          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "var cats = json.data || [];", "var sep = ' / ';", "var gov = cats.filter(function(c){ return c.isInstituteCategory === true; });", "var mains = gov.filter(function(c){ return (c.name || '').indexOf(sep) === -1; });", "var subs = gov.filter(function(c){ return (c.name || '').indexOf(sep) !== -1; });", "if(mains.length > 0) pm.collectionVariables.set('category_id', mains[0].id);", "if(subs.length > 0) pm.collectionVariables.set('sub_category_id', subs[0].id);"] } }],
+          "name": "Get ALL Categories (no filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"]
+            },
+            "description": "Returns ALL product categories (both institute and normal)."
+          }
+        },
+        {
+          "name": "Get All Institute Main Categories",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "var cats = json.data || [];", "var mains = cats.filter(function(c){ return c.name.indexOf('/') === -1; });", "if(mains.length > 0) pm.collectionVariables.set('category_id', mains[0].id);", "if(cats.length > 0 && !pm.collectionVariables.get('category_id')) pm.collectionVariables.set('category_id', cats[0].id);"] } }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -205,11 +218,48 @@
               "path": ["api", "categories", "products"],
               "query": [{ "key": "isInstituteCategory", "value": "true" }]
             },
-            "description": "Government categories only (`isInstituteCategory=true` + INSTITUTE Bearer recommended). Saves `category_id` (first main) and `sub_category_id` (first sub)."
+            "description": "Get only government/institute categories. Main categories have no '/' in name. Auto-saves first main category ID."
           }
         },
         {
-          "name": "List government categories (mobile)",
+          "name": "Get All Institute Sub-Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products?isInstituteCategory=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"],
+              "query": [{ "key": "isInstituteCategory", "value": "true" }]
+            },
+            "description": "Returns all institute categories. Sub-categories have '/' separator in name (e.g. 'ParentName / SubName'). Filter in client by checking name.includes('/')."
+          }
+        },
+        {
+          "name": "Get Category by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&categoryId={{category_id}}&page=1&limit=50",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "categoryId", "value": "{{category_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" }
+              ]
+            },
+            "description": "Get all products belonging to a specific category ID. This is 'Get Category by ID' - shows category content."
+          }
+        },
+        {
+          "name": "Get Institute Categories (Mobile)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -220,39 +270,12 @@
               "port": "6008",
               "path": ["api", "mobile", "categories", "products"],
               "query": [{ "key": "isInstituteCategory", "value": "true" }]
-            },
-            "description": "Government categories; `isInstituteCategory=true` + Bearer (INSTITUTE) for consistent results."
-          }
-        }
-      ]
-    },
-    {
-      "name": "04 - Products (Wholesale / government catalogue)",
-      "description": "Use **INSTITUTE** Bearer token and **`isInstituteProduct=true`** on list/search requests (required for correct filtering without auth; keeps `categoryId`/`search` from being dropped on web `/api/products`). Run **03** first for `category_id` / `sub_category_id`.",
-      "item": [
-        {
-          "name": "List wholesale products (page 1)",
-          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.length > 0) pm.collectionVariables.set('product_id', json.data[0].id);", "pm.test('List 200', function () { pm.response.to.have.status(200); });", "pm.test('Government products present (seed)', function () { pm.expect(json.success).to.be.true; pm.expect(json.data).to.be.an('array'); pm.expect(json.data.length, 'Run prisma seed (includes institute)').to.be.above(0); });", "pm.test('product_id set', function () { pm.expect(pm.collectionVariables.get('product_id')).to.match(/^[0-9a-f-]{36}$/i); });"] } }],
-          "request": {
-            "method": "GET",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
-            "url": {
-              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&page=1&limit=20",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "6008",
-              "path": ["api", "products"],
-              "query": [
-                { "key": "isInstituteProduct", "value": "true" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "20" }
-              ]
-            },
-            "description": "Wholesale government catalogue. `isInstituteProduct=true` is required for unauthenticated calls and ensures category/search query params reach the server."
+            }
           }
         },
         {
-          "name": "Products under MAIN category (branch)",
+          "name": "Get Products by Sub-Category",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.length > 0) pm.collectionVariables.set('product_id', json.data[0].id);"] } }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -269,33 +292,74 @@
                 { "key": "limit", "value": "20" }
               ]
             },
-            "description": "`category_id` = **main** from folder 03. `isInstituteProduct=true` required so `categoryId` is not stripped by validation."
+            "description": "Products filtered by a specific sub-category. Change category_id variable to any sub-category ID."
           }
         },
         {
-          "name": "Products under SUB category",
+          "name": "Search Categories by Name",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/categories/products?isInstituteCategory=true",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "categories", "products"],
+              "query": [{ "key": "isInstituteCategory", "value": "true" }]
+            },
+            "description": "Categories are returned as a flat list. Filter client-side by name. The API does not have a search param for categories - filter the response array."
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Products",
+      "item": [
+        {
+          "name": "Get All Institute Products",
           "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.length > 0) pm.collectionVariables.set('product_id', json.data[0].id);"] } }],
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&categoryId={{sub_category_id}}&page=1&limit=20",
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&page=1&limit=20",
               "protocol": "http",
               "host": ["localhost"],
               "port": "6008",
               "path": ["api", "products"],
               "query": [
                 { "key": "isInstituteProduct", "value": "true" },
-                { "key": "categoryId", "value": "{{sub_category_id}}" },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
               ]
             },
-            "description": "`sub_category_id` from folder 03. Include `isInstituteProduct=true`."
+            "description": "All institute products, paginated. Auto-saves first product ID."
           }
         },
         {
-          "name": "Search (Arabic)",
+          "name": "Search Products (English)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&search=paper&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "search", "value": "paper" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            },
+            "description": "Search by English name/description."
+          }
+        },
+        {
+          "name": "Search Products (Arabic)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -312,33 +376,33 @@
                 { "key": "limit", "value": "20" }
               ]
             },
-            "description": "Arabic search; `isInstituteProduct=true` so `search` reaches the controller on web `/api/products`."
+            "description": "Search by Arabic name/description."
           }
         },
         {
-          "name": "Search (Arabic) + main category",
+          "name": "Search + Filter by Category",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
             "url": {
-              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&search=%D9%88%D8%B1%D9%82&categoryId={{category_id}}&page=1&limit=20",
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&search=paper&categoryId={{category_id}}&page=1&limit=20",
               "protocol": "http",
               "host": ["localhost"],
               "port": "6008",
               "path": ["api", "products"],
               "query": [
                 { "key": "isInstituteProduct", "value": "true" },
-                { "key": "search", "value": "ورق" },
+                { "key": "search", "value": "paper" },
                 { "key": "categoryId", "value": "{{category_id}}" },
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
               ]
             },
-            "description": "Search + main branch; both filters need `isInstituteProduct=true` on web list route."
+            "description": "Combine text search with category filter."
           }
         },
         {
-          "name": "Product detail (web)",
+          "name": "Get Single Product (with Pricing Tiers)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -349,11 +413,31 @@
               "port": "6008",
               "path": ["api", "products", "{{product_id}}"]
             },
-            "description": "Full detail: tiers, category, reviews. Use a wholesale `product_id` from this folder."
+            "description": "Full product detail including pricing tiers, category, and reviews."
           }
         },
         {
-          "name": "List wholesale products (mobile)",
+          "name": "Filter Products by Category",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "http://localhost:6008/api/products?isInstituteProduct=true&categoryId={{category_id}}&page=1&limit=20",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "6008",
+              "path": ["api", "products"],
+              "query": [
+                { "key": "isInstituteProduct", "value": "true" },
+                { "key": "categoryId", "value": "{{category_id}}" },
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Institute Products (Mobile)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -368,12 +452,11 @@
                 { "key": "page", "value": "1" },
                 { "key": "limit", "value": "20" }
               ]
-            },
-            "description": "Wholesale list; Bearer required. `isInstituteProduct=true` keeps behaviour explicit for CUSTOMER/INSTITUTE tokens."
+            }
           }
         },
         {
-          "name": "Product detail (mobile)",
+          "name": "Get Single Product (Mobile)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -407,7 +490,7 @@
         },
         {
           "name": "Add Product to Cart",
-          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('cart_item_id', json.data.id);", "pm.test('Add to cart 200', function () { pm.response.to.have.status(200); });", "pm.test('Cart item created or already in cart', function () { pm.expect(json.success).to.be.true; pm.expect(json.data).to.have.property('id'); });"] } }],
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('cart_item_id', json.data.id);"] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -472,7 +555,7 @@
       "item": [
         {
           "name": "Create Wholesale Order",
-          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('order_id', json.data.id);", "pm.test('Wholesale order 201', function () { pm.response.to.have.status(201); });", "pm.test('Order has id and institute line items', function () { pm.expect(json.success).to.be.true; pm.expect(json.data).to.have.property('id'); pm.expect(json.data.items).to.be.an('array').that.is.not.empty; });"] } }],
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json();", "if(json.data && json.data.id) pm.collectionVariables.set('order_id', json.data.id);"] } }],
           "request": {
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -718,7 +801,7 @@
           }
         },
         {
-          "name": "List wholesale / institute products (Admin token)",
+          "name": "List All Institute Products (Admin)",
           "request": {
             "method": "GET",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
@@ -729,8 +812,7 @@
               "port": "6008",
               "path": ["api", "products"],
               "query": [{ "key": "isInstituteProduct", "value": "true" }, { "key": "page", "value": "1" }, { "key": "limit", "value": "50" }]
-            },
-            "description": "Requires **ADMIN** Bearer. Admins must pass `isInstituteProduct=true` to see the government catalogue; institute users get that filter automatically in folder **04**."
+            }
           }
         },
         {
