@@ -171,9 +171,9 @@ const getProductCategories = async (req, res, next) => {
 
     const exposeInstitute = userType === USER_TYPES.ADMIN || userType === USER_TYPES.INSTITUTE;
 
-    // Institute app: only main (root) categories — no nested `children`, no duplicate rows for sub-paths.
+    // Institute catalogue (query or INSTITUTE user): only main (root) rows — no `children`, no sub-rows.
     let payload = withBranchCounts;
-    if (userType === USER_TYPES.INSTITUTE) {
+    if (instituteFilter === true) {
       payload = withBranchCounts
         .filter((c) => isRootCategoryAmong(c, categories))
         .map(({ children: _ch, ...rest }) => rest);
