@@ -14,14 +14,30 @@ const { validateInstituteProducts, calculateInstitutePriceFromTiers } = require(
  * @param {string|undefined|null} address
  */
 async function createWholesaleOrderCore(userId, items, address) {
-  const customer = await prisma.customer.findUnique({
+  let customer = await prisma.customer.findUnique({
     where: { userId },
   });
 
   if (!customer) {
-    throw new AuthorizationError(
-      'No customer profile found. Wholesale orders require a customer profile (institute accounts should have one linked).'
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { institute: true },
+    });
+
+    if (user && user.type === 'INSTITUTE') {
+      customer = await prisma.customer.create({
+        data: {
+          userId: user.id,
+          entityName: user.name || user.institute?.name || 'Institute',
+          contactPerson: user.name || 'Contact',
+          phone: user.phone || '',
+        },
+      });
+    } else {
+      throw new AuthorizationError(
+        'No customer profile found. Wholesale orders require a customer profile (institute accounts should have one linked).'
+      );
+    }
   }
 
   const productIds = items.map((i) => i.productId);
