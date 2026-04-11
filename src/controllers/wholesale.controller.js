@@ -7,9 +7,7 @@ const prisma = require('../config/database');
 const { sendSuccess, sendPaginated, getPaginationParams, buildPagination } = require('../utils/response');
 const { NotFoundError, AuthorizationError, ValidationError } = require('../utils/errors');
 const { ORDER_STATUS, USER_TYPES } = require('../utils/constants');
-const { calculateOrderTotal } = require('../utils/helpers');
-const { sanitizeOrderItemsWithProducts } = require('../utils/legacyApiShape');
-const { validateInstituteProducts, calculateInstitutePriceFromTiers } = require('../services/institute.service');
+const { createWholesaleOrderCore } = require('../services/wholesaleOrder.service');
 
 /**
  * Get wholesale orders.
@@ -156,95 +154,7 @@ const createWholesaleOrder = async (req, res, next) => {
       throw new ValidationError('Order must have at least one item');
     }
 
-    const customer = await prisma.customer.findUnique({
-      where: { userId },
-    });
-
-    if (!customer) {
-      throw new AuthorizationError(
-        'No customer profile found. Wholesale orders require a customer profile (institute accounts should have one linked).'
-      );
-    }
-
-    // Validate ALL products are institute products
-    const productIds = items.map((i) => i.productId);
-    const { valid, invalidIds } = await validateInstituteProducts(productIds);
-    if (!valid) {
-      throw new ValidationError(
-        `The following products are not institute products or do not exist: ${invalidIds.join(', ')}`
-      );
-    }
-
-    // Fetch products with pricing tiers to compute prices
-    const products = await prisma.product.findMany({
-      where: { id: { in: productIds } },
-      include: { pricing: { orderBy: { minQuantity: 'asc' } } },
-    });
-    const productMap = new Map(products.map((p) => [p.id, p]));
-
-    const resolvedItems = items.map((item) => {
-      const product = productMap.get(item.productId);
-
-      // If the client sent a price, honour it (admin / pre-negotiated)
-      if (item.price != null && item.price > 0) {
-        return {
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-        };
-      }
-
-      // Calculate from pricing tiers
-      if (product.pricing && product.pricing.length > 0) {
-        const calc = calculateInstitutePriceFromTiers(item.quantity, product.pricing);
-        if (calc) {
-          return {
-            productId: item.productId,
-            quantity: item.quantity,
-            price: calc.unitPrice,
-          };
-        }
-      }
-
-      // Fall back to basePrice
-      if (product.basePrice != null) {
-        return {
-          productId: item.productId,
-          quantity: item.quantity,
-          price: product.basePrice,
-        };
-      }
-
-      throw new ValidationError(
-        `No pricing available for product "${product.name}" (${product.id}). Add pricing tiers or a base price.`
-      );
-    });
-
-    const total = resolvedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
-
-    const order = await prisma.wholesaleOrder.create({
-      data: {
-        customerId: customer.id,
-        total,
-        status: ORDER_STATUS.CREATED,
-        address,
-        items: {
-          create: resolvedItems.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
-      },
-      include: {
-        items: {
-          include: {
-            product: true,
-          },
-        },
-      },
-    });
-
+    const order = await createWholesaleOrderCore(userId, items, address);
     sendSuccess(res, order, 'Wholesale order created successfully', 201);
   } catch (error) {
     next(error);

@@ -10,6 +10,7 @@ const { ORDER_STATUS, USER_TYPES } = require('../utils/constants');
 const { calculateOrderTotal } = require('../utils/helpers');
 const { assignOrderToNearestPrintCenter } = require('../services/printOrderAssignment.service');
 const { sanitizeProduct } = require('../utils/legacyApiShape');
+const { createWholesaleOrderCore } = require('../services/wholesaleOrder.service');
 
 /**
  * Get user orders
@@ -358,8 +359,8 @@ const getOrderById = async (req, res, next) => {
 };
 
 /**
- * Create order (retail flow only)
- * Institute users must use /wholesale-orders instead.
+ * Create order (retail flow).
+ * INSTITUTE users with only PRODUCT line items get a wholesale order (same as POST /api/wholesale-orders).
  *
  * Automatically determines orderType based on items:
  * - PRODUCT items → PRODUCT order
@@ -376,11 +377,21 @@ const createOrder = async (req, res, next) => {
       throw new ValidationError('Order must have at least one item');
     }
 
-    // Institute users must use the wholesale order flow
+    // Institute + cart-style checkout (POST /api/orders with PRODUCT items) → wholesale order
     if (userType === USER_TYPES.INSTITUTE) {
-      throw new AuthorizationError(
-        'Institute users must use the wholesale order endpoint (/wholesale-orders) to place orders.'
-      );
+      const allProduct = items.every((item) => item.referenceType === 'PRODUCT');
+      if (!allProduct) {
+        throw new ValidationError(
+          'Institute accounts can only order wholesale products here. Send only PRODUCT line items from the institute catalogue, or use POST /api/wholesale-orders with { productId, quantity, price? }.'
+        );
+      }
+      const wholesaleItems = items.map((item) => ({
+        productId: item.referenceId,
+        quantity: item.quantity,
+        price: item.price,
+      }));
+      const wholesaleOrder = await createWholesaleOrderCore(userId, wholesaleItems, address);
+      return sendSuccess(res, wholesaleOrder, 'Wholesale order created successfully', 201);
     }
 
     const deliveryAddress = (address && String(address).trim()) ? String(address).trim() : 'Address not provided';
