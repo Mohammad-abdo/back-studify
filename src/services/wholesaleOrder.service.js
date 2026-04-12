@@ -91,27 +91,39 @@ async function createWholesaleOrderCore(userId, items, address) {
 
   const total = resolvedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  return prisma.wholesaleOrder.create({
-    data: {
-      customerId: customer.id,
-      total,
-      status: ORDER_STATUS.CREATED,
-      address,
-      items: {
-        create: resolvedItems.map((item) => ({
-          productId: item.productId,
-          quantity: item.quantity,
-          price: item.price,
-        })),
-      },
-    },
-    include: {
-      items: {
-        include: {
-          product: true,
+  return prisma.$transaction(async (tx) => {
+    const wholesaleOrder = await tx.wholesaleOrder.create({
+      data: {
+        customerId: customer.id,
+        total,
+        status: ORDER_STATUS.CREATED,
+        address,
+        items: {
+          create: resolvedItems.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            price: item.price,
+          })),
         },
       },
-    },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    const cart = await tx.cart.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (cart) {
+      await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+    }
+
+    return wholesaleOrder;
   });
 }
 
