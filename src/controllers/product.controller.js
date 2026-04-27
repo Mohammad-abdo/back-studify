@@ -10,6 +10,14 @@ const { sanitizeProduct, sanitizeProductPricing } = require('../utils/legacyApiS
 const { getInstituteProductFilter } = require('../middleware/institute.middleware');
 const { getCategoryIdsIncludingDescendants } = require('../utils/productCategoryQuery');
 const { USER_TYPES } = require('../utils/constants');
+const { createObjectCsvStringifier } = require('csv-writer');
+const {
+  toBool,
+  toNumberOrNull,
+  toIntOrNull,
+  toJsonArrayStringOrNull,
+  parseCsvBuffer,
+} = require('../utils/productCsv');
 
 const parseProductImages = (product) => {
   let parsedImageUrls = [];
@@ -380,4 +388,370 @@ module.exports = {
   updateProduct,
   deleteProduct,
   addProductPricing,
+  exportProductsCsv: async (req, res, next) => {
+    try {
+      const { categoryId, collegeId } = req.query;
+      const search =
+        typeof req.query.search === 'string' && req.query.search.trim() !== ''
+          ? req.query.search.trim()
+          : undefined;
+
+      let categoryIdIn = undefined;
+      if (categoryId) {
+        const root = await prisma.productCategory.findUnique({
+          where: { id: categoryId },
+          select: { id: true },
+        });
+        if (!root) {
+          throw new NotFoundError('Category not found');
+        }
+        const branchIds = await getCategoryIdsIncludingDescendants(prisma, categoryId);
+        categoryIdIn = { in: branchIds };
+      }
+
+      const where = {
+        ...(categoryIdIn && { categoryId: categoryIdIn }),
+        ...(collegeId && {
+          category: {
+            collegeId: collegeId,
+          },
+        }),
+        ...(search && {
+          OR: [
+            { name: { contains: search } },
+            { description: { contains: search } },
+          ],
+        }),
+      };
+
+      if (req.query.isInstituteProduct !== undefined) {
+        where.isInstituteProduct = req.query.isInstituteProduct === 'true';
+      }
+
+      const products = await prisma.product.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const csvStringifier = createObjectCsvStringifier({
+        header: [
+          { id: 'id', title: 'id' },
+          { id: 'name', title: 'name' },
+          { id: 'description', title: 'description' },
+          { id: 'categoryId', title: 'categoryId' },
+          { id: 'isInstituteProduct', title: 'isInstituteProduct' },
+          { id: 'basePrice', title: 'basePrice' },
+          { id: 'pricingStrategy', title: 'pricingStrategy' },
+          { id: 'imageUrls', title: 'imageUrls' },
+        ],
+      });
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="products.csv"');
+
+      res.write(csvStringifier.getHeaderString());
+
+      for (const p of products) {
+        const record = {
+          id: p.id,
+          name: p.name,
+          description: p.description,
+          categoryId: p.categoryId,
+          isInstituteProduct: p.isInstituteProduct ? 'true' : 'false',
+          basePrice: p.basePrice ?? '',
+          pricingStrategy: p.pricingStrategy ?? '',
+          imageUrls: p.imageUrls ?? '',
+        };
+        res.write(csvStringifier.stringifyRecords([record]));
+      }
+      res.end();
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  exportProductPricingCsv: async (req, res, next) => {
+    try {
+      const tiers = await prisma.productPricing.findMany({
+        orderBy: [{ productId: 'asc' }, { minQuantity: 'asc' }],
+      });
+
+      const csvStringifier = createObjectCsvStringifier({
+        header: [
+          { id: 'id', title: 'id' },
+          { id: 'productId', title: 'productId' },
+          { id: 'minQuantity', title: 'minQuantity' },
+          { id: 'maxQuantity', title: 'maxQuantity' },
+          { id: 'price', title: 'price' },
+          { id: 'fixedPrice', title: 'fixedPrice' },
+          { id: 'discountPercent', title: 'discountPercent' },
+        ],
+      });
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="product_pricing.csv"');
+      res.write(csvStringifier.getHeaderString());
+
+      for (const t of tiers) {
+        const record = {
+          id: t.id,
+          productId: t.productId,
+          minQuantity: t.minQuantity,
+          maxQuantity: t.maxQuantity ?? '',
+          price: t.price,
+          fixedPrice: t.fixedPrice ?? '',
+          discountPercent: t.discountPercent ?? '',
+        };
+        res.write(csvStringifier.stringifyRecords([record]));
+      }
+      res.end();
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  importProductsCsv: async (req, res, next) => {
+    try {
+      if (!req.file?.buffer) {
+        throw new ValidationError('CSV file is required');
+      }
+
+      const rows = await parseCsvBuffer(req.file.buffer);
+      const errors = [];
+      let createdCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        const rowNumber = i + 2; // header is row 1
+        const r = rows[i] || {};
+
+        const id = (r.id ?? '').trim();
+        const name = (r.name ?? '').trim();
+        const description = (r.description ?? '').trim();
+        const categoryId = (r.categoryId ?? '').trim();
+        const isInstituteProduct = toBool(r.isInstituteProduct) ?? false;
+        const basePrice = toNumberOrNull(r.basePrice);
+        const pricingStrategyRaw = (r.pricingStrategy ?? '').trim();
+        const pricingStrategy =
+          pricingStrategyRaw === '' ? null : pricingStrategyRaw;
+        const imageUrls = toJsonArrayStringOrNull(r.imageUrls);
+
+        if (!name || !description || !categoryId) {
+          skippedCount++;
+          errors.push({ row: rowNumber, message: 'Missing required fields: name, description, categoryId' });
+          continue;
+        }
+
+        if (isInstituteProduct && basePrice == null) {
+          // Allow institute products without basePrice so pricing tiers can be imported separately.
+          // Enforce at least pricingStrategy presence to avoid ambiguous pricing.
+          if (!pricingStrategy) {
+            skippedCount++;
+            errors.push({
+              row: rowNumber,
+              message: 'Institute product requires basePrice or pricingStrategy (tiers imported separately).',
+            });
+            continue;
+          }
+        }
+
+        const data = {
+          name,
+          description,
+          categoryId,
+          isInstituteProduct: !!isInstituteProduct,
+          basePrice: basePrice,
+          pricingStrategy: pricingStrategy,
+          imageUrls: imageUrls,
+        };
+
+        try {
+          if (id) {
+            const existing = await prisma.product.findUnique({ where: { id } });
+            if (existing) {
+              await prisma.product.update({ where: { id }, data });
+              updatedCount++;
+            } else {
+              await prisma.product.create({ data: { id, ...data } });
+              createdCount++;
+            }
+          } else {
+            await prisma.product.create({ data });
+            createdCount++;
+          }
+        } catch (e) {
+          skippedCount++;
+          errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
+        }
+      }
+
+      sendSuccess(
+        res,
+        { createdCount, updatedCount, skippedCount, errors },
+        'Products CSV import processed'
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  importProductPricingCsv: async (req, res, next) => {
+    try {
+      if (!req.file?.buffer) {
+        throw new ValidationError('CSV file is required');
+      }
+
+      const replace = req.query.replace === 'true';
+      const rows = await parseCsvBuffer(req.file.buffer);
+      const errors = [];
+      let createdCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      if (replace) {
+        const productIds = Array.from(
+          new Set(
+            rows
+              .map((r) => (r.productId ?? '').trim())
+              .filter(Boolean)
+          )
+        );
+        if (productIds.length === 0) {
+          throw new ValidationError('productId is required for replace mode');
+        }
+
+        await prisma.productPricing.deleteMany({
+          where: { productId: { in: productIds } },
+        });
+
+        for (let i = 0; i < rows.length; i++) {
+          const rowNumber = i + 2;
+          const r = rows[i] || {};
+          const productId = (r.productId ?? '').trim();
+          const minQuantity = toIntOrNull(r.minQuantity);
+          const maxQuantity = toIntOrNull(r.maxQuantity);
+          const price = toNumberOrNull(r.price);
+          const fixedPrice = toNumberOrNull(r.fixedPrice);
+          const discountPercent = toNumberOrNull(r.discountPercent);
+
+          if (!productId || !minQuantity || price == null) {
+            skippedCount++;
+            errors.push({ row: rowNumber, message: 'Missing required fields: productId, minQuantity, price' });
+            continue;
+          }
+
+          try {
+            await prisma.productPricing.create({
+              data: {
+                productId,
+                minQuantity,
+                maxQuantity: maxQuantity ?? null,
+                price,
+                fixedPrice: fixedPrice ?? null,
+                discountPercent: discountPercent ?? null,
+              },
+            });
+            createdCount++;
+          } catch (e) {
+            skippedCount++;
+            errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
+          }
+        }
+
+        sendSuccess(
+          res,
+          { createdCount, updatedCount, skippedCount, errors },
+          'Product pricing CSV import processed'
+        );
+        return;
+      }
+
+      for (let i = 0; i < rows.length; i++) {
+        const rowNumber = i + 2;
+        const r = rows[i] || {};
+
+        const id = (r.id ?? '').trim();
+        const productId = (r.productId ?? '').trim();
+        const minQuantity = toIntOrNull(r.minQuantity);
+        const maxQuantity = toIntOrNull(r.maxQuantity);
+        const price = toNumberOrNull(r.price);
+        const fixedPrice = toNumberOrNull(r.fixedPrice);
+        const discountPercent = toNumberOrNull(r.discountPercent);
+
+        if (!productId || !minQuantity || price == null) {
+          skippedCount++;
+          errors.push({ row: rowNumber, message: 'Missing required fields: productId, minQuantity, price' });
+          continue;
+        }
+
+        const data = {
+          productId,
+          minQuantity,
+          maxQuantity: maxQuantity ?? null,
+          price,
+          fixedPrice: fixedPrice ?? null,
+          discountPercent: discountPercent ?? null,
+        };
+
+        try {
+          if (id) {
+            const existing = await prisma.productPricing.findUnique({ where: { id } });
+            if (existing) {
+              await prisma.productPricing.update({ where: { id }, data });
+              updatedCount++;
+            } else {
+              await prisma.productPricing.create({ data: { id, ...data } });
+              createdCount++;
+            }
+          } else {
+            await prisma.productPricing.create({ data });
+            createdCount++;
+          }
+        } catch (e) {
+          skippedCount++;
+          errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
+        }
+      }
+
+      sendSuccess(
+        res,
+        { createdCount, updatedCount, skippedCount, errors },
+        'Product pricing CSV import processed'
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  downloadProductsCsvTemplate: async (req, res, next) => {
+    try {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="products_template.csv"');
+      res.end(
+        [
+          'id,name,description,categoryId,isInstituteProduct,basePrice,pricingStrategy,imageUrls',
+          ',Example Product,Example description,00000000-0000-0000-0000-000000000000,false,10.5,,["https://example.com/image.png"]',
+        ].join('\n')
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  downloadProductPricingCsvTemplate: async (req, res, next) => {
+    try {
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', 'attachment; filename="product_pricing_template.csv"');
+      res.end(
+        [
+          'id,productId,minQuantity,maxQuantity,price,fixedPrice,discountPercent',
+          ',00000000-0000-0000-0000-000000000000,1,9,100,,,',
+          ',00000000-0000-0000-0000-000000000000,10,,95,,,',
+        ].join('\n')
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
 };
