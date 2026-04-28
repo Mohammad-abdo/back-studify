@@ -16,10 +16,16 @@ const { HTTP_STATUS } = require('./utils/constants');
 const app = express();
 
 // CORS configuration – allow frontend origins (Vercel, localhost, etc.)
+const corsOrigin =
+  config.corsOrigin === '*'
+    ? true // reflect request origin (safe only because we disable credentials below)
+    : config.corsOrigin;
+const corsCredentials = config.corsOrigin !== '*';
+
 app.use(
   cors({
-    origin: config.corsOrigin,
-    credentials: true,
+    origin: corsOrigin,
+    credentials: corsCredentials,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     optionsSuccessStatus: 204,
@@ -220,7 +226,10 @@ const server = app.listen(PORT, () => {
 });
 
 // Initialize Socket.io
-const io = initSocket(server, config.corsOrigin);
+const io = initSocket(server, {
+  origin: config.corsOrigin,
+  credentials: corsCredentials,
+});
 
 // Make io accessible globally if needed (e.g., in controllers)
 app.set('io', io);

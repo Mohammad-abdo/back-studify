@@ -5,12 +5,20 @@
 const { Server } = require('socket.io');
 const deliveryHandler = require('./delivery.handler');
 
-const initSocket = (server, corsOrigin) => {
+const initSocket = (server, cors) => {
+  const corsOrigin = cors?.origin ?? '*';
+  const corsCredentials = Boolean(cors?.credentials);
+
+  const origin =
+    corsOrigin === '*'
+      ? (originValue, callback) => callback(null, true)
+      : corsOrigin;
+
   const io = new Server(server, {
     cors: {
-      origin: corsOrigin,
+      origin,
       methods: ['GET', 'POST'],
-      credentials: true,
+      credentials: corsOrigin === '*' ? false : corsCredentials,
     },
   });
 
