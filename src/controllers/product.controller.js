@@ -18,6 +18,121 @@ const {
   toJsonArrayStringOrNull,
   parseCsvBuffer,
 } = require('../utils/productCsv');
+const ExcelJS = require('exceljs');
+const productXlsx = require('../utils/productXlsx');
+
+/**
+ * Upsert pricing tiers from plain row objects (same shape as csv-parser rows).
+ * @param {Array<Record<string,string>>} rows
+ * @param {boolean} replace
+ * @param {(n:number,m:string)=>void} pushError
+ * @param {(i:number)=>number} rowNumberForIndex
+ */
+const importProductPricingFromParsedRows = async (
+  rows,
+  replace,
+  pushError,
+  rowNumberForIndex = (i) => i + 2
+) => {
+  const errors = [];
+  let createdCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  if (replace) {
+    const productIds = Array.from(
+      new Set(rows.map((r) => (r.productId ?? '').trim()).filter(Boolean))
+    );
+    if (productIds.length === 0) {
+      throw new ValidationError('productId is required for replace mode');
+    }
+    await prisma.productPricing.deleteMany({
+      where: { productId: { in: productIds } },
+    });
+    for (let i = 0; i < rows.length; i++) {
+      const rowNumber = rowNumberForIndex(i);
+      const r = rows[i] || {};
+      const productId = (r.productId ?? '').trim();
+      const minQuantity = toIntOrNull(r.minQuantity);
+      const maxQuantity = toIntOrNull(r.maxQuantity);
+      const price = toNumberOrNull(r.price);
+      const fixedPrice = toNumberOrNull(r.fixedPrice);
+      const discountPercent = toNumberOrNull(r.discountPercent);
+      if (!productId || !minQuantity || price == null) {
+        skippedCount++;
+        const msg = 'Missing required fields: productId, minQuantity, price';
+        errors.push({ row: rowNumber, message: msg });
+        if (pushError) pushError(rowNumber, msg);
+        continue;
+      }
+      try {
+        await prisma.productPricing.create({
+          data: {
+            productId,
+            minQuantity,
+            maxQuantity: maxQuantity ?? null,
+            price,
+            fixedPrice: fixedPrice ?? null,
+            discountPercent: discountPercent ?? null,
+          },
+        });
+        createdCount++;
+      } catch (e) {
+        skippedCount++;
+        errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
+        if (pushError) pushError(rowNumber, e.message || 'Failed to import row');
+      }
+    }
+    return { createdCount, updatedCount, skippedCount, errors };
+  }
+
+  for (let i = 0; i < rows.length; i++) {
+    const rowNumber = rowNumberForIndex(i);
+    const r = rows[i] || {};
+    const id = (r.id ?? '').trim();
+    const productId = (r.productId ?? '').trim();
+    const minQuantity = toIntOrNull(r.minQuantity);
+    const maxQuantity = toIntOrNull(r.maxQuantity);
+    const price = toNumberOrNull(r.price);
+    const fixedPrice = toNumberOrNull(r.fixedPrice);
+    const discountPercent = toNumberOrNull(r.discountPercent);
+    if (!productId || !minQuantity || price == null) {
+      skippedCount++;
+      const msg = 'Missing required fields: productId, minQuantity, price';
+      errors.push({ row: rowNumber, message: msg });
+      if (pushError) pushError(rowNumber, msg);
+      continue;
+    }
+    const data = {
+      productId,
+      minQuantity,
+      maxQuantity: maxQuantity ?? null,
+      price,
+      fixedPrice: fixedPrice ?? null,
+      discountPercent: discountPercent ?? null,
+    };
+    try {
+      if (id) {
+        const existing = await prisma.productPricing.findUnique({ where: { id } });
+        if (existing) {
+          await prisma.productPricing.update({ where: { id }, data });
+          updatedCount++;
+        } else {
+          await prisma.productPricing.create({ data: { id, ...data } });
+          createdCount++;
+        }
+      } else {
+        await prisma.productPricing.create({ data });
+        createdCount++;
+      }
+    } catch (e) {
+      skippedCount++;
+      errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
+      if (pushError) pushError(rowNumber, e.message || 'Failed to import row');
+    }
+  }
+  return { createdCount, updatedCount, skippedCount, errors };
+};
 
 const parseProductImages = (product) => {
   let parsedImageUrls = [];
@@ -604,120 +719,315 @@ module.exports = {
 
       const replace = req.query.replace === 'true';
       const rows = await parseCsvBuffer(req.file.buffer);
-      const errors = [];
-      let createdCount = 0;
-      let updatedCount = 0;
-      let skippedCount = 0;
-
-      if (replace) {
-        const productIds = Array.from(
-          new Set(
-            rows
-              .map((r) => (r.productId ?? '').trim())
-              .filter(Boolean)
-          )
-        );
-        if (productIds.length === 0) {
-          throw new ValidationError('productId is required for replace mode');
-        }
-
-        await prisma.productPricing.deleteMany({
-          where: { productId: { in: productIds } },
-        });
-
-        for (let i = 0; i < rows.length; i++) {
-          const rowNumber = i + 2;
-          const r = rows[i] || {};
-          const productId = (r.productId ?? '').trim();
-          const minQuantity = toIntOrNull(r.minQuantity);
-          const maxQuantity = toIntOrNull(r.maxQuantity);
-          const price = toNumberOrNull(r.price);
-          const fixedPrice = toNumberOrNull(r.fixedPrice);
-          const discountPercent = toNumberOrNull(r.discountPercent);
-
-          if (!productId || !minQuantity || price == null) {
-            skippedCount++;
-            errors.push({ row: rowNumber, message: 'Missing required fields: productId, minQuantity, price' });
-            continue;
-          }
-
-          try {
-            await prisma.productPricing.create({
-              data: {
-                productId,
-                minQuantity,
-                maxQuantity: maxQuantity ?? null,
-                price,
-                fixedPrice: fixedPrice ?? null,
-                discountPercent: discountPercent ?? null,
-              },
-            });
-            createdCount++;
-          } catch (e) {
-            skippedCount++;
-            errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
-          }
-        }
-
-        sendSuccess(
-          res,
-          { createdCount, updatedCount, skippedCount, errors },
-          'Product pricing CSV import processed'
-        );
-        return;
-      }
-
-      for (let i = 0; i < rows.length; i++) {
-        const rowNumber = i + 2;
-        const r = rows[i] || {};
-
-        const id = (r.id ?? '').trim();
-        const productId = (r.productId ?? '').trim();
-        const minQuantity = toIntOrNull(r.minQuantity);
-        const maxQuantity = toIntOrNull(r.maxQuantity);
-        const price = toNumberOrNull(r.price);
-        const fixedPrice = toNumberOrNull(r.fixedPrice);
-        const discountPercent = toNumberOrNull(r.discountPercent);
-
-        if (!productId || !minQuantity || price == null) {
-          skippedCount++;
-          errors.push({ row: rowNumber, message: 'Missing required fields: productId, minQuantity, price' });
-          continue;
-        }
-
-        const data = {
-          productId,
-          minQuantity,
-          maxQuantity: maxQuantity ?? null,
-          price,
-          fixedPrice: fixedPrice ?? null,
-          discountPercent: discountPercent ?? null,
-        };
-
-        try {
-          if (id) {
-            const existing = await prisma.productPricing.findUnique({ where: { id } });
-            if (existing) {
-              await prisma.productPricing.update({ where: { id }, data });
-              updatedCount++;
-            } else {
-              await prisma.productPricing.create({ data: { id, ...data } });
-              createdCount++;
-            }
-          } else {
-            await prisma.productPricing.create({ data });
-            createdCount++;
-          }
-        } catch (e) {
-          skippedCount++;
-          errors.push({ row: rowNumber, message: e.message || 'Failed to import row' });
-        }
-      }
+      const { createdCount, updatedCount, skippedCount, errors } =
+        await importProductPricingFromParsedRows(rows, replace, null, (i) => i + 2);
 
       sendSuccess(
         res,
         { createdCount, updatedCount, skippedCount, errors },
         'Product pricing CSV import processed'
+      );
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  exportProductsXlsx: async (req, res, next) => {
+    try {
+      const { categoryId, collegeId } = req.query;
+      const search =
+        typeof req.query.search === 'string' && req.query.search.trim() !== ''
+          ? req.query.search.trim()
+          : undefined;
+
+      let categoryIdIn = undefined;
+      if (categoryId) {
+        const root = await prisma.productCategory.findUnique({
+          where: { id: categoryId },
+          select: { id: true },
+        });
+        if (!root) {
+          throw new NotFoundError('Category not found');
+        }
+        const branchIds = await getCategoryIdsIncludingDescendants(prisma, categoryId);
+        categoryIdIn = { in: branchIds };
+      }
+
+      const where = {
+        ...(categoryIdIn && { categoryId: categoryIdIn }),
+        ...(collegeId && {
+          category: {
+            collegeId: collegeId,
+          },
+        }),
+        ...(search && {
+          OR: [
+            { name: { contains: search } },
+            { description: { contains: search } },
+          ],
+        }),
+      };
+
+      if (req.query.isInstituteProduct !== undefined) {
+        where.isInstituteProduct = req.query.isInstituteProduct === 'true';
+      }
+
+      const [products, tiers] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.productPricing.findMany({
+          orderBy: [{ productId: 'asc' }, { minQuantity: 'asc' }],
+        }),
+      ]);
+
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Studify';
+      const wsProducts = workbook.addWorksheet(productXlsx.SHEET_PRODUCTS);
+      const wsPricing = workbook.addWorksheet(productXlsx.SHEET_PRICING);
+      productXlsx.buildProductsSheet(wsProducts, products);
+      productXlsx.buildPricingSheet(wsPricing, tiers);
+      await productXlsx.embedLocalImagesOnProductsSheet(workbook, wsProducts, products);
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader('Content-Disposition', 'attachment; filename="products_export.xlsx"');
+      await workbook.xlsx.write(res);
+      res.end();
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  importProductsXlsx: async (req, res, next) => {
+    try {
+      if (!req.file?.buffer) {
+        throw new ValidationError('Excel file is required');
+      }
+
+      const replace = req.query.replace === 'true';
+      const workbook = await productXlsx.parseWorkbookFromBuffer(req.file.buffer);
+      const productsWs = workbook.getWorksheet(productXlsx.SHEET_PRODUCTS);
+      if (!productsWs) {
+        throw new ValidationError(`Missing worksheet "${productXlsx.SHEET_PRODUCTS}"`);
+      }
+
+      const categories = await prisma.productCategory.findMany({
+        select: { id: true, name: true },
+      });
+      const categoryMap = new Map();
+      const categoryDuplicates = new Set();
+      for (const c of categories) {
+        const key = (c.name || '').trim().toLowerCase();
+        if (!key) continue;
+        if (categoryMap.has(key)) {
+          categoryDuplicates.add(key);
+          continue;
+        }
+        categoryMap.set(key, c.id);
+      }
+
+      const allProductsForMap = await prisma.product.findMany({
+        select: { id: true, name: true },
+      });
+      const productMap = new Map();
+      const productDuplicates = new Set();
+      for (const p of allProductsForMap) {
+        const key = (p.name || '').trim().toLowerCase();
+        if (!key) continue;
+        if (productMap.has(key)) {
+          productDuplicates.add(key);
+          continue;
+        }
+        productMap.set(key, p.id);
+      }
+
+      const imageErrors = [];
+      const embeddedByRow = await productXlsx.extractEmbeddedImagesByRow(
+        workbook,
+        productsWs,
+        imageErrors
+      );
+
+      const productRowObjs = productXlsx.readRowsAsObjects(productsWs, [
+        ...productXlsx.PRODUCT_HEADERS,
+        'categoryName',
+        'productName',
+      ]);
+
+      const errors = [];
+      let createdCount = 0;
+      let updatedCount = 0;
+      let skippedCount = 0;
+
+      for (const { sheetRow, data: r } of productRowObjs) {
+        let id = (r.id ?? '').trim();
+        const productName = (r.productName ?? '').trim();
+        const name = (r.name ?? '').trim();
+        const description = (r.description ?? '').trim();
+        let categoryId = (r.categoryId ?? '').trim();
+        const categoryName = (r.categoryName ?? '').trim();
+        const isInstituteProduct = toBool(r.isInstituteProduct) ?? false;
+        const basePrice = toNumberOrNull(r.basePrice);
+        const pricingStrategyRaw = (r.pricingStrategy ?? '').trim();
+        const pricingStrategy = pricingStrategyRaw === '' ? null : pricingStrategyRaw;
+        const embeddedUrls = embeddedByRow.get(sheetRow) || [];
+        const imageUrls = productXlsx.mergeImageUrlsCellAndEmbedded(
+          r.imageUrls,
+          embeddedUrls
+        );
+
+        if (!id && productName) {
+          const key = productName.toLowerCase();
+          if (productDuplicates.has(key)) {
+            skippedCount++;
+            errors.push({
+              row: sheetRow,
+              message: `Duplicate product name "${productName}" found in system. Use id instead.`,
+            });
+            continue;
+          }
+          const mapped = productMap.get(key);
+          if (!mapped) {
+            skippedCount++;
+            errors.push({
+              row: sheetRow,
+              message: `Product "${productName}" not found.`,
+            });
+            continue;
+          }
+          id = mapped;
+        }
+
+        if (!categoryId && categoryName) {
+          const key = categoryName.toLowerCase();
+          if (categoryDuplicates.has(key)) {
+            skippedCount++;
+            errors.push({
+              row: sheetRow,
+              message: `Duplicate category name "${categoryName}" found in system. Use categoryId instead.`,
+            });
+            continue;
+          }
+          const mapped = categoryMap.get(key);
+          if (!mapped) {
+            skippedCount++;
+            errors.push({
+              row: sheetRow,
+              message: `Category "${categoryName}" not found.`,
+            });
+            continue;
+          }
+          categoryId = mapped;
+        }
+
+        if (!name || !description || !categoryId) {
+          skippedCount++;
+          errors.push({
+            row: sheetRow,
+            message: 'Missing required fields: name, description, categoryId',
+          });
+          continue;
+        }
+
+        if (isInstituteProduct && basePrice == null) {
+          if (!pricingStrategy) {
+            skippedCount++;
+            errors.push({
+              row: sheetRow,
+              message:
+                'Institute product requires basePrice or pricingStrategy (tiers on ProductPricing sheet).',
+            });
+            continue;
+          }
+        }
+
+        const data = {
+          name,
+          description,
+          categoryId,
+          isInstituteProduct: !!isInstituteProduct,
+          basePrice,
+          pricingStrategy,
+          imageUrls,
+        };
+
+        try {
+          if (id) {
+            const existing = await prisma.product.findUnique({ where: { id } });
+            if (existing) {
+              await prisma.product.update({ where: { id }, data });
+              updatedCount++;
+            } else {
+              await prisma.product.create({ data: { id, ...data } });
+              createdCount++;
+            }
+          } else {
+            await prisma.product.create({ data });
+            createdCount++;
+          }
+        } catch (e) {
+          skippedCount++;
+          errors.push({ row: sheetRow, message: e.message || 'Failed to import row' });
+        }
+      }
+
+      const pricingWs = workbook.getWorksheet(productXlsx.SHEET_PRICING);
+      let pricingSummary = null;
+      if (pricingWs) {
+        const pricingRowObjs = productXlsx.readRowsAsObjects(
+          pricingWs,
+          [...productXlsx.PRICING_HEADERS, 'productName']
+        );
+        const pricingRows = pricingRowObjs.map((o) => o.data);
+
+        // Map productName -> productId when productId is empty (for both existing and newly created products).
+        const productMap = new Map();
+        const productDupes = new Set();
+        const allProducts = await prisma.product.findMany({ select: { id: true, name: true } });
+        for (const p of allProducts) {
+          const key = (p.name || '').trim().toLowerCase();
+          if (!key) continue;
+          if (productMap.has(key)) {
+            productDupes.add(key);
+            continue;
+          }
+          productMap.set(key, p.id);
+        }
+
+        for (let i = 0; i < pricingRowObjs.length; i++) {
+          const row = pricingRows[i];
+          const hasId = (row.productId ?? '').trim();
+          const nameRaw = (row.productName ?? '').trim();
+          if (hasId || !nameRaw) continue;
+          const key = nameRaw.toLowerCase();
+          if (productDupes.has(key)) {
+            // Let the downstream importer flag missing productId; we keep productName for context.
+            continue;
+          }
+          const mapped = productMap.get(key);
+          if (mapped) row.productId = mapped;
+        }
+
+        pricingSummary = await importProductPricingFromParsedRows(
+          pricingRows,
+          replace,
+          null,
+          (i) => pricingRowObjs[i].sheetRow
+        );
+      }
+
+      sendSuccess(
+        res,
+        {
+          products: { createdCount, updatedCount, skippedCount, errors },
+          pricing: pricingSummary,
+          images: { errors: imageErrors },
+        },
+        'Products XLSX import processed'
       );
     } catch (error) {
       next(error);
@@ -750,6 +1060,256 @@ module.exports = {
           ',00000000-0000-0000-0000-000000000000,10,,95,,,',
         ].join('\n')
       );
+    } catch (error) {
+      next(error);
+    }
+  },
+
+  downloadProductsImportXlsxTemplate: async (req, res, next) => {
+    try {
+      const categories = await prisma.productCategory.findMany({
+        select: { name: true },
+        orderBy: { name: 'asc' },
+      });
+      const products = await prisma.product.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      });
+
+      const names = categories
+        .map((c) => (c.name || '').trim())
+        .filter(Boolean);
+      const productPairs = products
+        .map((p) => ({
+          name: (p.name || '').trim(),
+          id: p.id,
+        }))
+        .filter((p) => p.name && p.id);
+
+      const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'Studify';
+
+      const wsProducts = workbook.addWorksheet('Products');
+      const wsPricing = workbook.addWorksheet('ProductPricing');
+      const wsLists = workbook.addWorksheet('Lists');
+      wsLists.state = 'veryHidden';
+      const maxRow = 1000;
+
+      // Lists sheet: categories (A) + existing products (C:D) + combined products list (E)
+      for (let i = 0; i < names.length; i++) {
+        wsLists.getCell(i + 1, 1).value = names[i];
+      }
+      for (let i = 0; i < productPairs.length; i++) {
+        wsLists.getCell(i + 1, 3).value = productPairs[i].name; // C
+        wsLists.getCell(i + 1, 4).value = productPairs[i].id;   // D
+      }
+      // Combined list in column E:
+      // - rows 1..existingCount: existing product names (Lists!C)
+      // - rows existingCount+1..existingCount+999: Products sheet names (Products!C2:C1000)
+      const existingCount = Math.max(productPairs.length, 1);
+      const combinedCount = existingCount + (maxRow - 1);
+      for (let i = 1; i <= combinedCount; i++) {
+        if (i <= existingCount) {
+          wsLists.getCell(i, 5).value = { formula: `C${i}` };
+        } else {
+          const prodRow = i - existingCount + 1; // maps 2..1000
+          wsLists.getCell(i, 5).value = { formula: `Products!$C$${prodRow}` };
+        }
+      }
+
+      // Products sheet headers
+      // - productName: dropdown to pick an existing product (optional)
+      // - id: auto-filled by VLOOKUP when productName selected; can be left empty for new products
+      const headers = [
+        'productName',
+        'id',
+        'name',
+        'description',
+        'categoryName',
+        'isInstituteProduct',
+        'basePrice',
+        'pricingStrategy',
+        'imageUrls',
+      ];
+      wsProducts.addRow(headers);
+      wsProducts.getRow(1).font = { bold: true };
+      wsProducts.columns = [
+        { key: 'productName', width: 28 },
+        { key: 'id', width: 40 },
+        { key: 'name', width: 28 },
+        { key: 'description', width: 50 },
+        { key: 'categoryName', width: 28 },
+        { key: 'isInstituteProduct', width: 18 },
+        { key: 'basePrice', width: 12 },
+        { key: 'pricingStrategy', width: 18 },
+        { key: 'imageUrls', width: 40 },
+      ];
+
+      // Example row
+      wsProducts.addRow([
+        '',
+        '',
+        'Example Product',
+        'Example description (10+ chars)',
+        names[0] || '',
+        'FALSE',
+        10.5,
+        '',
+        '[]',
+      ]);
+
+      // Existing product dropdown on Products!A2:A1000 referencing Lists!C
+      const lastProductRow = Math.max(productPairs.length, 1);
+      const productNameFormula = `=Lists!$C$1:$C$${lastProductRow}`;
+      for (let r = 2; r <= maxRow; r++) {
+        wsProducts.getCell(r, 1).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          showErrorMessage: true,
+          errorStyle: 'error',
+          errorTitle: 'Invalid product',
+          error: 'Choose a product from the dropdown list.',
+          formulae: [productNameFormula],
+        };
+        // Auto-fill id based on productName (column B)
+        wsProducts.getCell(r, 2).value = {
+          formula: `IFERROR(VLOOKUP(A${r},Lists!$C$1:$D$${lastProductRow},2,FALSE),\"\")`,
+        };
+      }
+
+      // Lock Products.id column (B). Everything else stays editable.
+      // 1) Unlock A1:I1000
+      for (let r = 1; r <= maxRow; r++) {
+        for (let c = 1; c <= headers.length; c++) {
+          wsProducts.getCell(r, c).protection = { locked: false };
+        }
+      }
+      // 2) Lock column B (id)
+      for (let r = 1; r <= maxRow; r++) {
+        wsProducts.getCell(r, 2).protection = { locked: true };
+      }
+      // 3) Protect sheet (no password prompt)
+      await wsProducts.protect('', {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: true,
+        formatColumns: true,
+        formatRows: true,
+        insertRows: false,
+        insertColumns: false,
+        deleteRows: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: true,
+      });
+
+      // Apply dropdown validation to categoryName column (E) rows 2..1000
+      const lastListRow = Math.max(names.length, 1);
+      const formula = `=Lists!$A$1:$A$${lastListRow}`;
+      for (let r = 2; r <= maxRow; r++) {
+        wsProducts.getCell(r, 5).dataValidation = {
+          type: 'list',
+          allowBlank: false,
+          showErrorMessage: true,
+          errorStyle: 'error',
+          errorTitle: 'Invalid category',
+          error: 'Choose a category from the dropdown list.',
+          formulae: [formula],
+        };
+      }
+
+      // Pricing sheet headers (no `id` column — create-only template)
+      // - productName: dropdown for existing + newly typed products
+      const pricingHeaders = [
+        'productName',
+        'productId',
+        'minQuantity',
+        'maxQuantity',
+        'price',
+        'fixedPrice',
+        'discountPercent',
+      ];
+      wsPricing.addRow(pricingHeaders);
+      wsPricing.getRow(1).font = { bold: true };
+      wsPricing.columns = [
+        { key: 'productName', width: 28 },
+        { key: 'productId', width: 40 },
+        { key: 'minQuantity', width: 14 },
+        { key: 'maxQuantity', width: 14 },
+        { key: 'price', width: 12 },
+        { key: 'fixedPrice', width: 12 },
+        { key: 'discountPercent', width: 16 },
+      ];
+
+      // Example pricing row
+      wsPricing.addRow([
+        productPairs[0]?.name || '',
+        '',
+        1,
+        9,
+        100,
+        '',
+        '',
+      ]);
+
+      // Product dropdown on ProductPricing!A2:A1000 referencing Lists!E (existing + Products sheet names).
+      const productNameFormulaPricing = `=Lists!$E$1:$E$${combinedCount}`;
+      for (let r = 2; r <= maxRow; r++) {
+        wsPricing.getCell(r, 1).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          showErrorMessage: true,
+          errorStyle: 'error',
+          errorTitle: 'Invalid product',
+          error: 'Choose a product from the dropdown list.',
+          formulae: [productNameFormulaPricing],
+        };
+
+        // Auto-fill productId based on productName
+        // B2 formula: VLOOKUP(productName, Lists!C:D, 2, FALSE) for existing products.
+        // For newly typed products (from Products sheet), id will be assigned on import; backend maps by name.
+        wsPricing.getCell(r, 2).value = {
+          formula: `IFERROR(VLOOKUP(A${r},Lists!$C$1:$D$${existingCount},2,FALSE),\"\")`,
+        };
+      }
+
+      // Lock only ProductPricing.productId (column B). Everything else stays editable.
+      // Excel uses "locked" flag + worksheet protection.
+      // 1) Unlock the full used range (A1:G1000)
+      for (let r = 1; r <= maxRow; r++) {
+        for (let c = 1; c <= pricingHeaders.length; c++) {
+          wsPricing.getCell(r, c).protection = { locked: false };
+        }
+      }
+      // 2) Lock column B (productId) for rows 1..1000
+      for (let r = 1; r <= maxRow; r++) {
+        wsPricing.getCell(r, 2).protection = { locked: true };
+      }
+      // 3) Protect the sheet (no password prompt)
+      await wsPricing.protect('', {
+        selectLockedCells: true,
+        selectUnlockedCells: true,
+        formatCells: true,
+        formatColumns: true,
+        formatRows: true,
+        insertRows: false,
+        insertColumns: false,
+        deleteRows: false,
+        deleteColumns: false,
+        sort: false,
+        autoFilter: true,
+      });
+
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+      res.setHeader(
+        'Content-Disposition',
+        'attachment; filename="products_import.xlsx"'
+      );
+      await workbook.xlsx.write(res);
+      res.end();
     } catch (error) {
       next(error);
     }

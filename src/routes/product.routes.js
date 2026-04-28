@@ -28,6 +28,20 @@ const csvUpload = multer({
   },
 });
 
+const xlsxUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (req, file, cb) => {
+    const okTypes = new Set([
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream',
+    ]);
+    const name = (file.originalname || '').toLowerCase();
+    if (okTypes.has(file.mimetype) || name.endsWith('.xlsx')) return cb(null, true);
+    return cb(new Error(`Invalid file type: ${file.mimetype}. Expected .xlsx.`), false);
+  },
+});
+
 /**
  * @swagger
  * /products:
@@ -71,6 +85,9 @@ router.post('/import.csv', authenticate, requireUserType('ADMIN'), csvUpload.sin
 router.post('/pricing/import.csv', authenticate, requireUserType('ADMIN'), csvUpload.single('file'), productController.importProductPricingCsv);
 router.get('/templates/products.csv', authenticate, requireUserType('ADMIN'), productController.downloadProductsCsvTemplate);
 router.get('/templates/product_pricing.csv', authenticate, requireUserType('ADMIN'), productController.downloadProductPricingCsvTemplate);
+router.get('/templates/products_import.xlsx', authenticate, requireUserType('ADMIN'), productController.downloadProductsImportXlsxTemplate);
+router.get('/export.xlsx', authenticate, requireUserType('ADMIN'), productController.exportProductsXlsx);
+router.post('/import.xlsx', authenticate, requireUserType('ADMIN'), xlsxUpload.single('file'), productController.importProductsXlsx);
 
 /**
  * @swagger
