@@ -12,7 +12,7 @@ const { apiLimiter } = require('./middleware/rateLimit.middleware');
 const { sendError } = require('./utils/response');
 const { HTTP_STATUS } = require('./utils/constants');
 
-// Initialize Express app
+// Initialize Express app new  update 
 const app = express();
 
 // CORS configuration – allow frontend origins (Vercel, localhost, etc.)
