@@ -4,7 +4,7 @@ const { ValidationError } = require('../utils/errors');
 const config = require('../config/env');
 
 const isKeyConfigured = () =>
-  config.openaiApiKey && config.openaiApiKey !== 'sk-your-openai-api-key-here';
+  !!(config.geminiApiKey && config.geminiApiKey.trim().length > 0);
 
 const sendMessage = async (req, res, next) => {
   try {
@@ -38,39 +38,55 @@ const sendMessage = async (req, res, next) => {
 
     sendSuccess(res, result, 'Message processed');
   } catch (error) {
-    if (error.message?.includes('OPENAI_API_KEY') || error.message?.includes('API key')) {
+    // Always log the real error so we can debug via server logs
+    console.error('[Chatbot] Error status=%s message=%s', error.status ?? 'N/A', error.message);
+
+    // Not configured
+    if (error.message?.includes('GEMINI_API_KEY')) {
       return res.status(503).json({
         success: false,
-        error: {
-          message: 'AI service is not configured. Please contact the administrator.',
-          code: 'AI_NOT_CONFIGURED',
-        },
+        error: { message: 'AI service is not configured. Please contact the administrator.', code: 'AI_NOT_CONFIGURED' },
       });
     }
 
-    // Use 503 (not 429) so the frontend axios interceptor does not auto-retry and burn more OpenAI quota.
-    if (error.status === 429 || error.code === 'insufficient_quota') {
+    // Invalid / revoked key (401, 403, or explicit Gemini code)
+    if (
+      error.status === 401 ||
+      error.status === 403 ||
+      error.message?.includes('API_KEY_INVALID') ||
+      error.message?.includes('PERMISSION_DENIED') ||
+      error.message?.includes('invalid_api_key')
+    ) {
       return res.status(503).json({
         success: false,
-        error: {
-          message: 'AI service quota exceeded. Please check your OpenAI billing at platform.openai.com',
-          code: 'AI_QUOTA_EXCEEDED',
-        },
+        error: { message: 'Invalid Gemini API key. Please check your configuration.', code: 'AI_INVALID_KEY' },
       });
     }
 
-    if (error.status === 401 || error.code === 'invalid_api_key') {
+    // Quota / rate-limit — ONLY match the specific Gemini error codes, not loose keywords
+    if (error.status === 429 || error.message?.includes('RESOURCE_EXHAUSTED')) {
       return res.status(503).json({
         success: false,
-        error: {
-          message: 'Invalid OpenAI API key. Please check your configuration.',
-          code: 'AI_INVALID_KEY',
-        },
+        error: { message: 'AI rate limit reached. Please try again in a few seconds.', code: 'AI_QUOTA_EXCEEDED' },
       });
     }
 
-    console.error('Chatbot error:', error.message || error);
-    next(error);
+    // Model not found / bad request
+    if (error.status === 400 || error.status === 404 || error.message?.includes('MODEL_NOT_FOUND') || error.message?.includes('not found')) {
+      return res.status(503).json({
+        success: false,
+        error: { message: 'AI model unavailable. Please contact the administrator.', code: 'AI_MODEL_ERROR' },
+      });
+    }
+
+    // Unknown — pass the real Gemini message to the client so the admin can see it
+    return res.status(503).json({
+      success: false,
+      error: {
+        message: error.message || 'AI service error. Please try again.',
+        code: 'AI_ERROR',
+      },
+    });
   }
 };
 
@@ -87,7 +103,8 @@ const getSuggestions = async (req, res, next) => {
 const getStatus = async (req, res) => {
   sendSuccess(res, {
     configured: isKeyConfigured(),
-    model: 'gpt-4o-mini',
+    model: 'gemini-1.5-flash',
+    provider: 'Google Gemini',
   }, 'Chatbot status');
 };
 

@@ -84,8 +84,12 @@ const config = {
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
   backendUrl: process.env.BACKEND_URL || 'http://localhost:3001',
 
-  // OpenAI
+  // OpenAI (legacy — no longer used)
   openaiApiKey: process.env.OPENAI_API_KEY,
+
+  // Google Gemini
+  geminiApiKey: process.env.GEMINI_API_KEY,
+  geminiProjectId: process.env.GEMINI_PROJECT_ID,
 };
 
 module.exports = config;

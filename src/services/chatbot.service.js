@@ -1,17 +1,17 @@
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const prisma = require('../config/database');
 const config = require('../config/env');
 
-let openai = null;
+let genAI = null;
 
 const getClient = () => {
-  if (!openai) {
-    if (!config.openaiApiKey || config.openaiApiKey === 'sk-your-openai-api-key-here') {
-      throw new Error('OPENAI_API_KEY is not configured. Set it in .env');
+  if (!genAI) {
+    if (!config.geminiApiKey) {
+      throw new Error('GEMINI_API_KEY is not configured. Set it in .env');
     }
-    openai = new OpenAI({ apiKey: config.openaiApiKey });
+    genAI = new GoogleGenerativeAI(config.geminiApiKey);
   }
-  return openai;
+  return genAI;
 };
 
 const buildProductKnowledge = async (isInstitute = false) => {
@@ -79,6 +79,8 @@ const SYSTEM_PROMPT_BASE = `You are "Studify Assistant", an intelligent, friendl
 - You can suggest related products from the same category
 `;
 
+// In-memory conversation store.
+// Gemini history format: { role: 'user'|'model', parts: [{ text: string }] }[]
 const conversationStore = new Map();
 
 const CONVERSATION_TTL = 30 * 60 * 1000; // 30 min
@@ -108,49 +110,49 @@ const chat = async ({ message, conversationId, userType }) => {
       ? `## Special context: This user is a government/institute customer. They can order wholesale quantities with tiered pricing. Guide them about wholesale orders and bulk discounts.\n`
       : `## This is a regular customer. Help them browse and purchase products.\n`);
 
+  const model = client.getGenerativeModel({
+    model: 'gemini-1.5-flash',
+    systemInstruction: systemPrompt,
+  });
+
+  // Retrieve existing Gemini-format history
   let history = [];
   if (conversationId && conversationStore.has(conversationId)) {
     history = conversationStore.get(conversationId).messages;
   }
 
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...history,
-    { role: 'user', content: message },
-  ];
+  const chatSession = model.startChat({ history });
 
-  const response = await client.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages,
-    max_tokens: 800,
-    temperature: 0.7,
-  });
+  const result = await chatSession.sendMessage(message);
+  const assistantMessage = result.response.text();
 
-  const assistantMessage = response.choices[0].message.content;
+  const convId =
+    conversationId || `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  const convId = conversationId || `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
+  // Append to history in Gemini format
   const updatedHistory = [
     ...history,
-    { role: 'user', content: message },
-    { role: 'assistant', content: assistantMessage },
+    { role: 'user', parts: [{ text: message }] },
+    { role: 'model', parts: [{ text: assistantMessage }] },
   ];
 
-  // Keep last 20 messages to stay within token limits
-  const trimmed = updatedHistory.slice(-20);
+  // Keep last 20 turns (40 entries)
+  const trimmed = updatedHistory.slice(-40);
 
   conversationStore.set(convId, {
     messages: trimmed,
     updatedAt: Date.now(),
   });
 
+  const usageMeta = result.response.usageMetadata;
+
   return {
     reply: assistantMessage,
     conversationId: convId,
     usage: {
-      promptTokens: response.usage?.prompt_tokens,
-      completionTokens: response.usage?.completion_tokens,
-      totalTokens: response.usage?.total_tokens,
+      promptTokens: usageMeta?.promptTokenCount,
+      completionTokens: usageMeta?.candidatesTokenCount,
+      totalTokens: usageMeta?.totalTokenCount,
     },
   };
 };
