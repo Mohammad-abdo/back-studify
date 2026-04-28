@@ -16,6 +16,31 @@ const { optionalAuthenticate, checkProductAccess } = require('../middleware/inst
 const { validateBody, validateQuery } = require('../middleware/validation.middleware');
 const { paginationSchema, uuidSchema } = require('../utils/validators');
 const { z } = require('zod');
+const multer = require('multer');
+
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  fileFilter: (req, file, cb) => {
+    const okTypes = new Set(['text/csv', 'application/vnd.ms-excel']);
+    if (okTypes.has(file.mimetype)) return cb(null, true);
+    return cb(new Error(`Invalid file type: ${file.mimetype}. Expected CSV.`), false);
+  },
+});
+
+const xlsxUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25MB
+  fileFilter: (req, file, cb) => {
+    const okTypes = new Set([
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream',
+    ]);
+    const name = (file.originalname || '').toLowerCase();
+    if (okTypes.has(file.mimetype) || name.endsWith('.xlsx')) return cb(null, true);
+    return cb(new Error(`Invalid file type: ${file.mimetype}. Expected .xlsx.`), false);
+  },
+});
 
 /**
  * @swagger
@@ -52,6 +77,17 @@ const productListQuerySchema = paginationSchema.extend({
 });
 
 router.get('/', optionalAuthenticate, validateQuery(productListQuerySchema), productController.getProducts);
+
+// CSV import/export (Admin only)
+router.get('/export.csv', authenticate, requireUserType('ADMIN'), productController.exportProductsCsv);
+router.get('/pricing/export.csv', authenticate, requireUserType('ADMIN'), productController.exportProductPricingCsv);
+router.post('/import.csv', authenticate, requireUserType('ADMIN'), csvUpload.single('file'), productController.importProductsCsv);
+router.post('/pricing/import.csv', authenticate, requireUserType('ADMIN'), csvUpload.single('file'), productController.importProductPricingCsv);
+router.get('/templates/products.csv', authenticate, requireUserType('ADMIN'), productController.downloadProductsCsvTemplate);
+router.get('/templates/product_pricing.csv', authenticate, requireUserType('ADMIN'), productController.downloadProductPricingCsvTemplate);
+router.get('/templates/products_import.xlsx', authenticate, requireUserType('ADMIN'), productController.downloadProductsImportXlsxTemplate);
+router.get('/export.xlsx', authenticate, requireUserType('ADMIN'), productController.exportProductsXlsx);
+router.post('/import.xlsx', authenticate, requireUserType('ADMIN'), xlsxUpload.single('file'), productController.importProductsXlsx);
 
 /**
  * @swagger
