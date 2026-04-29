@@ -17,6 +17,7 @@ const {
 
 const SHEET_PRODUCTS = 'Products';
 const SHEET_PRICING = 'ProductPricing';
+const SHEET_LISTS = '_lists';
 
 const PRICING_STRATEGIES = ['FIXED_TIERS', 'DISCOUNT_TIERS'];
 const XLSX_VALIDATION_MAX_ROWS = 5000;
@@ -32,17 +33,38 @@ const PRODUCT_HEADERS = [
   'imageUrls',
 ];
 
-const applyProductsSheetValidations = (worksheet) => {
+const ensurePricingStrategiesNamedRange = (workbook) => {
+  // Excel data validation list separators vary by locale; using a named range is robust.
+  const existing = workbook.getWorksheet(SHEET_LISTS);
+  const ws = existing || workbook.addWorksheet(SHEET_LISTS, { state: 'veryHidden' });
+  if (!existing) {
+    ws.getColumn(1).width = 28;
+  }
+
+  // Populate A1..An with strategies (idempotent overwrite).
+  for (let i = 0; i < PRICING_STRATEGIES.length; i++) {
+    ws.getCell(i + 1, 1).value = PRICING_STRATEGIES[i];
+  }
+
+  // Define / overwrite a workbook-level named range.
+  const range = `${SHEET_LISTS}!$A$1:$A$${PRICING_STRATEGIES.length}`;
+  workbook.definedNames.add('PricingStrategies', range);
+};
+
+const applyProductsSheetValidations = (workbook, worksheet) => {
+  ensurePricingStrategiesNamedRange(workbook);
+
   // pricingStrategy column is "G" (7th column) in PRODUCT_HEADERS.
   const range = `G2:G${XLSX_VALIDATION_MAX_ROWS}`;
   worksheet.dataValidations.add(range, {
     type: 'list',
     allowBlank: true,
+    showDropDown: false, // show the in-cell dropdown arrow
     showErrorMessage: true,
     errorStyle: 'error',
     errorTitle: 'Invalid pricingStrategy',
     error: `Choose one of: ${PRICING_STRATEGIES.join(', ')}`,
-    formulae: [`"${PRICING_STRATEGIES.join(',')}"`],
+    formulae: ['=PricingStrategies'],
   });
 };
 
@@ -230,7 +252,8 @@ const buildProductsSheet = (worksheet, products) => {
       p.imageUrls ?? '',
     ]);
   }
-  applyProductsSheetValidations(worksheet);
+  const wb = worksheet && worksheet.workbook;
+  if (wb) applyProductsSheetValidations(wb, worksheet);
 };
 
 const buildPricingSheet = (worksheet, tiers) => {
@@ -307,6 +330,7 @@ const embedLocalImagesOnProductsSheet = async (workbook, worksheet, products) =>
 module.exports = {
   SHEET_PRODUCTS,
   SHEET_PRICING,
+  SHEET_LISTS,
   PRODUCT_HEADERS,
   PRICING_HEADERS,
   MAX_XLSX_BYTES,

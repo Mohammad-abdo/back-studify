@@ -1095,9 +1095,17 @@ module.exports = {
       wsLists.state = 'veryHidden';
       const maxRow = 1000;
 
-      // Lists sheet: categories (A) + existing products (C:D) + combined products list (E)
+      // Lists sheet: categories (A) + pricing strategies (B) + isInstituteProduct values (F) + existing products (C:D) + combined products list (E)
       for (let i = 0; i < names.length; i++) {
         wsLists.getCell(i + 1, 1).value = names[i];
+      }
+      const pricingStrategies = ['FIXED_TIERS', 'DISCOUNT_TIERS'];
+      for (let i = 0; i < pricingStrategies.length; i++) {
+        wsLists.getCell(i + 1, 2).value = pricingStrategies[i]; // B
+      }
+      const instituteFlags = ['TRUE', 'FALSE'];
+      for (let i = 0; i < instituteFlags.length; i++) {
+        wsLists.getCell(i + 1, 6).value = instituteFlags[i]; // F
       }
       for (let i = 0; i < productPairs.length; i++) {
         wsLists.getCell(i + 1, 3).value = productPairs[i].name; // C
@@ -1215,6 +1223,34 @@ module.exports = {
           errorTitle: 'Invalid category',
           error: 'Choose a category from the dropdown list.',
           formulae: [formula],
+        };
+      }
+
+      // Apply dropdown validation to isInstituteProduct column (F) rows 2..1000
+      const isInstituteProductFormula = `=Lists!$F$1:$F$${instituteFlags.length}`;
+      for (let r = 2; r <= maxRow; r++) {
+        wsProducts.getCell(r, 6).dataValidation = {
+          type: 'list',
+          allowBlank: false,
+          showErrorMessage: true,
+          errorStyle: 'error',
+          errorTitle: 'Invalid isInstituteProduct',
+          error: 'Choose TRUE or FALSE from the dropdown list.',
+          formulae: [isInstituteProductFormula],
+        };
+      }
+
+      // Apply dropdown validation to pricingStrategy column (H) rows 2..1000
+      const pricingStrategyFormula = `=Lists!$B$1:$B$${pricingStrategies.length}`;
+      for (let r = 2; r <= maxRow; r++) {
+        wsProducts.getCell(r, 8).dataValidation = {
+          type: 'list',
+          allowBlank: true,
+          showErrorMessage: true,
+          errorStyle: 'error',
+          errorTitle: 'Invalid pricingStrategy',
+          error: 'Choose a pricingStrategy from the dropdown list.',
+          formulae: [pricingStrategyFormula],
         };
       }
 
