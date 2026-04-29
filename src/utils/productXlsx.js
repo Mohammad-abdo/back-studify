@@ -4,9 +4,10 @@
 
 const path = require('path');
 const fs = require('fs').promises;
+const net = require('net');
 const ExcelJS = require('exceljs');
 const config = require('../config/env');
-const { generateFileName } = require('./helpers');
+const { generateFileName, isAllowedFileType } = require('./helpers');
 const { getFileUrl, getFilePath } = require('../services/fileUpload.service');
 const {
   toBool,
@@ -80,6 +81,8 @@ const PRICING_HEADERS = [
 
 const MAX_XLSX_BYTES = 25 * 1024 * 1024;
 const MAX_EMBEDDED_IMAGES = 500;
+const MAX_REMOTE_IMAGES_PER_PRODUCT = 10;
+const REMOTE_IMAGE_TIMEOUT_MS = 15_000;
 
 const ensureUploadDir = async () => {
   try {
@@ -106,6 +109,166 @@ const saveImageBuffer = async (buffer, extension) => {
   const dest = path.join(config.uploadDir, filename);
   await fs.writeFile(dest, buffer);
   return getFileUrl(filename);
+};
+
+const isPrivateIp = (ip) => {
+  // IPv4 only (sufficient for typical deployments). IPv6 is blocked by default unless explicitly handled.
+  const parts = ip.split('.').map((p) => parseInt(p, 10));
+  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)) return true;
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 169 && b === 254) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  if (a === 192 && b === 168) return true;
+  return false;
+};
+
+const isBlockedRemoteHost = (hostname) => {
+  const h = String(hostname || '').trim().toLowerCase();
+  if (!h) return true;
+  if (h === 'localhost' || h === '0.0.0.0') return true;
+  if (h.endsWith('.local')) return true;
+  const ipVersion = net.isIP(h);
+  if (ipVersion === 4) return isPrivateIp(h);
+  if (ipVersion === 6) return true; // block IPv6 to avoid SSRF edge cases
+  return false;
+};
+
+const extFromContentType = (contentType) => {
+  const ct = String(contentType || '').toLowerCase().split(';')[0].trim();
+  if (ct === 'image/jpeg' || ct === 'image/jpg') return 'jpeg';
+  if (ct === 'image/png') return 'png';
+  if (ct === 'image/webp') return 'webp';
+  if (ct === 'image/gif') return 'gif';
+  return null;
+};
+
+const shouldKeepAsIs = (url) => {
+  if (typeof url !== 'string' || !url.trim()) return true;
+  const u = url.trim();
+  // Already a local uploads URL (relative or absolute)
+  if (u.startsWith('/uploads/')) return true;
+  if (u.includes('/uploads/')) {
+    try {
+      const parsed = new URL(u);
+      if (parsed.pathname.includes('/uploads/')) return true;
+    } catch {
+      // ignore
+    }
+  }
+  return false;
+};
+
+/**
+ * Given a JSON array string cell value, download each remote image and store it in /uploads.
+ * Returns a JSON string of hosted URLs (or null).
+ */
+const resolveAndStoreImageUrlsJson = async (imageUrlsCell) => {
+  const normalized = toJsonArrayStringOrNull(imageUrlsCell);
+  if (!normalized) return { imageUrls: null, errors: [] };
+
+  let urls;
+  try {
+    urls = JSON.parse(normalized);
+  } catch {
+    return { imageUrls: null, errors: [{ message: 'imageUrls must be a JSON array of URLs' }] };
+  }
+  if (!Array.isArray(urls)) {
+    return { imageUrls: null, errors: [{ message: 'imageUrls must be a JSON array of URLs' }] };
+  }
+
+  const out = [];
+  const errors = [];
+  const maxBytes = Number(config.maxFileSize) || 5 * 1024 * 1024;
+
+  for (const raw of urls.slice(0, MAX_REMOTE_IMAGES_PER_PRODUCT)) {
+    if (typeof raw !== 'string' || !raw.trim()) continue;
+    const val = raw.trim();
+    if (shouldKeepAsIs(val)) {
+      out.push(val);
+      continue;
+    }
+
+    let parsed;
+    try {
+      parsed = new URL(val);
+    } catch {
+      errors.push({ message: `Invalid image URL: "${val}"` });
+      continue;
+    }
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      errors.push({ message: `Unsupported URL protocol for image: "${val}"` });
+      continue;
+    }
+    if (isBlockedRemoteHost(parsed.hostname)) {
+      errors.push({ message: `Blocked image host: "${parsed.hostname}"` });
+      continue;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), REMOTE_IMAGE_TIMEOUT_MS);
+    try {
+      const res = await fetch(parsed.toString(), {
+        method: 'GET',
+        redirect: 'follow',
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        errors.push({ message: `Failed to fetch image (${res.status}): "${val}"` });
+        continue;
+      }
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.toLowerCase().startsWith('image/')) {
+        errors.push({ message: `URL is not an image (content-type: ${contentType || 'unknown'}): "${val}"` });
+        continue;
+      }
+      if (!isAllowedFileType(contentType.split(';')[0].trim())) {
+        errors.push({ message: `Image type not allowed (${contentType}): "${val}"` });
+        continue;
+      }
+
+      const contentLength = res.headers.get('content-length');
+      if (contentLength && Number(contentLength) > maxBytes) {
+        errors.push({ message: `Image too large (> ${maxBytes} bytes): "${val}"` });
+        continue;
+      }
+
+      const buf = Buffer.from(await res.arrayBuffer());
+      if (buf.length > maxBytes) {
+        errors.push({ message: `Image too large (> ${maxBytes} bytes): "${val}"` });
+        continue;
+      }
+
+      const ext = extFromContentType(contentType) || 'png';
+      const hosted = await saveImageBuffer(buf, ext);
+      out.push(hosted);
+    } catch (e) {
+      const msg = e?.name === 'AbortError' ? 'timeout' : (e?.message || 'fetch failed');
+      errors.push({ message: `Failed to fetch image (${msg}): "${val}"` });
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  // If user provided more than max, warn but proceed with first N.
+  if (urls.length > MAX_REMOTE_IMAGES_PER_PRODUCT) {
+    errors.push({ message: `Too many image URLs (max ${MAX_REMOTE_IMAGES_PER_PRODUCT} per product). Extra URLs were ignored.` });
+  }
+
+  // Deduplicate while preserving order.
+  const seen = new Set();
+  const deduped = [];
+  for (const u of out) {
+    if (typeof u !== 'string' || !u.trim()) continue;
+    const s = u.trim();
+    if (seen.has(s)) continue;
+    seen.add(s);
+    deduped.push(s);
+  }
+
+  return { imageUrls: deduped.length ? JSON.stringify(deduped) : null, errors };
 };
 
 const cellText = (cell) => {
@@ -342,5 +505,6 @@ module.exports = {
   buildProductsSheet,
   buildPricingSheet,
   embedLocalImagesOnProductsSheet,
+  resolveAndStoreImageUrlsJson,
   cellText,
 };

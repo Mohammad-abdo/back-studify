@@ -81,6 +81,68 @@ describe('product.controller XLSX import/export', () => {
     expect(payload.data.products.createdCount).toBe(1);
   });
 
+  test('importProductsXlsx downloads image URLs into uploads', async () => {
+    const prismaMock = {
+      product: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn().mockResolvedValue({}),
+        update: jest.fn(),
+      },
+      productCategory: { findMany: jest.fn().mockResolvedValue([]) },
+      productPricing: { findMany: jest.fn() },
+    };
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Products');
+    ws.addRow([
+      'id',
+      'name',
+      'description',
+      'categoryId',
+      'isInstituteProduct',
+      'basePrice',
+      'pricingStrategy',
+      'imageUrls',
+    ]);
+    ws.addRow([
+      '',
+      'ImgProduct',
+      'Description at least ten chars.',
+      'cat-uuid-0000-0000-0000-000000000001',
+      'false',
+      '2',
+      '',
+      '["https://example.com/a.png"]',
+    ]);
+    const buffer = await wb.xlsx.writeBuffer();
+
+    jest.resetModules();
+    jest.doMock('../../config/database', () => prismaMock);
+
+    // Mock resolver so the test doesn't do real HTTP/file IO.
+    jest.doMock('../../utils/productXlsx', () => {
+      const actual = jest.requireActual('../../utils/productXlsx');
+      return {
+        ...actual,
+        resolveAndStoreImageUrlsJson: jest.fn().mockResolvedValue({
+          imageUrls: '["http://localhost:6008/uploads/mock.png"]',
+          errors: [],
+        }),
+      };
+    });
+
+    const controller = require('../product.controller');
+
+    const req = { file: { buffer: Buffer.from(buffer) }, query: {} };
+    const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
+    await controller.importProductsXlsx(req, res, jest.fn());
+
+    expect(prismaMock.product.create).toHaveBeenCalled();
+    const createArgs = prismaMock.product.create.mock.calls[0][0];
+    expect(createArgs.data.imageUrls).toBe('["http://localhost:6008/uploads/mock.png"]');
+  });
+
   test('importProductsXlsx maps categoryName to categoryId', async () => {
     const prismaMock = {
       product: {

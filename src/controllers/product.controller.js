@@ -788,7 +788,7 @@ module.exports = {
       const wsPricing = workbook.addWorksheet(productXlsx.SHEET_PRICING);
       productXlsx.buildProductsSheet(wsProducts, products);
       productXlsx.buildPricingSheet(wsPricing, tiers);
-      await productXlsx.embedLocalImagesOnProductsSheet(workbook, wsProducts, products);
+      // Images are handled as URLs only (no embedding) to keep the workflow simple and hosting-friendly.
 
       res.setHeader(
         'Content-Type',
@@ -807,6 +807,12 @@ module.exports = {
       if (!req.file?.buffer) {
         throw new ValidationError('Excel file is required');
       }
+
+      const isUuid = (value) =>
+        typeof value === 'string' &&
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          value.trim()
+        );
 
       const replace = req.query.replace === 'true';
       const workbook = await productXlsx.parseWorkbookFromBuffer(req.file.buffer);
@@ -845,13 +851,6 @@ module.exports = {
         productMap.set(key, p.id);
       }
 
-      const imageErrors = [];
-      const embeddedByRow = await productXlsx.extractEmbeddedImagesByRow(
-        workbook,
-        productsWs,
-        imageErrors
-      );
-
       const productRowObjs = productXlsx.readRowsAsObjects(productsWs, [
         ...productXlsx.PRODUCT_HEADERS,
         'categoryName',
@@ -874,11 +873,28 @@ module.exports = {
         const basePrice = toNumberOrNull(r.basePrice);
         const pricingStrategyRaw = (r.pricingStrategy ?? '').trim();
         const pricingStrategy = pricingStrategyRaw === '' ? null : pricingStrategyRaw;
-        const embeddedUrls = embeddedByRow.get(sheetRow) || [];
-        const imageUrls = productXlsx.mergeImageUrlsCellAndEmbedded(
-          r.imageUrls,
-          embeddedUrls
-        );
+        // Images: only update when admin provides URLs in the cell.
+        // This prevents clearing existing images when the cell is left empty during updates.
+        let imageUrls = undefined;
+        const rawImageUrlsCell = (r.imageUrls ?? '').trim();
+        if (rawImageUrlsCell) {
+          const resolved = await productXlsx.resolveAndStoreImageUrlsJson(rawImageUrlsCell);
+          imageUrls = resolved.imageUrls; // may be null (explicitly clear) or JSON string
+          if (resolved.errors?.length) {
+            for (const ie of resolved.errors) {
+              errors.push({ row: sheetRow, message: ie.message });
+            }
+          }
+        }
+
+        if (id && !isUuid(id)) {
+          // Do not allow Excel to create products with arbitrary/non-UUID ids.
+          errors.push({
+            row: sheetRow,
+            message: `Invalid product id "${id}". Leave id empty for new products, or select an existing productName.`,
+          });
+          id = '';
+        }
 
         if (!id && productName) {
           const key = productName.toLowerCase();
@@ -952,7 +968,7 @@ module.exports = {
           isInstituteProduct: !!isInstituteProduct,
           basePrice,
           pricingStrategy,
-          imageUrls,
+          ...(imageUrls !== undefined && { imageUrls }),
         };
 
         try {
@@ -962,8 +978,13 @@ module.exports = {
               await prisma.product.update({ where: { id }, data });
               updatedCount++;
             } else {
-              await prisma.product.create({ data: { id, ...data } });
+              // If id is provided but doesn't exist, we still create a new product with a backend-generated id.
+              await prisma.product.create({ data });
               createdCount++;
+              errors.push({
+                row: sheetRow,
+                message: `Product id "${id}" was not found, so a new product was created with a backend-generated id.`,
+              });
             }
           } else {
             await prisma.product.create({ data });
@@ -1025,7 +1046,7 @@ module.exports = {
         {
           products: { createdCount, updatedCount, skippedCount, errors },
           pricing: pricingSummary,
-          images: { errors: imageErrors },
+          images: { errors: [] },
         },
         'Products XLSX import processed'
       );
