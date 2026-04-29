@@ -18,6 +18,9 @@ const {
 const SHEET_PRODUCTS = 'Products';
 const SHEET_PRICING = 'ProductPricing';
 
+const PRICING_STRATEGIES = ['FIXED_TIERS', 'DISCOUNT_TIERS'];
+const XLSX_VALIDATION_MAX_ROWS = 5000;
+
 const PRODUCT_HEADERS = [
   'id',
   'name',
@@ -28,6 +31,20 @@ const PRODUCT_HEADERS = [
   'pricingStrategy',
   'imageUrls',
 ];
+
+const applyProductsSheetValidations = (worksheet) => {
+  // pricingStrategy column is "G" (7th column) in PRODUCT_HEADERS.
+  const range = `G2:G${XLSX_VALIDATION_MAX_ROWS}`;
+  worksheet.dataValidations.add(range, {
+    type: 'list',
+    allowBlank: true,
+    showErrorMessage: true,
+    errorStyle: 'error',
+    errorTitle: 'Invalid pricingStrategy',
+    error: `Choose one of: ${PRICING_STRATEGIES.join(', ')}`,
+    formulae: [`"${PRICING_STRATEGIES.join(',')}"`],
+  });
+};
 
 const PRICING_HEADERS = [
   'id',
@@ -213,6 +230,7 @@ const buildProductsSheet = (worksheet, products) => {
       p.imageUrls ?? '',
     ]);
   }
+  applyProductsSheetValidations(worksheet);
 };
 
 const buildPricingSheet = (worksheet, tiers) => {
